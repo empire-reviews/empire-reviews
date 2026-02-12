@@ -2,7 +2,7 @@
 
 client_id = "05be213c4c2c36c447c9d2532cbd900f"
 name = "Empire Reviews Core"
-application_url = "https://example.com"
+application_url = "https://empire-reviews.vercel.app"
 embedded = true
 
 [build]
@@ -24,7 +24,7 @@ api_version = "2026-04"
 scopes = "read_marketing_events,read_orders,write_marketing_events,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://empire-reviews.vercel.app/auth/callback" ]
 
 [app_proxy]
 url = "https://fleet-mel-police-paris.trycloudflare.com"
