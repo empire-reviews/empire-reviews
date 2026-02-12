@@ -27,6 +27,6 @@ scopes = "read_marketing_events,read_orders,write_marketing_events,write_product
 redirect_urls = [ "https://empire-reviews.vercel.app/auth/callback" ]
 
 [app_proxy]
-url = "https://fleet-mel-police-paris.trycloudflare.com"
+url = "https://empire-reviews.vercel.app"
 subpath = "empire-reviews"
 prefix = "apps"
