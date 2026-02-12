@@ -22,9 +22,10 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Empire Reviews - Transform Customer Feedback into Revenue</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Automate review collection with smart email campaigns. Display beautiful photo reviews.
+          Increase conversions with powerful social proof.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -34,22 +35,22 @@ export default function App() {
               <span>e.g: my-shop-domain.myshopify.com</span>
             </label>
             <button className={styles.button} type="submit">
-              Log in
+              Install Empire Reviews
             </button>
           </Form>
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Automated Review Collection</strong>. Psychology-driven email campaigns
+            that collect 5x more reviews with photo/video testimonials automatically.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Beautiful Review Widgets</strong>. Stunning, customizable displays with
+            star ratings, photo carousels, trust badges, and verified purchase indicators.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>AI-Powered Insights</strong>. Understand customer sentiment instantly
+            with automated analysis, trend detection, and conversion tracking.
           </li>
         </ul>
       </div>
