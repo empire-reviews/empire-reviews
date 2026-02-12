@@ -1,0 +1,32 @@
+[[extensions]]
+name = "Review Created v6"
+handle = "review-created-v6"
+type = "flow_trigger"
+uid = "e3c2851b-1d2d-1103-1822-e073766c3127bbe6ac95"
+description = "Triggers when a new review is submitted"
+
+[settings]
+  [[settings.fields]]
+  key = "rating"
+  type = "number_integer"
+  description = "Review Rating (1-5)"
+
+  [[settings.fields]]
+  key = "reviewBody"
+  type = "multi_line_text_field"
+  description = "Content of the review"
+
+  [[settings.fields]]
+  key = "customerEmail"
+  type = "email"
+  description = "Customer Email"
+
+  [[settings.fields]]
+  key = "customerName"
+  type = "single_line_text_field"
+  description = "Customer Name"
+
+  [[settings.fields]]
+  key = "reviewTitle"
+  type = "single_line_text_field"
+  description = "Review Title (optional)"

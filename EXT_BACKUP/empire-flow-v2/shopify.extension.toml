@@ -1,0 +1,29 @@
+[[extensions]]
+
+uid = "870700b7-ad17-d59c-ac30-0af6b98a3cd5415118bd"
+
+type = "flow_trigger"
+handle = "review-created-v2"
+name = "Review Created v2"
+description = "Triggers when a new review is submitted via Empire Reviews."
+
+[settings]
+  [[settings.fields]]
+  key = "rating"
+  type = "number_integer"
+
+  [[settings.fields]]
+  key = "reviewBody"
+  type = "multi_line_text_field"
+
+  [[settings.fields]]
+  key = "customerEmail"
+  type = "email"
+
+  [[settings.fields]]
+  key = "customerName"
+  type = "single_line_text_field"
+
+  [[settings.fields]]
+  key = "reviewTitle"
+  type = "single_line_text_field"

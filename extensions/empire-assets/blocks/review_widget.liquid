@@ -1,0 +1,60 @@
+{% schema %}
+{
+  "name": "Review Widget",
+  "target": "section",
+  "stylesheet": "empire.css",
+  "javascript": "empire_v2.js",
+  "settings": [
+     { "type": "header", "content": "Psychology Triggers" },
+     { "type": "text", "id": "title", "label": "Headline", "default": "Customer Reviews" },
+     { "type": "text", "id": "subtext", "label": "Sub-headline", "default": "See what everyone is talking about." },
+     
+     { "type": "header", "content": "Design & Colors" },
+     { "type": "color", "id": "sidebar_bg", "label": "Sidebar Background", "default": "#ffffff" },
+     { "type": "color", "id": "feed_bg", "label": "Feed Background", "default": "#f9fafb" },
+     { "type": "color", "id": "text_color", "label": "Primary Text Color", "default": "#111111" },
+     { "type": "color", "id": "body_text_color", "label": "Review Body Color", "default": "#4b5563" },
+     { "type": "range", "id": "font_size", "min": 12, "max": 24, "step": 1, "unit": "px", "label": "Base Font Size", "default": 16 },
+
+     { "type": "header", "content": "Action Button" },
+     { "type": "color", "id": "btn_bg", "label": "Button Background", "default": "#111111" },
+     { "type": "color", "id": "btn_text", "label": "Button Text", "default": "#ffffff" },
+     
+     { "type": "header", "content": "Detailed Elements" },
+     { "type": "color", "id": "star_color", "label": "Star Color", "default": "#fbbf24" },
+     { "type": "color", "id": "bar_color", "label": "Stats Bar Color", "default": "#111111" },
+     { "type": "color", "id": "verified_color", "label": "Verified Badge Color", "default": "#16a34a" },
+     
+     { "type": "header", "content": "Advanced Connection" }
+  ]
+}
+{% endschema %}
+
+<div class="empire-reviews-widget" 
+     data-product-id="{{ product.id }}"
+     data-full-js="{{ 'empire_reviews_full.js' | asset_url }}"
+     style="
+        --empire-sidebar-bg: {{ block.settings.sidebar_bg }};
+        --empire-feed-bg: {{ block.settings.feed_bg }};
+        --empire-text-color: {{ block.settings.text_color }};
+        --empire-body-color: {{ block.settings.body_text_color }};
+        --empire-font-size: {{ block.settings.font_size }}px;
+        --empire-btn-bg: {{ block.settings.btn_bg }};
+        --empire-btn-text: {{ block.settings.btn_text }};
+        --empire-star-color: {{ block.settings.star_color }};
+        --empire-bar-color: {{ block.settings.bar_color }};
+        --empire-verified-color: {{ block.settings.verified_color }};
+     "
+>
+  <div class="empire-widget-header" style="margin-bottom: 2rem;">
+      <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; line-height: 1.2;">{{ block.settings.title }}</h2>
+      <p class="empire-social-proof-text" style="font-size: 1.2rem; opacity: 0.8; margin-top: 0;">{{ block.settings.subtext }}</p>
+  </div>
+  
+  <!-- The Wizard Form is now rendered dynamically by empire_v2.js -->
+  <div class="empire-reviews-container">
+      <div class="empire-loading">Loading...</div>
+  </div>
+</div>
+
+

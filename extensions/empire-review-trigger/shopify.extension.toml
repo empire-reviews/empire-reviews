@@ -1,0 +1,32 @@
+[[extensions]]
+name = "Empire Review Trigger"
+handle = "empire-review-trigger"
+type = "flow_trigger"
+uid = "7d799409-6262-885e-5955-c5b459184d57c47e3a9f"
+description = "Triggers when a new review is submitted"
+
+[settings]
+  [[settings.fields]]
+  key = "rating"
+  type = "single_line_text_field"
+  description = "Review Rating (1-5)"
+
+  [[settings.fields]]
+  key = "reviewBody"
+  type = "single_line_text_field"
+  description = "Content of the review"
+
+  [[settings.fields]]
+  key = "customerEmail"
+  type = "email"
+  description = "Customer Email"
+
+  [[settings.fields]]
+  key = "customerName"
+  type = "single_line_text_field"
+  description = "Customer Name"
+
+  [[settings.fields]]
+  key = "reviewTitle"
+  type = "single_line_text_field"
+  description = "Review Title (optional)"

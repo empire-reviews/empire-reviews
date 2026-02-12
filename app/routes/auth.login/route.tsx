@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, useSearchParams } from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
   Button,
@@ -36,7 +36,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function Auth() {
   const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const [shop, setShop] = useState("");
+  const [searchParams] = useSearchParams();
+  const [shop, setShop] = useState(searchParams.get("shop") || "");
   const { errors } = actionData || loaderData;
 
   return (

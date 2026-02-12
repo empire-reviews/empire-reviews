@@ -1,0 +1,1113 @@
+﻿node.exe : 2026-02-11T07:43:51.412Z: Running command app dev
+At C:\Users\USER\AppData\Roaming\npm\shopify.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/@shopify/cli/bin/run.js" $ar ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-02-11T07:4...command app dev:String) [], 
+RemoteExcept    ion
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-02-11T07:43:51.433Z: Running system process:
+  ┬╖ Command: D:\node.exe C:\Users\USER\AppData\Roaming\npm\node_modules\@shopify\cli\bin\run.js 
+notifications list --ignore-errors
+  ┬╖ Working directory: C:/Users/USER/.gemini/antigravity/scratch/empire-reviews
+
+2026-02-11T07:43:51.453Z: Notifications to show: 0
+2026-02-11T07:43:51.478Z: Reading cached app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews...
+2026-02-11T07:43:51.480Z: Reading the content of file at shopify.app.toml...
+2026-02-11T07:43:51.486Z: Reading the content of file at shopify.app.toml...
+2026-02-11T07:43:51.489Z: Ensuring that the user is authenticated with the App Management API 
+with the following scopes:
+[]
+
+2026-02-11T07:43:51.489Z: Getting session store...
+2026-02-11T07:43:51.490Z: Getting current session ID...
+2026-02-11T07:43:51.492Z: Validating existing session against the scopes:
+[
+  "openid",
+  "https://api.shopify.com/auth/shop.admin.graphql",
+  "https://api.shopify.com/auth/shop.admin.themes",
+  "https://api.shopify.com/auth/partners.collaborator-relationships.readonly",
+  "https://api.shopify.com/auth/shop.storefront-renderer.devtools",
+  "https://api.shopify.com/auth/partners.app.cli.access",
+  "https://api.shopify.com/auth/destinations.readonly",
+  "https://api.shopify.com/auth/organization.store-management",
+  "https://api.shopify.com/auth/organization.on-demand-user-access",
+  "https://api.shopify.com/auth/organization.apps.manage"
+]
+For applications:
+{
+  "appManagementApi": {
+    "scopes": []
+  },
+  "businessPlatformApi": {
+    "scopes": []
+  }
+}
+
+2026-02-11T07:43:51.492Z: - Token validation -> It's expired: false
+2026-02-11T07:43:51.495Z: Sending "BusinessPlatform" GraphQL request:
+  query UserInfo {
+  currentUserAccount {
+    uuid
+    email
+    organizations(first: 2) {
+      nodes {
+        name
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://destinations.shopifysvc.com/destinations/api/2020-07/graphql
+2026-02-11T07:43:51.524Z: Sending "App Management" GraphQL request:
+  query ActiveAppReleaseFromApiKey($apiKey: String!) {
+  app: appByKey(key: $apiKey) {
+    ...AppVersionInfo
+    __typename
+  }
+}
+
+fragment ReleasedAppModule on AppModule {
+  uuid
+  userIdentifier
+  handle
+  config
+  target
+  specification {
+    identifier
+    externalIdentifier
+    name
+    managementExperience
+  }
+}
+
+fragment AppVersionInfo on App {
+  id
+  key
+  organizationId
+  activeRoot {
+    clientCredentials {
+      secrets {
+        key
+      }
+    }
+    grantedShopifyApprovalScopes
+  }
+  activeRelease {
+    id
+    version {
+      name
+      appModules {
+        ...ReleasedAppModule
+      }
+    }
+  }
+}
+
+With variables:
+{
+  "apiKey": "*****"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://app.shopify.com/app_management/unstable/graphql.json
+2026-02-11T07:43:52.140Z: Request to 
+https://app.shopify.com/app_management/unstable/graphql.json completed in 615 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=164, verdict_flag_enabled;desc="count=5";dur=0.874, 
+_y;desc="4211b8c6-52d0-4f73-b719-9a61204606ab", _s;desc="ae85d6c0-833c-4d98-8b25-8289a00fc334", 
+cfRequestDuration;dur=500.000000
+ - x-request-id: 069ec0db-6e4e-4200-8606-dd3d2be6c719-1770795830
+    
+2026-02-11T07:43:52.145Z: Sending "BusinessPlatform" GraphQL request:
+  query FindOrganizations($organizationId: OrganizationID!) {
+  currentUserAccount {
+    organization(id: $organizationId) {
+      id
+      name
+      __typename
+    }
+    __typename
+  }
+}
+
+With variables:
+{
+  "organizationId": "Z2lkOi8vb3JnYW5pemF0aW9uL09yZ2FuaXphdGlvbi8yMDEzODM1ODk="
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://destinations.shopifysvc.com/destinations/api/2020-07/graphql
+2026-02-11T07:43:52.192Z: Sending "App Management" GraphQL request:
+  query fetchSpecifications($organizationId: ID!) {
+  specifications(organizationId: $organizationId) {
+    name
+    identifier
+    externalIdentifier
+    features
+    uidStrategy {
+      appModuleLimit
+      isClientProvided
+      __typename
+    }
+    validationSchema {
+      jsonSchema
+      __typename
+    }
+    __typename
+  }
+}
+
+With variables:
+{
+  "organizationId": "gid://shopify/Organization/201383589"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://app.shopify.com/app_management/unstable/graphql.json
+2026-02-11T07:43:52.752Z: Request to 
+https://app.shopify.com/app_management/unstable/graphql.json completed in 559 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=145, verdict_flag_enabled;desc="count=7";dur=0.625, 
+_y;desc="2c95c881-8ca9-44a1-9a4e-515c0988728e", _s;desc="e548dc7f-fb73-41ad-8f7d-dbb4fa40bf48", 
+cfRequestDuration;dur=480.999947
+ - x-request-id: 8152329a-dbbe-4b95-b1c9-abf9e16117d0-1770795831
+    
+2026-02-11T07:43:52.785Z: The following extension specifications were defined locally but not 
+found in the remote specifications: tax_calculation
+2026-02-11T07:43:52.785Z: The following extension specifications were found in the remote 
+specifications but not defined locally: admin_app, app_link, app_nav_item, bulk_action, 
+checkout_script_tag, flow_action_definition, flow_trigger_definition, 
+flow_trigger_discovery_webhook, manage_marketplaces, marketing_action, 
+marketing_activity_extension, merchandising_create_publication, 
+merchandising_fulfillment_variant_details, ping_message_callback, pos_link, 
+product_configuration_link, resource_publication_settings, retail_cart_promotion, 
+retail_product_recommendation, subscription_link
+2026-02-11T07:43:52.789Z: Reading the content of file at .gitignore...
+2026-02-11T07:43:52.794Z: Reading the .env file at .env
+2026-02-11T07:43:52.795Z: Reading the content of file at .env...
+2026-02-11T07:43:53.292Z: Reading the content of file at 
+extensions/empire-assets/shopify.extension.toml...
+2026-02-11T07:43:53.292Z: Reading the content of file at 
+extensions/empire-review-trigger/shopify.extension.toml...
+2026-02-11T07:43:53.296Z: Reading the content of file at 
+extensions/empire-review-trigger/shopify.extension.toml...
+2026-02-11T07:43:53.299Z: Reading the content of file at package.json...
+2026-02-11T07:43:53.338Z: Running system process:
+  ┬╖ Command: npm prefix
+  ┬╖ Working directory: C:/Users/USER/.gemini/antigravity/scratch/empire-reviews
+
+2026-02-11T07:43:53.853Z: Obtaining the dependency manager in directory 
+C:\Users\USER\.gemini\antigravity\scratch\empire-reviews...
+2026-02-11T07:43:53.854Z: Reading the content of file at package.json...
+2026-02-11T07:43:53.856Z: Reading the content of file at .shopify/project.json...
+2026-02-11T07:43:53.862Z: Reading the content of file at shopify.web.toml...
+2026-02-11T07:43:53.867Z: Notifications to show: 0
+2026-02-11T07:43:53.870Z: Reading cached app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews...
+2026-02-11T07:43:53.870Z: Storing app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews:{
+  "appId": "05be213c4c2c36c447c9d2532cbd900f",
+  "title": "Empire Reviews Core",
+  "directory": "C:/Users/USER/.gemini/antigravity/scratch/empire-reviews",
+  "orgId": "201383589"
+}
+2026-02-11T07:43:53.879Z: Sending "BusinessPlatform" GraphQL request:
+  query FetchDevStoreByDomain($domain: String) {
+  organization {
+    id
+    name
+    accessibleShops(
+      filters: {field: STORE_TYPE, operator: EQUALS, value: "app_development"}
+      search: $domain
+    ) {
+      edges {
+        node {
+          id
+          externalId
+          name
+          storeType
+          primaryDomain
+          shortName
+          url
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    currentUser {
+      organizationPermissions
+      __typename
+    }
+    __typename
+  }
+}
+
+With variables:
+{
+  "domain": "empire-test-1.myshopify.com"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://destinations.shopifysvc.com/organizations/api/unstable/organization/201383589/graphql
+2026-02-11T07:43:54.437Z: Request to 
+https://destinations.shopifysvc.com/organizations/api/unstable/organization/201383589/graphql 
+completed in 558 ms
+With response headers:
+ - cache-control: max-age=0, private, must-revalidate
+ - content-type: application/json; charset=utf-8
+ - etag: W/"f0365d235a923c221fe8ac521da1e98c"
+ - server-timing: processing;dur=132, socket_queue;dur=1.512, util;dur=0.04, 
+cfRequestDuration;dur=437.000036
+ - x-request-id: 38dfb1ec-73dc-4bcd-8cd6-9a8e746bee8e-1770795833
+    
+2026-02-11T07:43:54.439Z: Getting a random port...
+2026-02-11T07:43:54.446Z: Random port obtained: 54347
+2026-02-11T07:43:54.514Z: cloudflared already installed, skipping
+2026-02-11T07:43:54.524Z: Running system process:
+  ┬╖ Command: C:/Users/USER/AppData/Roaming/npm/node_modules/@shopify/cli/bin/cloudflared.exe 
+tunnel --url http://localhost:54347 --no-autoupdate
+  ┬╖ Working directory: C:/Users/USER/.gemini/antigravity/scratch/empire-reviews
+
+2026-02-11T07:43:54.550Z: Sending "App Management" GraphQL request:
+  query ActiveAppReleaseFromApiKey($apiKey: String!) {
+  app: appByKey(key: $apiKey) {
+    ...AppVersionInfo
+    __typename
+  }
+}
+
+fragment ReleasedAppModule on AppModule {
+  uuid
+  userIdentifier
+  handle
+  config
+  target
+  specification {
+    identifier
+    externalIdentifier
+    name
+    managementExperience
+  }
+}
+
+fragment AppVersionInfo on App {
+  id
+  key
+  organizationId
+  activeRoot {
+    clientCredentials {
+      secrets {
+        key
+      }
+    }
+    grantedShopifyApprovalScopes
+  }
+  activeRelease {
+    id
+    version {
+      name
+      appModules {
+        ...ReleasedAppModule
+      }
+    }
+  }
+}
+
+With variables:
+{
+  "apiKey": "*****"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://app.shopify.com/app_management/unstable/graphql.json
+2026-02-11T07:43:54.581Z: 2026-02-11T07:43:54Z INF Thank you for trying Cloudflare Tunnel. Doing 
+so, without a Cloudflare account, is a quick way to experiment and try it out. However, be aware 
+that these account-less Tunnels have no uptime guarantee. If you intend to use Tunnels in 
+production you should use a pre-created named tunnel by following: 
+https://developers.cloudflare.com/cloudflare-one/connections/connect-apps
+2026-02-11T07:43:54Z INF Requesting new quick Tunnel on trycloudflare.com...
+
+2026-02-11T07:43:55.094Z: Request to 
+https://app.shopify.com/app_management/unstable/graphql.json completed in 544 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=131, verdict_flag_enabled;desc="count=5";dur=0.47, 
+_y;desc="0c3ecad2-a39b-495b-b5cc-406f62e69ba1", _s;desc="8fb578ff-4a72-4343-8495-4f2b0010a721", 
+cfRequestDuration;dur=475.999832
+ - x-request-id: 88bdb122-9a15-4c06-af5e-4e4902dbcf49-1770795833
+    
+2026-02-11T07:43:55.109Z: Reading cached app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews...
+Γò¡ΓöÇ info ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+Γöé                                                                              Γöé
+Γöé  Using shopify.app.toml for default values:                                  Γöé
+Γöé                                                                              Γöé
+Γöé    ΓÇó Org:             Empire Apps                                            Γöé
+Γöé    ΓÇó App:             Empire Reviews Core                                    Γöé
+Γöé    ΓÇó Dev store:       empire-test-1.myshopify.com                            Γöé
+Γöé    ΓÇó Update URLs:     Yes                                                    Γöé
+Γöé                                                                              Γöé
+Γöé   You can pass `--reset` to your command to reset your app configuration.    Γöé
+Γöé                                                                              Γöé
+Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+
+2026-02-11T07:43:55.148Z: Port 3457 is free
+2026-02-11T07:43:55.150Z: Polling tunnel status for cloudflare (attempt 0): starting
+2026-02-11T07:43:55.150Z: Getting a random port...
+2026-02-11T07:43:55.152Z: Random port obtained: 54350
+2026-02-11T07:43:55.655Z: Polling tunnel status for cloudflare (attempt 1): starting
+2026-02-11T07:43:56.167Z: Polling tunnel status for cloudflare (attempt 2): starting
+2026-02-11T07:43:56.682Z: Polling tunnel status for cloudflare (attempt 3): starting
+2026-02-11T07:43:57.195Z: Polling tunnel status for cloudflare (attempt 4): starting
+2026-02-11T07:43:57.708Z: Polling tunnel status for cloudflare (attempt 5): starting
+2026-02-11T07:43:58.223Z: Polling tunnel status for cloudflare (attempt 6): starting
+2026-02-11T07:43:58.726Z: Polling tunnel status for cloudflare (attempt 7): starting
+2026-02-11T07:43:59.228Z: Polling tunnel status for cloudflare (attempt 8): starting
+2026-02-11T07:43:59.743Z: Polling tunnel status for cloudflare (attempt 9): starting
+2026-02-11T07:44:00.258Z: Polling tunnel status for cloudflare (attempt 10): starting
+2026-02-11T07:44:00.772Z: Polling tunnel status for cloudflare (attempt 11): starting
+2026-02-11T07:44:00.901Z: 2026-02-11T07:44:00Z INF 
++--------------------------------------------------------------------------------------------+
+2026-02-11T07:44:00Z INF |  Your quick Tunnel has been created! Visit it at (it may take some 
+time to be reachable):  |
+2026-02-11T07:44:00Z INF |  https://karl-analysis-facial-allocation.trycloudflare.com            
+                     |
+2026-02-11T07:44:00Z INF 
++--------------------------------------------------------------------------------------------+
+
+2026-02-11T07:44:00.902Z: 2026-02-11T07:44:00Z INF Cannot determine default configuration path. 
+No file [config.yml config.yaml] in [~/.cloudflared ~/.cloudflare-warp ~/cloudflare-warp]
+2026-02-11T07:44:00Z INF Version 2024.8.2
+2026-02-11T07:44:00Z INF GOOS: windows, GOVersion: go1.22.2-devel-cf, GoArch: amd64
+2026-02-11T07:44:00Z INF Settings: map[ha-connections:1 no-autoupdate:true protocol:quic 
+url:http://localhost:54347]
+
+2026-02-11T07:44:00.903Z: 2026-02-11T07:44:00Z INF cloudflared will not automatically update on 
+Windows systems.
+
+2026-02-11T07:44:00.903Z: 2026-02-11T07:44:00Z INF Generated Connector ID: 
+78b8af27-1136-475f-ac5c-ef5282d88b37
+
+2026-02-11T07:44:00.911Z: 2026-02-11T07:44:00Z INF Initial protocol quic
+
+2026-02-11T07:44:00.912Z: 2026-02-11T07:44:00Z INF ICMP proxy will use 192.168.1.32 as source 
+for IPv4
+
+2026-02-11T07:44:00.934Z: 2026-02-11T07:44:00Z INF ICMP proxy will use 
+2401:4900:1f31:8059:fc33:718f:ca2e:d484 in zone Wi-Fi as source for IPv6
+
+2026-02-11T07:44:00.943Z: 2026-02-11T07:44:00Z INF cloudflared does not support loading the 
+system root certificate pool on Windows. Please use --origin-ca-pool <PATH> to specify the path 
+to the certificate pool
+
+2026-02-11T07:44:00.944Z: 2026-02-11T07:44:00Z INF Starting metrics server on 
+127.0.0.1:54352/metrics
+
+2026-02-11T07:44:01.043Z: 2026-02-11T07:44:01Z WRN Your version 2024.8.2 is outdated. We 
+recommend upgrading it to 2026.2.0
+
+2026-02-11T07:44:01.285Z: Polling tunnel status for cloudflare (attempt 12): starting
+2026-02-11T07:44:01.728Z: 2026-02-11T07:44:01Z INF Registered tunnel connection connIndex=0 
+connection=2c697e5e-17bc-48db-8a00-cdf492746902 event=0 ip=198.41.192.67 location=del01 
+protocol=quic
+
+2026-02-11T07:44:01.801Z: Polling tunnel status for cloudflare (attempt 13): connected
+2026-02-11T07:44:01.801Z: Reading cached app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews...
+2026-02-11T07:44:01.831Z: Sending "App Management" GraphQL request:
+  query ActiveAppReleaseFromApiKey($apiKey: String!) {
+  app: appByKey(key: $apiKey) {
+    ...AppVersionInfo
+    __typename
+  }
+}
+
+fragment ReleasedAppModule on AppModule {
+  uuid
+  userIdentifier
+  handle
+  config
+  target
+  specification {
+    identifier
+    externalIdentifier
+    name
+    managementExperience
+  }
+}
+
+fragment AppVersionInfo on App {
+  id
+  key
+  organizationId
+  activeRoot {
+    clientCredentials {
+      secrets {
+        key
+      }
+    }
+    grantedShopifyApprovalScopes
+  }
+  activeRelease {
+    id
+    version {
+      name
+      appModules {
+        ...ReleasedAppModule
+      }
+    }
+  }
+}
+
+With variables:
+{
+  "apiKey": "*****"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://app.shopify.com/app_management/unstable/graphql.json
+2026-02-11T07:44:02.391Z: Request to 
+https://app.shopify.com/app_management/unstable/graphql.json completed in 559 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=147, verdict_flag_enabled;desc="count=5";dur=9.405, 
+_y;desc="48374ee8-12a5-4864-81e6-f1064e863daf", _s;desc="f625635c-53d2-40e6-84f4-6e0f394022ea", 
+cfRequestDuration;dur=470.999956
+ - x-request-id: c3fa9382-afdc-486e-97ba-80fa605ff856-1770795841
+    
+2026-02-11T07:44:02.398Z: Reading cached app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews...
+2026-02-11T07:44:02.400Z: Reading the content of file at shopify.app.toml...
+2026-02-11T07:44:02.402Z: Reading the content of file at shopify.app.toml...
+2026-02-11T07:44:02.406Z: Reading the content of file at .gitignore...
+2026-02-11T07:44:02.409Z: Reading the .env file at .env
+2026-02-11T07:44:02.410Z: Reading the content of file at .env...
+2026-02-11T07:44:02.416Z: Reading the content of file at 
+extensions/empire-assets/shopify.extension.toml...
+2026-02-11T07:44:02.417Z: Reading the content of file at 
+extensions/empire-review-trigger/shopify.extension.toml...
+2026-02-11T07:44:02.419Z: Reading the content of file at 
+extensions/empire-review-trigger/shopify.extension.toml...
+2026-02-11T07:44:02.421Z: Reading the content of file at .shopify/project.json...
+2026-02-11T07:44:02.426Z: Reading the content of file at shopify.web.toml...
+2026-02-11T07:44:02.431Z: Notifications to show: 0
+2026-02-11T07:44:02.435Z: Ensuring that the user is authenticated with the Admin API with the 
+following scopes for the store empire-test-1.myshopify.com:
+[]
+
+2026-02-11T07:44:02.435Z: Getting session store...
+2026-02-11T07:44:02.437Z: Getting current session ID...
+2026-02-11T07:44:02.437Z: Validating existing session against the scopes:
+[
+  "openid",
+  "https://api.shopify.com/auth/shop.admin.graphql",
+  "https://api.shopify.com/auth/shop.admin.themes",
+  "https://api.shopify.com/auth/partners.collaborator-relationships.readonly",
+  "https://api.shopify.com/auth/shop.storefront-renderer.devtools",
+  "https://api.shopify.com/auth/partners.app.cli.access",
+  "https://api.shopify.com/auth/destinations.readonly",
+  "https://api.shopify.com/auth/organization.store-management",
+  "https://api.shopify.com/auth/organization.on-demand-user-access",
+  "https://api.shopify.com/auth/organization.apps.manage"
+]
+For applications:
+{
+  "adminApi": {
+    "scopes": [],
+    "storeFqdn": "empire-test-1.myshopify.com"
+  }
+}
+
+2026-02-11T07:44:02.438Z: - Token validation -> It's expired: false
+2026-02-11T07:44:02.439Z: Sending "Admin" GraphQL request:
+  query publicApiVersions {
+  publicApiVersions {
+    handle
+    supported
+    __typename
+  }
+}
+
+With variables:
+{}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://empire-test-1.myshopify.com/admin/api/unstable/graphql.json
+2026-02-11T07:44:02.964Z: Request to 
+https://empire-test-1.myshopify.com/admin/api/unstable/graphql.json completed in 524 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=62, verdict_flag_enabled;desc="count=13";dur=6.568, 
+graphql;desc="admin/query/other", _y;desc="f62d287d-6e21-4426-ab79-e6565e14657b", 
+_s;desc="10c46aee-27f8-47b3-886e-bcfca81b724f", cfRequestDuration;dur=385.999918, ipv6
+ - x-request-id: eef4d5da-c426-4ec5-9f8f-6491eb186fcd-1770795841
+    
+2026-02-11T07:44:02.965Z: Sending "Admin" GraphQL request:
+  query OnlineStorePasswordProtection {
+  onlineStore {
+    passwordProtection {
+      enabled
+      __typename
+    }
+    __typename
+  }
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://empire-test-1.myshopify.com/admin/api/2026-01/graphql.json
+2026-02-11T07:44:03.486Z: Request to 
+https://empire-test-1.myshopify.com/admin/api/2026-01/graphql.json completed in 520 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=140, verdict_flag_enabled;desc="count=13";dur=1.101, 
+graphql;desc="admin/query/other", _y;desc="51d355bc-8d6d-465e-bc03-6eefed716656", 
+_s;desc="7a2c2fa0-58cb-4243-9957-cf230b6befac", cfRequestDuration;dur=465.999842, ipv6
+ - x-request-id: 7fe1b305-48cb-4710-b525-8d3710b7f04d-1770795842
+    
+2026-02-11T07:44:03.488Z: Getting storefront password for shop empire-test-1.myshopify.com...
+2026-02-11T07:44:03.490Z: Sending POST request to URL 
+https://empire-test-1.myshopify.com/password
+With request headers:
+ - cache-control: no-cache
+ - content-type: application/x-www-form-urlencoded
+
+2026-02-11T07:44:04.034Z: Request to https://empire-test-1.myshopify.com/password completed in 
+543 ms
+With response headers:
+ - cache-control: private, no-store
+ - content-type: text/html; charset=utf-8
+ - server-timing: processing;dur=57, db;dur=31, asn;desc="24560", edge;desc="DEL", 
+country;desc="IN", theme;desc="145091428421", pageType;desc="password", servedBy;desc="6bqv", 
+requestID;desc="ee2bf53b-81c8-4d1e-a344-8fbeabb031d4-1770795842", 
+_y;desc="54f3c776-1f13-4d08-8f60-316b135e89b2", _s;desc="41ae8f73-766e-4549-874b-5363a63d954c", 
+_cmp;desc="3.AMPS_INDL_f_f_rRrEz8p8QTOP992j0CONXA", cfRequestDuration;dur=409.999847, ipv6
+ - x-request-id: ee2bf53b-81c8-4d1e-a344-8fbeabb031d4-1770795842
+    
+2026-02-11T07:44:04.035Z: Setting storefront password for shop empire-test-1.myshopify.com...
+2026-02-11T07:44:04.044Z: Getting host theme...
+ΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûå
+ΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûü
+Configuring host theme for theme app extension ...
+2026-02-11T07:44:04.067Z: Finding or creating host theme for theme app extensions
+2026-02-11T07:44:04.073Z: Sending "Admin" GraphQL request:
+  query getTheme($id: ID!) {
+  theme(id: $id) {
+    id
+    name
+    role
+    processing
+    __typename
+  }
+}
+
+With variables:
+{
+  "id": "gid://shopify/OnlineStoreTheme/145996709957"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://empire-test-1.myshopify.com/admin/api/2026-01/graphql.json
+[2K[1A[2K[1A[2K[1A[2K[GΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûå
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûç
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûç
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûê
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûê
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûç
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûç
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûå
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûå
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûà
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûà
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûä
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûä
+Configuring host theme for theme app extension ...
+[2K[1A[2K[1A[2K[GΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâΓûäΓûäΓûàΓûàΓûåΓûåΓûçΓûçΓûêΓûêΓûçΓûçΓûåΓûåΓûàΓûàΓûäΓûäΓûâΓûâΓûéΓûéΓûüΓûüΓûüΓûüΓûéΓûéΓûâΓûâ
+Configuring host theme for theme app extension ...
+2026-02-11T07:44:04.674Z: Request to 
+https://empire-test-1.myshopify.com/admin/api/2026-01/graphql.json completed in 601 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=59, verdict_flag_enabled;desc="count=13";dur=0.838, 
+graphql;desc="admin/query/other", _y;desc="11f079b1-2908-4615-958b-4dec622c3343", 
+_s;desc="45ac8c2b-6d9a-418c-a065-ca9ac880955b", cfRequestDuration;dur=375.000000, ipv6
+ - x-request-id: 266c084d-ae36-4bd2-aaf1-6e2230338fa1-1770795843
+    
+[2K[1A[2K[1A[2K[G
+Γò¡ΓöÇ info ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+Γöé                                                                              Γöé
+Γöé  The theme app extension development server is ready.                        Γöé
+Γöé                                                                              Γöé
+Γöé  Next steps                                                                  Γöé
+Γöé    1. Install your app in your development store [1]                         Γöé
+Γöé    2. Setup your theme app extension in the host theme [2]                   Γöé
+Γöé    3. Preview your theme app extension at http://127.0.0.1:9293              Γöé
+Γöé                                                                              Γöé
+Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+[1] https://admin.shopify.com/?organization_id=201383589&no_redirect=true&redire
+ct=/oauth/redirect_from_developer_dashboard?client_id%3D05be213c4c2c36c447c9d253
+2cbd900f
+[2] https://empire-test-1.myshopify.com/admin/themes/145996709957/editor
+
+2026-02-11T07:44:04.690Z: Getting a random port...
+2026-02-11T07:44:04.694Z: Random port obtained: 54360
+2026-02-11T07:44:04.695Z: Storing app information for directory 
+C:/Users/USER/.gemini/antigravity/scratch/empire-reviews:{
+  "directory": "C:/Users/USER/.gemini/antigravity/scratch/empire-reviews",
+  "previousAppId": "05be213c4c2c36c447c9d2532cbd900f"
+}
+2026-02-11T07:44:04.760Z: Running system process:
+  ┬╖ Command: npm prefix
+  ┬╖ Working directory: C:/Users/USER/.gemini/antigravity/scratch/empire-reviews
+
+2026-02-11T07:44:05.526Z: Obtaining the dependency manager in directory 
+C:\Users\USER\.gemini\antigravity\scratch\empire-reviews...
+2026-02-11T07:44:06.691Z: Request to https://monorail-edge.shopifysvc.com/v1/produce completed 
+in 476 ms
+With response headers:
+ - x-request-id: 991e62c7-aac1-4100-8a18-0f11732f5483
+    
+2026-02-11T07:44:06.692Z: Analytics event sent: {
+  "command": "app dev",
+  "time_start": 1770795831414,
+  "time_end": 1770795844707,
+  "total_time": 13293,
+  "success": true,
+  "cli_version": "3.88.1",
+  "ruby_version": "",
+  "node_version": "24.13.0",
+  "is_employee": false,
+  "uname": "windows amd64",
+  "env_ci": false,
+  "env_plugin_installed_any_custom": false,
+  "env_plugin_installed_shopify": "[\"@shopify/cli\"]",
+  "env_shell": "cmd.exe",
+  "env_device_id": "fcb6cfd47e4462e7deb29b4dff053ea293216787",
+  "env_cloud": "localhost",
+  "env_package_manager": "npm",
+  "env_is_global": true,
+  "env_auth_method": "device_auth",
+  "env_is_wsl": false,
+  "env_build_repository": "Shopify/cli",
+  "cmd_app_warning_api_key_deprecation_displayed": false,
+  "cmd_app_all_configs_any": true,
+  "cmd_app_all_configs_clients": "{\"shopify.app.toml\":\"05be213c4c2c36c447c9d2532cbd900f\"}",
+  "cmd_app_linked_config_used": true,
+  "cmd_app_linked_config_name": "shopify.app.toml",
+  "cmd_app_linked_config_git_tracked": true,
+  "cmd_app_linked_config_source": "flag",
+  "cmd_app_linked_config_uses_cli_managed_urls": true,
+  "project_type": "node",
+  "app_extensions_any": true,
+  "app_extensions_breakdown": "{\"theme\":1,\"flow_trigger\":1}",
+  "app_extensions_count": 2,
+  "app_extensions_custom_layout": false,
+  "app_extensions_function_any": false,
+  "app_extensions_function_count": 0,
+  "app_extensions_theme_any": true,
+  "app_extensions_theme_count": 1,
+  "app_extensions_ui_any": false,
+  "app_extensions_ui_count": 0,
+  "app_name_hash": "5e815ed560ee9a4caf2e3de359ea0734042bca02",
+  "app_path_hash": "3929cea2a67cffa3433ba6c6817770d6cbe82b40",
+  "app_scopes": 
+"[\"read_marketing_events\",\"read_orders\",\"write_marketing_events\",\"write_products\"]",
+  "app_web_backend_any": true,
+  "app_web_backend_count": 1,
+  "app_web_custom_layout": true,
+  "app_web_framework": "remix",
+  "app_web_frontend_any": true,
+  "app_web_frontend_count": 1,
+  "env_package_manager_workspaces": true,
+  "business_platform_id": 201383589,
+  "api_key": "****",
+  "cmd_app_reset_used": false,
+  "store_fqdn_hash": "3dcb415741780e246636389413e8f2daab8e1a46",
+  "cmd_dev_tunnel_type": "auto",
+  "cmd_dev_urls_updated": true,
+  "cmd_app_dependency_installation_skipped": false,
+  "cmd_all_timing_network_ms": 5026,
+  "cmd_all_timing_prompts_ms": 0,
+  "cmd_all_launcher": "unknown",
+  "cmd_all_topic": "app",
+  "cmd_all_plugin": "@shopify/app",
+  "cmd_all_verbose": true,
+  "cmd_all_path_override": true,
+  "cmd_all_path_override_hash": "3929cea2a67cffa3433ba6c6817770d6cbe82b40",
+  "cmd_all_last_graphql_request_id": "266c084d-ae36-4bd2-aaf1-6e2230338fa1-1770795843",
+  "cmd_all_timing_active_ms": 8266,
+  "cmd_all_exit": "ok",
+  "user_id": "19435714-95a5-4986-b760-4ae2efffcd63",
+  "request_ids": [
+    "069ec0db-6e4e-4200-8606-dd3d2be6c719-1770795830",
+    "8152329a-dbbe-4b95-b1c9-abf9e16117d0-1770795831",
+    "38dfb1ec-73dc-4bcd-8cd6-9a8e746bee8e-1770795833",
+    "88bdb122-9a15-4c06-af5e-4e4902dbcf49-1770795833",
+    "c3fa9382-afdc-486e-97ba-80fa605ff856-1770795841",
+    "eef4d5da-c426-4ec5-9f8f-6491eb186fcd-1770795841",
+    "7fe1b305-48cb-4710-b525-8d3710b7f04d-1770795842",
+    "266c084d-ae36-4bd2-aaf1-6e2230338fa1-1770795843"
+  ],
+  "args": "--verbose",
+  "app_name": "Empire Reviews Core",
+  "store_fqdn": "empire-test-1.myshopify.com",
+  "env_plugin_installed_all": "[\"@shopify/cli\"]",
+  "env_shopify_variables": "{}",
+  "metadata": "{\"extraPublic\":{},\"extraSensitive\":{}}"
+}
+2026-02-11T07:44:06.747Z: Running system process:
+  ┬╖ Command: npx prisma generate
+  ┬╖ Working directory: C:/Users/USER/.gemini/antigravity/scratch/empire-reviews
+
+2026-02-11T07:44:06.794Z: Removing directory at .shopify/dev-bundle...
+2026-02-11T07:44:06.803Z: Reading the content of file at 
+extensions/empire-assets/assets/empire.css...
+2026-02-11T07:44:06.803Z: Reading the content of file at 
+extensions/empire-assets/assets/empire_v2.js...
+2026-02-11T07:44:06.803Z: Reading the content of file at 
+extensions/empire-assets/assets/empire.js...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/assets/thumbs-up.png...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/locales/en.default.json...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/carousel.liquid...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/floating_tab.liquid...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/media_grid.liquid...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/review_widget.liquid...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/star_rating.liquid...
+2026-02-11T07:44:06.804Z: Reading the content of file at 
+extensions/empire-assets/blocks/trust_badge.liquid...
+2026-02-11T07:44:06.805Z: Reading the content of file at 
+extensions/empire-assets/snippets/stars.liquid...
+2026-02-11T07:44:06.808Z: Ensuring that the user is authenticated with the Theme API with the 
+following scopes:
+[]
+
+2026-02-11T07:44:06.808Z: Ensuring that the user is authenticated with the Admin API with the 
+following scopes for the store empire-test-1.myshopify.com:
+[]
+
+2026-02-11T07:44:06.808Z: Getting session store...
+2026-02-11T07:44:06.809Z: Getting current session ID...
+2026-02-11T07:44:06.810Z: Validating existing session against the scopes:
+[
+  "openid",
+  "https://api.shopify.com/auth/shop.admin.graphql",
+  "https://api.shopify.com/auth/shop.admin.themes",
+  "https://api.shopify.com/auth/partners.collaborator-relationships.readonly",
+  "https://api.shopify.com/auth/shop.storefront-renderer.devtools",
+  "https://api.shopify.com/auth/partners.app.cli.access",
+  "https://api.shopify.com/auth/destinations.readonly",
+  "https://api.shopify.com/auth/organization.store-management",
+  "https://api.shopify.com/auth/organization.on-demand-user-access",
+  "https://api.shopify.com/auth/organization.apps.manage"
+]
+For applications:
+{
+  "adminApi": {
+    "scopes": [],
+    "storeFqdn": "empire-test-1.myshopify.com"
+  }
+}
+
+2026-02-11T07:44:06.810Z: - Token validation -> It's expired: false
+2026-02-11T07:44:06.810Z: Ensuring that the user is authenticated with the Storefront API with 
+the following scopes:
+[]
+
+2026-02-11T07:44:06.810Z: Getting session store...
+2026-02-11T07:44:06.811Z: Getting current session ID...
+2026-02-11T07:44:06.811Z: Validating existing session against the scopes:
+[
+  "openid",
+  "https://api.shopify.com/auth/shop.admin.graphql",
+  "https://api.shopify.com/auth/shop.admin.themes",
+  "https://api.shopify.com/auth/partners.collaborator-relationships.readonly",
+  "https://api.shopify.com/auth/shop.storefront-renderer.devtools",
+  "https://api.shopify.com/auth/partners.app.cli.access",
+  "https://api.shopify.com/auth/destinations.readonly",
+  "https://api.shopify.com/auth/organization.store-management",
+  "https://api.shopify.com/auth/organization.on-demand-user-access",
+  "https://api.shopify.com/auth/organization.apps.manage"
+]
+For applications:
+{
+  "storefrontRendererApi": {
+    "scopes": []
+  }
+}
+
+2026-02-11T07:44:06.811Z: - Token validation -> It's expired: false
+2026-02-11T07:44:06.812Z: Sending HEAD request to URL 
+https://empire-test-1.myshopify.com/?preview_theme_id=145996709957&_fd=0&pb=0
+With request headers:
+ - X-Shopify-Shop: empire-test-1.myshopify.com
+ - User-Agent: Shopify CLI; v=3.88.1
+
+2026-02-11T07:44:06.821Z: Creating directory at .shopify/dev-bundle...
+2026-02-11T07:44:07.324Z: Request to 
+https://empire-test-1.myshopify.com/?preview_theme_id=145996709957&_fd=0&pb=0 completed in 512 ms
+With response headers:
+ - cache-control: private, no-store
+ - content-type: text/html; charset=utf-8
+ - server-timing: processing;dur=38;desc="gc:1", db;dur=21, asn;desc="24560", edge;desc="DEL", 
+country;desc="IN", theme;desc="145996709957", pageType;desc="index", servedBy;desc="m8sq", 
+requestID;desc="84e53475-195f-4a1a-a2e7-e99714ccabdc-1770795846", 
+_y;desc="1f915ed8-83f3-4ea4-b09c-bdc4b68e5328", _s;desc="66b44211-ab44-4364-83c7-92f848931465", 
+_cmp;desc="3.AMPS_INDL_f_f_KvT-1TUBQ7GjRChzvzMv9w", cfRequestDuration;dur=141.999960, ipv6
+ - x-request-id: 84e53475-195f-4a1a-a2e7-e99714ccabdc-1770795846
+    
+2026-02-11T07:44:07.325Z: Sending POST request to URL 
+https://empire-test-1.myshopify.com/password
+With request headers:
+ - X-Shopify-Shop: empire-test-1.myshopify.com
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Cookie: _shopify_essential=:AZxLqEqOAAH_PHRsjx5rMl4hocEGfqfmswqwui8-VhwG6_FYQxgL21tblCczH-FTpr
+Ls_p6PLRKlv-NDgjBv9QUqFRuVyY1s_GFtReymvA5f82qpB_Fz7jw-L1uBgRp5qnxZWqo69PBYnfaXgTx3aBTJhrN5DgnYJq2
+Dwo47rnXaIc4E46t29-y6kirj6JCikHiHs33ohGBIredq3ADRbcew9LfhtMgv_8uHhoKmxjYl7Y30N9_bkH8nIKIdU_MSV7Q3
+bd0sU84j-KcGemSIewLZMyZRPBi9D6NO9iBK_ulrKfyj5lK70NiFb6TTerniYLG907RJcwrLvA:
+
+2026-02-11T07:44:07.584Z: Sync-reading the content of file at c:\Users\USER\.gemini\antigravity\s
+cratch\empire-reviews\extensions\empire-assets\blocks\floating_tab.liquid...
+2026-02-11T07:44:07.585Z: Sync-reading the content of file at c:\Users\USER\.gemini\antigravity\s
+cratch\empire-reviews\extensions\empire-assets\blocks\review_widget.liquid...
+Running pre-dev command: "npx prisma generate"2026-02-11T07:44:06.748Z: Setting up GraphiQL HTTP server on port 3457...Preparing dev preview on empire-test-1.myshopify.com2026-02-11T07:44:06.769Z: Setting up the UI extensions HTTP server...2026-02-11T07:44:06.772Z: Setting up the UI extensions Websocket server...2026-02-11T07:44:06.773Z: Setting up the UI extensions bundler and file watching...Proxy server started on port 54347 GraphiQL server started on port 3457Running theme check on your Theme app extension...
+[error]: ValidSchema 
+End of file expected. 
+
+24  ], "default": "star" }, 
+
+ 
+[error]: AssetSizeAppBlockJavaScript 
+The file size for 'empire_v2.js' (34150 B) exceeds the configured threshold (10000 B) 
+
+2026-02-11T07:44:07.589Z: Copying file from extensions/empire-assets/assets/empire.css to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/assets/empire.css...
+2026-02-11T07:44:07.590Z: Copying file from extensions/empire-assets/assets/empire.js to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/assets/empire.js...
+2026-02-11T07:44:07.590Z: Copying file from extensions/empire-assets/assets/empire_v2.js to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/assets/empire_v2.js...
+2026-02-11T07:44:07.590Z: Copying file from extensions/empire-assets/assets/thumbs-up.png to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/assets/thumbs-up.png...
+2026-02-11T07:44:07.591Z: Copying file from extensions/empire-assets/blocks/carousel.liquid to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/carousel.liquid...
+2026-02-11T07:44:07.591Z: Copying file from extensions/empire-assets/blocks/floating_tab.liquid 
+to .shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/floating_tab.liquid...
+2026-02-11T07:44:07.591Z: Copying file from extensions/empire-assets/blocks/media_grid.liquid to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/media_grid.liquid...
+2026-02-11T07:44:07.591Z: Copying file from extensions/empire-assets/blocks/review_widget.liquid 
+to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/review_widget.liquid...
+2026-02-11T07:44:07.591Z: Copying file from extensions/empire-assets/blocks/star_rating.liquid 
+to .shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/star_rating.liquid...
+2026-02-11T07:44:07.592Z: Copying file from extensions/empire-assets/blocks/trust_badge.liquid 
+to .shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/blocks/trust_badge.liquid...
+2026-02-11T07:44:07.592Z: Copying file from extensions/empire-assets/locales/en.default.json to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/locales/en.default.json...
+2026-02-11T07:44:07.592Z: Copying file from extensions/empire-assets/snippets/stars.liquid to 
+.shopify/dev-bundle/d04ef603-d167-d370-71d5-55bdca2efc6fd4c09e28/snippets/stars.liquid...
+2026-02-11T07:44:07.633Z: Sync-reading the content of file at ...
+2026-02-11T07:44:07.634Z: Failed to scan imports for extension empire-assets: Error: ENOENT: no 
+such file or directory, open ''
+2026-02-11T07:44:07.635Z: Sync-reading the content of file at ...
+2026-02-11T07:44:07.635Z: Failed to scan imports for extension empire-review-trigger: Error: 
+ENOENT: no such file or directory, open ''
+2026-02-11T07:44:08.004Z: Removing file at 
+C:/Users/USER/AppData/Local/Temp/defac596-f77e-4f06-bfba-6701cdd3b1ad.tar...
+2026-02-11T07:44:08.055Z: Sending "App Management" GraphQL request:
+  mutation CreateAssetURL($sourceExtension: SourceExtension!, $organizationId: ID!) {
+  appRequestSourceUploadUrl(
+    sourceExtension: $sourceExtension
+    organizationId: $organizationId
+  ) {
+    sourceUploadUrl
+    userErrors {
+      field
+      message
+      __typename
+    }
+    __typename
+  }
+}
+
+With variables:
+{
+  "sourceExtension": "BR",
+  "organizationId": "gid://shopify/Organization/201383589"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://app.shopify.com/app_management/unstable/graphql.json
+2026-02-11T07:44:08.069Z: Sync-reading the content of file at .shopify/dev-bundle.br...
+2026-02-11T07:44:08.220Z: Request to https://empire-test-1.myshopify.com/password completed in 
+895 ms
+With response headers:
+ - cache-control: private, no-store
+ - content-type: text/html; charset=utf-8
+ - server-timing: processing;dur=509;desc="gc:30", db;dur=461, asn;desc="24560", 
+edge;desc="DEL", country;desc="IN", theme;desc="145996709957", pageType;desc="password", 
+servedBy;desc="qwqp", requestID;desc="e976d597-7c91-4ca7-861c-5c3631bd75aa-1770795846", 
+_y;desc="0f906f82-c634-45e4-9080-0abc94ca5ffd", _s;desc="e1946777-3079-4a92-a790-ba05b40666ac", 
+_cmp;desc="3.AMPS_INDL_f_f_GzNCJQk5RsGtz8jpib3fmQ", cfRequestDuration;dur=845.999956, ipv6
+ - x-request-id: e976d597-7c91-4ca7-861c-5c3631bd75aa-1770795846
+    
+2026-02-11T07:44:08.972Z: Request to https://partners-extensions-scripts-bucket.storage.googleapi
+s.com/deployments/app_sources/201383589/4764316c-bb22-4b72-9740-d712e9295106/source.br?X-Goog-Alg
+orithm=GOOG4-RSA-SHA256&X-Goog-Credential=argo-project-sa%40shopify-tiers.iam.gserviceaccount.com
+%2F20260211%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260211T074202Z&X-Goog-Expires=3600&X-G
+oog-SignedHeaders=host&X-Goog-Signature=46f08e82feda4dd1a85df5ae7763b06783c41dcc6e0360bf9d32bc5fe
+43f8c929aaa62adb47af3a93289c7596b23b77a943f54c942ef9e09e93bb049ceeb2752a3eb3a8652f950f47a17571430
+df89ca48e90ff50a02f613aefb03a22de3938b2b3e8e6f4d7ee05f2ccf29850b007c88baf170ada0474cda4eb96259658
+65811525103b3c311f0eb352c010e4f075c65ef8eba23882debee93d0fa0a51617dd202a51a4d82a341e922ed963c6050
+6a3b063e644eb9487b99c4c0864d8b5f9517954bba347c2a6c68860ab5a741ab1304a10039e25f30b5e1b2939fb74d130
+5c27ec91097a1007d2b3ef9e8acc7c8525266bdb68659ca18c5a5a829e938f6f244 completed in 901 ms
+With response headers:
+ - content-type: text/html; charset=UTF-8
+ - etag: "9aefaf02d6ed979053a97a4f3e657970"
+    
+2026-02-11T07:44:09.007Z: Sending "App Dev" GraphQL request:
+  mutation DevSessionCreate($appId: String!, $assetsUrl: String!) {
+  devSessionCreate(appId: $appId, assetsUrl: $assetsUrl) {
+    userErrors {
+      message
+      on
+      field
+      category
+      __typename
+    }
+    __typename
+  }
+}
+
+With variables:
+{
+  "appId": "318372839425",
+  "assetsUrl": "https://partners-extensions-scripts-bucket.storage.googleapis.com/deployments/app
+_sources/201383589/4764316c-bb22-4b72-9740-d712e9295106/source.br?X-Goog-Algorithm=GOOG4-RSA-SHA2
+56&X-Goog-Credential=argo-project-sa%40shopify-tiers.iam.gserviceaccount.com%2F20260211%2Fauto%2F
+storage%2Fgoog4_request&X-Goog-Date=20260211T074202Z&X-Goog-Expires=3600&X-Goog-SignedHeaders=hos
+t&X-Goog-Signature=46f08e82feda4dd1a85df5ae7763b06783c41dcc6e0360bf9d32bc5fe43f8c929aaa62adb47af3
+a93289c7596b23b77a943f54c942ef9e09e93bb049ceeb2752a3eb3a8652f950f47a17571430df89ca48e90ff50a02f61
+3aefb03a22de3938b2b3e8e6f4d7ee05f2ccf29850b007c88baf170ada0474cda4eb9625965865811525103b3c311f0eb
+352c010e4f075c65ef8eba23882debee93d0fa0a51617dd202a51a4d82a341e922ed963c60506a3b063e644eb9487b99c
+4c0864d8b5f9517954bba347c2a6c68860ab5a741ab1304a10039e25f30b5e1b2939fb74d1305c27ec91097a1007d2b3e
+f9e8acc7c8525266bdb68659ca18c5a5a829e938f6f244"
+}
+
+With request headers:
+ - User-Agent: Shopify CLI; v=3.88.1
+ - Keep-Alive: timeout=30
+ - Sec-CH-UA-PLATFORM: win32
+ - Content-Type: application/json
+
+to https://empire-test-1.myshopify.com/app_dev/unstable/graphql.json
+prisma:cli:bin Failed to initialize the command state: Error: ENOENT: no such file or directory, 
+open 'C:\Users\USER\AppData\Roaming\prisma-nodejs\Config\commands.json' +1777ms
+2026-02-11T07:44:10.403Z: Request to 
+https://empire-test-1.myshopify.com/app_dev/unstable/graphql.json completed in 1396 ms
+With response headers:
+ - content-type: application/json; charset=utf-8
+ - server-timing: processing;dur=469, verdict_flag_enabled;desc="count=12";dur=1.141, 
+_y;desc="3ef8b3b7-cddd-46f7-af12-3124f936fd53", _s;desc="f7121403-4eb3-41ad-8cb7-84ea94d8f99d", 
+cfRequestDuration;dur=780.999899, ipv6
+ - x-request-id: 2506209f-8cfd-479e-8f1a-2c275300c39e-1770795848
+    
+Γò¡ΓöÇ error ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò«
+Γöé                                                                              Γöé
+Γöé  Failed to start dev preview.                                                Γöé
+Γöé                                                                              Γöé
+Γò░ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓ
+öÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö
+ÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓò»
+
+6  "javascript": "empire_v2.js", Bundling theme extension empire-assets...2026-02-11T07:44:07.646Z: File watcher started with 16 pathsΓ¥î ErrorΓöö  [blocks/carousel.liquid] Invalid tag 'schema': settings: with id="mobile_columns" step invalid. Range settings must have at least 3 stepsΓöö  [blocks/floating_tab.liquid] Invalid tag 'schema': Unable to parse 'schema' content

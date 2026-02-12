@@ -9,8 +9,9 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model Session {
@@ -31,4 +32,132 @@ model Session {
   emailVerified       Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+  
+  // Analytics & Conversion Tracking
+  appInstalledAt      DateTime  @default(now())
+  lastUpgradePrompt   DateTime?
+  upgradePromptCount  Int       @default(0)
+}
+
+// Empire Reviews Models
+
+model Review {
+  id          String   @id @default(uuid())
+  shop        String
+  productId   String?
+  customerId  String?
+  customerName String?
+  customerEmail String?
+  rating      Int
+  title       String?
+  body        String?
+  status      String   @default("pending")
+  verified    Boolean  @default(false)
+  sentiment   String?
+  media       ReviewMedia[]
+  replies     Reply[]
+  createdAt   DateTime @default(now())
+}
+
+model ReviewMedia {
+  id        String   @id @default(uuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  url       String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model Reply {
+  id        String   @id @default(uuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Settings {
+  id          String   @id @default(uuid())
+  shop        String   @unique
+  autoPublish Boolean  @default(false)
+  emailAlerts Boolean  @default(true)
+  themeColor  String   @default("#000000")
+  enableFlow     Boolean @default(false)
+  enableKlaviyo  Boolean @default(false)
+  klaviyoApiKey  String?
+  enableGoogle   Boolean @default(false)
+  plan           String  @default("FREE") // FREE, EMPRESS_PRO
+}
+
+model Campaign {
+  id            String   @id @default(uuid())
+  shop          String
+  name          String
+  subject       String
+  body          String
+  templateType  String   // reciprocity, altruism, scarcity
+  discount      Int?
+  status        String   @default("draft") // draft, active, paused, completed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  sends         CampaignSend[]
+  metrics       CampaignMetrics?
+}
+
+model CampaignSend {
+  id            String   @id @default(uuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id])
+  customerEmail String
+  customerName  String?
+  orderId       String?
+  sentAt        DateTime @default(now())
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  reviewId      String?  
+  
+  @@index([campaignId])
+  @@index([customerEmail])
+}
+
+model CampaignMetrics {
+  id                String   @id @default(uuid())
+  campaignId        String   @unique
+  campaign          Campaign @relation(fields: [campaignId], references: [id])
+  totalSent         Int      @default(0)
+  totalOpened       Int      @default(0)
+  totalClicked      Int      @default(0)
+  totalReviews      Int      @default(0)
+  openRate          Float    @default(0)
+  clickRate         Float    @default(0)
+  conversionRate    Float    @default(0)
+  updatedAt         DateTime @updatedAt
+}
+
+// Analytics & Conversion Tracking
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  shop      String
+  event     String   // e.g., "page_view", "upgrade_click", "feature_used"
+  page      String?  // e.g., "dashboard", "reviews", "plans"
+  metadata  String?  // JSON string for additional data
+  timestamp DateTime @default(now())
+  
+  @@index([shop])
+  @@index([event])
+  @@index([timestamp])
+}
+
+// Real Data: Order Integration for Business Impact
+model Order {
+  id            String   @id // Shopify Order Admin GraphQL ID (gid://shopify/Order/123)
+  shop          String
+  totalPrice    Float
+  currency      String
+  createdAt     DateTime
+  customerEmail String?
+
+  @@index([shop])
+  @@index([createdAt])
 }

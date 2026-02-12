@@ -1,0 +1,49 @@
+{% schema %}
+{
+  "name": "UGC Media Grid",
+  "target": "section",
+  "stylesheet": "empire.css",
+  "settings": [
+    { "type": "header", "content": "Grid Layout" },
+    { "type": "range", "id": "columns", "label": "Desktop Columns", "min": 2, "max": 6, "step": 1, "default": 4 },
+    { "type": "range", "id": "mobile_columns", "label": "Mobile Columns", "min": 1, "max": 3, "step": 1, "default": 2 },
+    { "type": "range", "id": "gap", "label": "Grid Gap", "min": 0, "max": 30, "step": 2, "unit": "px", "default": 10 },
+    
+    { "type": "header", "content": "Style" },
+    { "type": "select", "id": "aspect_ratio", "label": "Aspect Ratio", "options": [
+        { "value": "square", "label": "Square (1:1)" },
+        { "value": "portrait", "label": "Portrait (4:5)" },
+        { "value": "masonry", "label": "Masonry (Auto)" }
+    ], "default": "square" },
+    { "type": "color", "id": "overlay_color", "label": "Hover Overlay", "default": "#000000" },
+    { "type": "range", "id": "overlay_opacity", "label": "Overlay Opacity", "min": 0, "max": 100, "step": 10, "unit": "%", "default": 20 },
+
+    { "type": "header", "content": "Pro Features" },
+    { "type": "checkbox", "id": "lightbox_enabled", "label": "Enable Lightbox", "default": true },
+    { "type": "checkbox", "id": "shoppable", "label": "Make Shoppable", "default": true, "info": "Show 'Add to Cart' in Lightbox." },
+    { "type": "checkbox", "id": "video_autoplay", "label": "Autoplay Videos on Hover", "default": true }
+  ]
+}
+{% endschema %}
+
+<div 
+  class="empire-media-grid-container"
+  data-block-id="{{ block.id }}"
+  data-cols="{{ block.settings.columns }}"
+  data-mobile-cols="{{ block.settings.mobile_columns }}"
+  data-gap="{{ block.settings.gap }}"
+  data-aspect="{{ block.settings.aspect_ratio }}"
+  data-overlay="{{ block.settings.overlay_color }}"
+  data-opacity="{{ block.settings.overlay_opacity }}"
+  data-lightbox="{{ block.settings.lightbox_enabled }}"
+  data-shoppable="{{ block.settings.shoppable }}"
+  data-autoplay="{{ block.settings.video_autoplay }}"
+  style="padding: 40px 0;"
+>
+  <div class="empire-media-grid">
+      <!-- Media Items Injected Here -->
+      <div class="empire-spinner"></div>
+  </div>
+</div>
+
+<script src="{{ 'empire_v2.js' | asset_url }}" defer></script>

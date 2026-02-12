@@ -1,0 +1,48 @@
+{% schema %}
+{
+  "name": "Floating Reviews Tab",
+  "target": "body",
+  "stylesheet": "empire.css",
+  "settings": [
+    { "type": "header", "content": "Positioning" },
+    { "type": "select", "id": "position", "label": "Position", "options": [
+        { "value": "left", "label": "Left Edge" },
+        { "value": "right", "label": "Right Edge" },
+        { "value": "bottom-left", "label": "Bottom Left" },
+        { "value": "bottom-right", "label": "Bottom Right" }
+    ], "default": "right" },
+    { "type": "range", "id": "offset", "label": "Vertical Offset", "min": 0, "max": 100, "step": 5, "unit": "%", "default": 50, "info": "Distance from top (for Left/Right positions)." },
+    
+    { "type": "header", "content": "Appearance" },
+    { "type": "text", "id": "label", "label": "Button Text", "default": "Reviews" },
+    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#111827" },
+    { "type": "color", "id": "text_color", "label": "Text Color", "default": "#ffffff" },
+    { "type": "select", "id": "icon", "label": "Icon", "options": [
+        { "value": "star", "label": "Star" },
+        { "value": "heart", "label": "Heart" },
+        { "value": "bag", "label": "Bag" },
+        { "value": "none", "label": "None" }
+    ], "default": "star" },
+
+    { "type": "header", "content": "Pro Features" },
+    { "type": "checkbox", "id": "enable_pulse", "label": "Enable 'Live Pulse'", "default": true, "info": "Subtle heartbeat animation to grab attention." },
+    { "type": "checkbox", "id": "show_smart_rating", "label": "Show Live Rating", "default": true, "info": "Displays '4.9 ★' on the button." }
+  ]
+}
+{% endschema %}
+
+<!-- The trigger button is injected via app embed, but we configure it here -->
+<div 
+  id="empire-floating-tab-config"
+  data-position="{{ block.settings.position }}"
+  data-offset="{{ block.settings.offset }}"
+  data-label="{{ block.settings.label }}"
+  data-bg="{{ block.settings.bg_color }}"
+  data-text="{{ block.settings.text_color }}"
+  data-icon="{{ block.settings.icon }}"
+  data-pulse="{{ block.settings.enable_pulse }}"
+  data-rating="{{ block.settings.show_smart_rating }}"
+  style="display:none;"
+></div>
+
+<script src="{{ 'empire_v2.js' | asset_url }}" defer></script>

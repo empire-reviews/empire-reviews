@@ -1,0 +1,60 @@
+{% schema %}
+{
+  "name": "Reviews Carousel",
+  "target": "section",
+  "stylesheet": "empire.css",
+  "settings": [
+    { "type": "header", "content": "Layout Settings" },
+    { "type": "range", "id": "mobile_columns", "label": "Mobile Columns", "min": 1, "max": 3, "step": 1, "default": 1 },
+    { "type": "range", "id": "desktop_columns", "label": "Desktop Columns", "min": 1, "max": 4, "default": 3 },
+    { "type": "range", "id": "gap", "label": "Gap Space", "min": 0, "max": 40, "step": 4, "unit": "px", "default": 20 },
+    
+    { "type": "header", "content": "Card Style" },
+    { "type": "select", "id": "card_style", "label": "Style Preset", "options": [
+        { "value": "minimal", "label": "Minimal (Clean)" },
+        { "value": "bordered", "label": "Bordered (Classic)" },
+        { "value": "glass", "label": "Glassmorphism (Premium)" },
+        { "value": "dark", "label": "Dark Mode (Sleek)" }
+    ], "default": "bordered" },
+    { "type": "range", "id": "border_radius", "label": "Corner Radius", "min": 0, "max": 30, "step": 2, "unit": "px", "default": 16 },
+    { "type": "color", "id": "bg_color", "label": "Card Background", "default": "#ffffff" },
+    { "type": "color", "id": "text_color", "label": "Text Color", "default": "#1f2937" },
+    
+    { "type": "header", "content": "Behavior" },
+    { "type": "checkbox", "id": "autoplay", "label": "Enable Autoplay", "default": true },
+    { "type": "range", "id": "autoplay_speed", "label": "Autoplay Speed", "min": 2, "max": 10, "step": 1, "unit": "s", "default": 5 },
+    
+    { "type": "header", "content": "Pro Features" },
+    { "type": "checkbox", "id": "show_verified_badge", "label": "Show 'Verified Buyer'", "default": true, "info": "Increases trust by 15%." },
+    { "type": "checkbox", "id": "show_product_thumb", "label": "Show Product Image", "default": true, "info": "Displays the product related to the review." },
+    { "type": "checkbox", "id": "enable_buy_button", "label": "Enable 'Add to Cart'", "default": false, "info": "High-impact conversion button." }
+  ]
+}
+{% endschema %}
+
+<div 
+  class="empire-carousel-container" 
+  data-block-id="{{ block.id }}"
+  data-mobile-cols="{{ block.settings.mobile_columns }}"
+  data-desktop-cols="{{ block.settings.desktop_columns }}"
+  data-gap="{{ block.settings.gap }}"
+  data-autoplay="{{ block.settings.autoplay }}"
+  data-speed="{{ block.settings.autoplay_speed }}"
+  data-style="{{ block.settings.card_style }}"
+  data-radius="{{ block.settings.border_radius }}"
+  data-bg="{{ block.settings.bg_color }}"
+  data-text="{{ block.settings.text_color }}"
+  data-verified="{{ block.settings.show_verified_badge }}"
+  data-product-thumb="{{ block.settings.show_product_thumb }}"
+  data-buy-button="{{ block.settings.enable_buy_button }}"
+  style="padding: 40px 0;"
+>
+  <div class="empire-carousel-track">
+    <!-- JS Injected Slides -->
+    <div class="empire-carousel-loader">
+        <div class="empire-spinner"></div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ 'empire_v2.js' | asset_url }}" defer></script>
