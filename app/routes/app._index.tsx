@@ -293,7 +293,7 @@ export default function EmpireDashboard() {
               <BlockStack gap="400">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '0.5rem' }}>
-                    <img src="/logo.png" alt="Empire Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                    <img src="/logo-icon.png" alt="Empire Icon" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
                       Empire Command Center 🚀
                     </h1>
