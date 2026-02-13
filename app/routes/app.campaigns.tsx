@@ -138,60 +138,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     // 2. Register Marketing Activity in Shopify (Optional - Best Effort)
-    try {
-        // STRATEGY: Raw REST API Bypass (Fixed Payload)
-        // Previous error: {"errors":{"tactic":["is invalid..."],"event_type":["can't be blank"]}}
-        // Valid tactics from error: newsletter, message, ad, post, etc.
-        // === MARKETING API FIX (Raw REST) ===
-        // Get the actual app URL from the request (this is the Cloudflare tunnel URL in dev)
-        const requestUrl = new URL(request.url);
-        const appBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
-        const { shop } = session;
-
-        const response = await fetch(`https://${shop}/admin/api/2024-10/marketing_events.json`, {
-            method: "POST",
-            headers: {
-                "X-Shopify-Access-Token": session.accessToken || "",
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                marketing_event: {
-                    started_at: new Date().toISOString(),
-                    // "event_type" is required. Using "ad" as a safe fallback or "message"
-                    // "tactic" is required. Using "newsletter" which fits an email campaign
-                    event_type: "ad",
-                    marketing_channel: "email",
-                    tactic: "newsletter",
-                    // Fix: Append timestamp to ensure uniqueness (avoids "has already been taken" error)
-                    utm_campaign: `${campaign.name} - ${Date.now()}`,
-                    utm_source: "empire-reviews",
-                    utm_medium: "email",
-                    budget: "0.00",
-                    currency: "USD",
-                    budget_type: "lifetime",
-                    description: campaign.name,
-                    manage_url: `${appBaseUrl}/m/${campaign.id}?shop=${shop}`,
-                    preview_url: `${appBaseUrl}/m/${campaign.id}?shop=${shop}`
-                }
-            })
-        });
-
-        const responseText = await response.text();
-        console.log(`[Raw REST] Status: ${response.status}`);
-        console.log(`[Raw REST] Body: ${responseText}`);
-
-        if (!response.ok) {
-            console.error(`[Raw REST] Failed: ${responseText}`);
-            // Fallback: If "ad" is wrong for event_type, try "message"
-        } else {
-            const data = JSON.parse(responseText);
-            console.log(`[Raw REST] Success! ID: ${data?.marketing_event?.id}`);
-        }
-    } catch (error) {
-        console.error("Failed to register marketing activity:", JSON.stringify(error, null, 2));
-        // Continue execution - best effort
-    }
-
+    // [REMOVED] User found these entries cluttered and unnecessary.
+    // They are internal only (not customer facing) but we will stop generating them.
     // 3. Fetch recent customers (Target Audience)
     const response = await admin.graphql(
         `#graphql
