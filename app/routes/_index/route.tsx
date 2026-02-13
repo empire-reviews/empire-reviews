@@ -22,6 +22,9 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
+        <div className={styles.logoContainer}>
+          <img src="/logo.png" alt="Empire Reviews Logo" className={styles.logo} />
+        </div>
         <h1 className={styles.heading}>Empire Reviews - Transform Customer Feedback into Revenue</h1>
         <p className={styles.text}>
           Automate review collection with smart email campaigns. Display beautiful photo reviews.

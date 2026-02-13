@@ -292,9 +292,12 @@ export default function EmpireDashboard() {
             <div className="hero-content">
               <BlockStack gap="400">
                 <div>
-                  <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-                    Empire Command Center 🚀
-                  </h1>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '0.5rem' }}>
+                    <img src="/logo.png" alt="Empire Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                    <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
+                      Empire Command Center 🚀
+                    </h1>
+                  </div>
                   <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px' }}>
                     You are gathering feedback faster than 80% of stores. Keep the momentum going by replying to your pending reviews.
                   </p>
