@@ -32,7 +32,7 @@ import {
     ChartVerticalIcon,
     EditIcon
 } from "@shopify/polaris-icons";
-import { sendCampaignEmail } from "../services/email.server";
+
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { admin, session } = await authenticate.admin(request);
