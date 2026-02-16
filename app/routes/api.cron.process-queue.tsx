@@ -5,7 +5,7 @@ import shopify, { sessionStorage } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 1. Security Check
-    // if (process.env.CRON_SECRET && request.headers.get("Authorization") !== \`Bearer \${process.env.CRON_SECRET}\`) {
+    // if (process.env.CRON_SECRET && request.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     //     return json({ error: "Unauthorized" }, { status: 401 });
     // }
 
