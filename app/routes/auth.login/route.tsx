@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 import { Form, useActionData, useLoaderData, useSearchParams } from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
@@ -20,9 +20,17 @@ import { loginErrorMessage } from "./error.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return { errors, polarisTranslations };
+  try {
+    const errors = loginErrorMessage(await login(request));
+    return { errors, polarisTranslations };
+  } catch (error: any) {
+    return json({
+      error: "Login failed",
+      details: error.message,
+      stack: error.stack,
+      requestUrl: request.url
+    }, { status: 500 });
+  }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
