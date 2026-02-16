@@ -42,7 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         delayMap[s.shop] = s.reviewRequestDelay || 3; // Default 3 days
     });
 
-    console.log(\`🔍 Analyzing \${pendingOrders.length} candidates across \${uniqueShops.length} shops.\`);
+    console.log(`🔍 Analyzing ${pendingOrders.length} candidates across ${uniqueShops.length} shops.`);
     const results = [];
 
     for (const order of pendingOrders) {
@@ -56,16 +56,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         // If order was created BEFORE the threshold (e.g. Created 5 days ago, Delay 3 days -> Send)
         if (order.createdAt > sendThreshold) {
             // Too soon
-            // console.log(\`Skipping order \${order.id}: Too soon (Delay: \${delayDays} days)\`);
+            // console.log(`Skipping order ${order.id}: Too soon (Delay: ${delayDays} days)`);
             continue;
         }
 
-        const reviewLink = \`https://\${order.shop}/account\`; 
+        const reviewLink = `https://${order.shop}/account`;
 
         // A. Send Email via Resend
         const emailResult = await sendReviewRequest(
             order.customerEmail,
-            "Customer", 
+            "Customer",
             "your recent order",
             reviewLink,
             order.shop
@@ -89,12 +89,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 if (session) {
                     const client = new shopify.clients.Graphql({ session });
                     await client.request(
-                        \`#graphql
+                        `#graphql
                         mutation parse($id: ID!) {
                             orderUpdate(input: {id: $id, note: "📨 Empire Reviews: Review Request Email Sent"}) {
                                 userErrors { field message }
                             }
-                        }\`,
+                        }`,
                         { variables: { id: order.id } }
                     );
                 }
