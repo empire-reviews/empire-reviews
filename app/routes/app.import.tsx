@@ -12,55 +12,106 @@ import {
     List,
     Box,
     InlineStack,
+    Badge,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
 
-// Helper to parse CSV robustly (handles quotes and empty fields)
+// Helper to parse CSV robustly (handles quotes, empty fields, and newlines within quotes)
 function parseCSV(text: string) {
-    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-    // Parse headers first
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase().replace(/[\s_]+/g, ''));
+    const arr: string[][] = [];
+    let quote = false;  // 'true' means we're inside a quoted field
+
+    // Auto-detect delimiter
+    const firstLine = text.split('\n')[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    const delimiter = semiCount > commaCount ? ';' : ',';
+
+    // Iterate over each character, keep track of current row and column (of the returned array)
+    let row = 0, col = 0, c = 0;
+    let data = text.split("");
+
+    arr[row] = [];
+    arr[row][col] = "";
+
+    for (c = 0; c < data.length; c++) {
+        var cc = data[c], nc = data[c + 1];        // Current character, next character
+        arr[row][col] = arr[row][col] || "";   // create a new column (start with empty string) if necessary
+
+        // If the current character is a quotation mark, and we're inside a
+        // quoted field, and the next character is also a quotation mark,
+        // add a quotation mark to the current column and skip the next character
+        if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; }
+
+        // If it's just one quotation mark, begin/end quoted field
+        else if (cc == '"') { quote = !quote; }
+
+        // If it's the delimiter and we're not in a quoted field, move on to the next column
+        else if (cc == delimiter && !quote) { ++col; arr[row][col] = ""; }
+
+        // If it's a newline (CRLF) and we're not in a quoted field, skip the next character
+        // and move on to the next row and move to column 0 of that new row
+        else if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; arr[row] = []; }
+
+        // If it's a newline (LF or CR) and we're not in a quoted field,
+        // move on to the next row and move to column 0 of that new row
+        else if ((cc == '\n' || cc == '\r') && !quote) { ++row; col = 0; arr[row] = []; }
+
+        // Otherwise, add the current character to the current column
+        else { arr[row][col] += cc; }
+    }
+
+    // Now map to objects
+    if (arr.length < 2) return [];
+
+    // Parse headers first: Aggressive normalization (keep only a-z 0-9)
+    const headers = arr[0].map(h => h.trim().replace(/^"|"$/g, '').toLowerCase().replace(/[^a-z0-9]/g, ''));
 
     const result = [];
 
-    for (let i = 1; i < lines.length; i++) {
-        const obj: any = {};
-        const currentline = lines[i];
-        if (!currentline.trim()) continue;
+    for (let i = 1; i < arr.length; i++) {
+        const rowData = arr[i];
+        // Skip empty rows (orphans)
+        if (rowData.length < 2 && (!rowData[0] || rowData[0].trim() === "")) continue;
 
-        // Better CSV parsing: Split by comma only if NOT inside quotes
-        // This regex looks for commas followed by an even number of quotes (meaning outside)
-        let matches = [];
-        try {
-            // Regex to match "quoted value" OR non-quoted value (including empty)
-            // But strict implementation is tricky. Let's use the split method:
-            const entries = currentline.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            matches = entries.map(e => e.trim());
-        } catch (e) {
-            // Fallback to simple split if regex fails (rare)
-            matches = currentline.split(',');
-        }
+        const obj: any = {};
 
         headers.forEach((header, index) => {
-            let value = matches[index] ? matches[index].trim() : '';
-            // Remove surrounding quotes from value
-            value = value.replace(/^"|"$/g, '').replace(/""/g, '"');
+            let value = rowData[index] ? rowData[index].trim() : '';
+            // Remove surrounding quotes from value (parser handles internal quotes but might leave wrapping ones if strict)
+            // transforming "value" -> value
+            // Actually our state machine strips the delimiter quotes? No, the state machine logic above KEEPS content inside quotes but might strip the wrapping ones depending on logic.
+            // Let's look at logic: cc == '"' -> quote = !quote. It does NOT add cc to arr[row][col].
+            // So wrapping quotes ARE STRIPPED by the logic! 
+            // EXCEPT for internal escaped quotes: if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; }
+
+            // So 'value' is already clean!
+
+            // DEBUG: Log first row to see header mapping
+            if (i === 1) {
+                // console.log(`Header[${index}]: "${header}" -> Value: "${value.substring(0, 50)}..."`);
+            }
 
             // Map common variations to standard keys
             if (['rating', 'stars', 'star'].includes(header)) obj['rating'] = value;
-            else if (['body', 'content', 'review', 'comment', 'text', 'reviewtext', 'reviewcontent'].includes(header)) obj['body'] = value;
+            else if (['body', 'content', 'review', 'comment', 'text', 'reviews', 'reviewtext', 'reviewcontent', 'reviewbody'].includes(header)) {
+                // Only overwrite if new value is longer/better (prevents empty columns directly overwriting valid ones)
+                if (!obj['body'] || value.length > obj['body'].length) {
+                    obj['body'] = value;
+                }
+            }
             else if (['name', 'author', 'customer', 'reviewer', 'reviewername', 'customername'].includes(header)) obj['customer'] = value;
             else if (['email', 'revieweremail', 'customeremail'].includes(header)) obj['email'] = value;
             else if (['title', 'reviewtitle', 'headline'].includes(header)) obj['review_title'] = value;
-            else if (['date', 'createdat', 'reviewdate', 'timestamp'].includes(header)) obj['date'] = value;
+            else if (['date', 'createdat', 'reviewdate', 'timestamp', 'reviewdate'].includes(header)) obj['date'] = value;
             else if (['reply', 'response', 'ownerreply'].includes(header)) obj['reply'] = value;
             else if (['picture_urls', 'pictureurls', 'images', 'photos', 'media'].includes(header)) obj['images'] = value;
 
-            else if (['product_id', 'productid', 'id'].includes(header)) obj['product_id'] = value;
-            else if (['product_handle', 'producthandle', 'handle', 'product_url', 'producturl', 'product', 'productname', 'productlink'].includes(header)) {
+            else if (['product_id', 'productid', 'id', 'productname'].includes(header)) obj['product_id'] = value;
+            else if (['product_handle', 'producthandle', 'handle', 'product_url', 'producturl', 'product', 'productlink'].includes(header)) {
                 if (value.includes('/products/')) {
                     const handle = value.split('/products/').pop()?.split('?')[0];
                     obj['handle'] = handle;
@@ -70,7 +121,21 @@ function parseCSV(text: string) {
                     obj['handle'] = value;
                 }
             }
+            // FALLBACK: Store unmapped headers with long text values (likely review body)
+            else if (value.length > 10 && !obj['body']) {
+                console.warn(`Unmapped header "${header}" with long content - using as body`);
+                obj['body'] = value;
+            }
         });
+
+        // Log final parsed object for first row
+        if (i === 1) {
+            console.log('--- PARSED RECORD DEBUG ---');
+            console.log('Headers:', headers);
+            console.log('Parsed Object:', JSON.stringify(obj, null, 2));
+            console.log('---------------------------');
+        }
+
         result.push(obj);
     }
     return result;
@@ -227,7 +292,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             ? `Imported ${importedCount}. Skipped ${skippedCount} (Product not found).`
             : `Successfully imported ${importedCount} reviews.`;
 
-        return json({ success: true, count: importedCount, skipped: skippedCount, message });
+        // DEBUG: Return first record for inspection
+        const debugInfo = records.length > 0 ? {
+            detectedHeaders: Object.keys(records[0]),
+            firstRecord: records[0]
+        } : null;
+
+        return json({
+            success: true,
+            count: importedCount,
+            skipped: skippedCount,
+            message,
+            debug: debugInfo
+        });
 
     } catch (e) {
         console.error(e);
@@ -241,14 +318,49 @@ export default function ImportPage() {
     const [file, setFile] = useState<File | null>(null);
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [auditData, setAuditData] = useState<{ count: number, rating: number, platforms: string[] } | null>(null);
+    const [previewData, setPreviewData] = useState<any>(null);
+    const [hasSubmitted, setHasSubmitted] = useState(false);
 
     const handleDrop = useCallback(async (_droppedFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
         const droppedFile = acceptedFiles[0];
         setFile(droppedFile);
+        setHasSubmitted(false); // Reset submission state
 
-        // Instant Audit (Psychology: Cognitive Ease & Anticipation)
+        // Instant Audit & Preview
         const text = await droppedFile.text();
         const records = parseCSV(text);
+
+        // Extract RAW lines for preview (to show original columns)
+        // We need to re-parse linearly to get the raw matches, luckily parseCSV logic is robust now.
+        // Actually, parseCSV returns objects. We need detecting headers too.
+        // Let's modify parseCSV to return headers? Or just re-derive them.
+
+        // Quick hack: getting headers from first line manually for display (might differ from aggressive algo)
+        // But better to use the keys from the first record? No, keys are normalized.
+        // Let's use the same logic as the parser.
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')); // Display friendly
+
+        // check first 3 records
+        const samples = records.slice(0, 3);
+        const hasBody = samples.some(r => r.body && r.body.length > 0);
+
+        // We also want the RAW values corresponding to the detected headers for the table
+        // This is tricky without exposing internal parser state.
+        // For now, valid display is enough.
+
+        // Let's construct a "rawSamples" array by just splitting the lines simply for display purposes 
+        // (Visual check only, doesn't need to be perfect parsing as long as user sees content)
+        const rawSamples = lines.slice(1, 4).map(line => line.split(',').map(s => s.trim().replace(/^"|"$/g, '')));
+
+        setPreviewData({
+            count: records.length,
+            headers: rawHeaders,
+            samples,
+            rawSamples,
+            hasBody
+        });
+
         const platforms = [];
         if (text.includes('judgeme')) platforms.push('Judge.me');
         if (text.includes('yotpo')) platforms.push('Yotpo');
@@ -266,15 +378,20 @@ export default function ImportPage() {
 
     const handleImport = () => {
         if (!file) return;
+        setHasSubmitted(true);
         const formData = new FormData();
         formData.append("file", file);
         fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
     };
 
-    // Auto-advance to Step 3 on success
-    if (fetcher.data?.success && step !== 3) {
-        setStep(3);
-    }
+    // Auto-advance to Step 3 on success, BUT ONLY if we actually submitted this time
+    // Wrapped in useEffect to avoid side-effects during render
+    useEffect(() => {
+        if (fetcher.state === "idle" && fetcher.data?.success && step !== 3 && hasSubmitted) {
+            setStep(3);
+            setHasSubmitted(false);
+        }
+    }, [fetcher.state, fetcher.data, step, hasSubmitted]);
 
     return (
         <div className="empire-import">
@@ -525,90 +642,96 @@ export default function ImportPage() {
                             </div>
                         </div>
 
-                        {/* MODULE 2: UNIVERSAL BLUEPRINT (THE KNOWLEDGE BASE) */}
-                        <div className="tilt-card" style={{
-                            background: 'white',
-                            borderRadius: '40px',
-                            padding: '3rem',
-                            boxShadow: '0 30px 60px -10px rgba(0,0,0,0.08)',
-                            border: '1px solid #f1f5f9',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '2.5rem',
-                            position: 'relative',
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{ position: 'absolute', bottom: '-10%', left: '-10%', width: '200px', height: '200px', background: 'rgba(6, 182, 212, 0.05)', borderRadius: '50%', filter: 'blur(50px)' }}></div>
-
-                            <BlockStack gap="400">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <div style={{
-                                        fontSize: '2rem',
-                                        background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent'
-                                    }}>🧠</div>
-                                    <BlockStack gap="0">
-                                        <Text as="h3" variant="headingMd">Universal Blueprint</Text>
-                                        <Text as="p" variant="bodySm" tone="subdued">Smart header auto-mapping</Text>
-                                    </BlockStack>
-                                </div>
-                            </BlockStack>
-
-                            <div style={{
-                                background: '#f8fafc',
-                                borderRadius: '28px',
-                                padding: '1.5rem',
-                                border: '1px solid #f1f5f9',
-                                position: 'relative',
-                                zIndex: 2
+                        {/* STEP 2: PREVIEW & CONFIRM (The "Previous Method") */}
+                        {step === 2 && previewData && (
+                            <div className="tilt-card" style={{
+                                background: 'white',
+                                borderRadius: '40px',
+                                padding: '3rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 40px 80px -20px rgba(0,0,0,0.1)'
                             }}>
-                                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
-                                    <thead>
-                                        <tr style={{ textAlign: 'left', fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                            <th style={{ padding: '0 12px' }}>Data Point</th>
-                                            <th style={{ padding: '0 12px' }}>Supported Headers</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody style={{ fontSize: '0.85rem' }}>
-                                        {[
-                                            { f: "Review content", icon: "💬", h: "body, content, text" },
-                                            { f: "Star rating", icon: "⭐", h: "rating, stars, star" },
-                                            { f: "Author Name", icon: "👤", h: "name, author, customer" },
-                                            { f: "Product ID", icon: "🛒", h: "handle, product_id, title" },
-                                            { f: "Review Assets", icon: "🖼️", h: "images, media, photos" },
-                                        ].map((row, i) => (
-                                            <tr key={i} className="blueprint-row" style={{ background: 'white', borderRadius: '16px' }}>
-                                                <td style={{ padding: '14px 12px', borderRadius: '16px 0 0 16px', fontWeight: 800 }}>
-                                                    <span style={{ marginRight: '10px' }}>{row.icon}</span> {row.f}
-                                                </td>
-                                                <td style={{ padding: '14px 12px', borderRadius: '0 16px 16px 0', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                                                    {row.h}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                <BlockStack gap="600">
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧐</div>
+                                        <Text as="h2" variant="headingLg">Review Inspection</Text>
+                                        <Text as="p" tone="subdued">We found {previewData.count} reviews. Please double-check the data below.</Text>
+                                    </div>
 
-                            <BlockStack gap="400">
-                                <Button
-                                    fullWidth
-                                    size="large"
-                                    variant="primary"
-                                    icon={NoteIcon}
-                                    url="/app/import/template"
-                                    target="_blank"
-                                    download
-                                >
-                                    Download CSV Blueprint
-                                </Button>
-                                <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                    <div style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }}></div>
-                                    Verified RFC 4180 Format
-                                </div>
-                            </BlockStack>
-                        </div>
+                                    {/* MAPPING STATUS */}
+                                    <div style={{ background: previewData.hasBody ? '#ecfdf5' : '#fef2f2', padding: '1.5rem', borderRadius: '20px', border: `1px solid ${previewData.hasBody ? '#10b981' : '#ef4444'}` }}>
+                                        <BlockStack gap="200">
+                                            <InlineStack align="space-between">
+                                                <Text as="h3" variant="headingSm">Content Detection Status:</Text>
+                                                {previewData.hasBody ? (
+                                                    <Badge tone="success">✅ Body Found</Badge>
+                                                ) : (
+                                                    <Badge tone="critical">❌ BODY MISSING</Badge>
+                                                )}
+                                            </InlineStack>
+                                            {!previewData.hasBody && (
+                                                <Text as="p" tone="critical">
+                                                    We couldn't find a column for review text. Please rename your column to "Review Body" or "Body".
+                                                    Found Headers: {previewData.headers.join(', ')}
+                                                </Text>
+                                            )}
+                                        </BlockStack>
+                                    </div>
+
+                                    {/* PREVIEW TABLE */}
+                                    <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                            <thead>
+                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Values Found</th>
+                                                    {previewData.headers.map((h: string, i: number) => (
+                                                        <th key={i} style={{ padding: '12px', textAlign: 'left', textTransform: 'capitalize' }}>{h}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {previewData.samples.map((row: any, i: number) => (
+                                                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '12px', background: '#f8fafc', fontWeight: 600, width: '150px' }}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                <span>⭐ {row.rating}</span>
+                                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.customer}</span>
+                                                                <div style={{ fontSize: '0.75rem', padding: '4px', background: row.body ? '#dcfce7' : '#fee2e2', borderRadius: '4px', color: row.body ? '#166534' : '#991b1b' }}>
+                                                                    {row.body ? (row.body.length > 30 ? row.body.substring(0, 30) + '...' : row.body) : 'EMPTY'}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        {/* Show RAW values for debugging */}
+                                                        {previewData.rawSamples[i].map((cell: string, ci: number) => (
+                                                            <td key={ci} style={{ padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                {cell}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <BlockStack gap="400">
+                                        <Button
+                                            size="large"
+                                            variant="primary"
+                                            tone="success"
+                                            onClick={handleImport}
+                                            loading={fetcher.state === "submitting"}
+                                            disabled={!previewData.hasBody}
+                                            fullWidth
+                                        >
+                                            Looks Good? Start Migration →
+                                        </Button>
+                                        <Button variant="plain" onClick={() => setStep(1)}>
+                                            Upload Different File
+                                        </Button>
+                                    </BlockStack>
+                                </BlockStack>
+                            </div>
+                        )}
                     </div>
                 )}
 

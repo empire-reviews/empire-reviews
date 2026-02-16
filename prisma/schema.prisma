@@ -87,6 +87,12 @@ model Settings {
   klaviyoApiKey  String?
   enableGoogle   Boolean @default(false)
   plan           String  @default("FREE") // FREE, EMPRESS_PRO
+  hasCompletedOnboarding Boolean @default(false)
+  
+  // Email Automation
+  resendApiKey   String?
+  reviewRequestDelay Int     @default(3) // Days after order to send email
+  senderEmail    String     @default("reviews@empirereviews.com")
 }
 
 model Campaign {
@@ -157,6 +163,10 @@ model Order {
   currency      String
   createdAt     DateTime
   customerEmail String?
+  
+  // Automation Tracking
+  reviewRequestSentAt   DateTime?
+  reviewRequestStatus   String    @default("pending") // pending, sent, failed, skipped (if no email)
 
   @@index([shop])
   @@index([createdAt])

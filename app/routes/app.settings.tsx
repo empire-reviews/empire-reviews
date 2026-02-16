@@ -81,6 +81,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const enableFlow = formData.get("enableFlow") === "true";
     const enableKlaviyo = formData.get("enableKlaviyo") === "true";
     const klaviyoApiKey = formData.get("klaviyoApiKey") as string;
+    const reviewRequestDelay = parseInt(formData.get("reviewRequestDelay") as string) || 3;
     // Google Feed is PRO feature
     let enableGoogle = formData.get("enableGoogle") === "true";
 
@@ -99,7 +100,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             enableFlow,
             enableKlaviyo,
             klaviyoApiKey,
-            enableGoogle
+            enableGoogle,
+            reviewRequestDelay
         },
     });
 
@@ -117,6 +119,7 @@ export default function SettingsPage() {
     const [themeColor, setThemeColor] = useState(settings.themeColor);
     const [resetModalActive, setResetModalActive] = useState(false);
     const [billingModalActive, setBillingModalActive] = useState(false);
+    const [reviewRequestDelay, setReviewRequestDelay] = useState(settings.reviewRequestDelay || 3);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -148,7 +151,8 @@ export default function SettingsPage() {
                 enableFlow: String(flowEnabled),
                 enableKlaviyo: String(klaviyoEnabled),
                 klaviyoApiKey: klaviyoKey,
-                enableGoogle: String(googleShoppingEnabled)
+                enableGoogle: String(googleShoppingEnabled),
+                reviewRequestDelay: String(reviewRequestDelay)
             },
             { method: "post" }
         );
@@ -263,6 +267,26 @@ export default function SettingsPage() {
                                             helpText="Get immediate notifications for 1-2 star ratings."
                                             checked={emailAlerts}
                                             onChange={setEmailAlerts}
+                                        />
+                                    </BlockStack>
+                                </div>
+
+                                {/* NEW: REVIEW AUTOMATION SETTINGS */}
+                                <div className="config-card">
+                                    <BlockStack gap="400">
+                                        <Text as="h3" variant="headingMd">📧 Email Timing</Text>
+                                        <p style={{ color: '#64748b' }}>When should we ask for a review?</p>
+                                        <Divider />
+                                        <TextField
+                                            label="Send Request After (Days)"
+                                            type="number"
+                                            value={String(reviewRequestDelay)}
+                                            onChange={(val) => setReviewRequestDelay(parseInt(val) || 3)}
+                                            autoComplete="off"
+                                            helpText="Recommended: 3-5 days after order."
+                                            suffix="days"
+                                            min={1}
+                                            max={30}
                                         />
                                     </BlockStack>
                                 </div>

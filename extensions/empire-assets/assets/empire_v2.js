@@ -149,6 +149,32 @@
         });
     }
 
+    // === Trust Badge Widget ===
+    async function initTrustBadge() {
+        const containers = document.querySelectorAll('[data-empire-trust]');
+        if (!containers.length) return;
+
+        containers.forEach(async (container) => {
+            try {
+                const shop = container.dataset.shop;
+                if (!shop) return; // No shop parameter, keep static
+
+                const res = await fetch(`${API_BASE}?shop=${shop}`);
+                const { stats } = await res.json();
+
+                if (stats && stats.total > 0) {
+                    const scoreElement = container.querySelector('.empire-trust-score');
+                    if (scoreElement) {
+                        scoreElement.textContent = `${stats.average.toFixed(1)}/5 (${stats.total})`;
+                    }
+                }
+            } catch (e) {
+                console.error('Trust badge load failed:', e);
+                // Keep static fallback on error
+            }
+        });
+    }
+
     // === Star Rating Widget ===
     async function initStarRatings() {
         const containers = document.querySelectorAll('[data-empire-stars]');
@@ -186,6 +212,7 @@
     }
 
     function init() {
+        initTrustBadge();
         initStarRatings();
         initCarousel();
         initFloatingTab();

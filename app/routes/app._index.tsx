@@ -19,6 +19,20 @@ import { CONVERSION_CONFIG } from "../config/conversion";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
+  const { shop } = session;
+
+  // Check onboarding status - redirect if not completed
+  const settings = await prisma.settings.findUnique({ where: { shop } });
+  if (!settings || !settings.hasCompletedOnboarding) {
+    // Create settings if missing (first launch)
+    if (!settings) {
+      await prisma.settings.create({
+        data: { shop, hasCompletedOnboarding: false },
+      });
+    }
+    return redirect("/app/onboarding");
+  }
+
   const isPro = await hasActivePayment(request);
   const planName = isPro ? "EMPIRE_PRO" : "FREE";
 

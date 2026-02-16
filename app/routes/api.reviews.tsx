@@ -138,6 +138,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const url = new URL(request.url);
     const productId = url.searchParams.get("productId");
+    const shop = url.searchParams.get("shop");
     const minRating = url.searchParams.get("minRating") ? parseInt(url.searchParams.get("minRating")!) : undefined;
     const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : 50;
     const mediaOnly = url.searchParams.get("mediaOnly") === "true";
@@ -175,6 +176,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         if (productId) {
             const allReviews = await prisma.review.findMany({
                 where: { productId: `gid://shopify/Product/${productId}` },
+                select: { rating: true }
+            });
+            const total = allReviews.length;
+            const average = total === 0 ? 0 : allReviews.reduce((acc, r) => acc + r.rating, 0) / total;
+            stats = { total, average };
+        } else if (!productId && shop) {
+            // Global Stats (for Trust Badge) - filter by shop to prevent data leaks
+            const allReviews = await prisma.review.findMany({
+                where: { shop },
                 select: { rating: true }
             });
             const total = allReviews.length;
