@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
 import {
     Page,
@@ -35,7 +35,8 @@ const GROWTH_TIPS = [
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session, billing } = await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
+    const billing = await hasActivePayment(request); // Re-fetching billing below, just need session here
     const shop = session.shop;
 
     // SYNC BILLING STATUS
@@ -180,12 +181,20 @@ export default function SettingsPage() {
                  --empire-primary: #0f172a;
                  font-family: 'Inter', sans-serif;
             }
+            .top-row {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 0;
+            }
+            .top-row > * {
+                flex: 1;
+                min-width: 0;
+            }
             .settings-hero {
                 background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
                 color: white;
-                padding: 3rem 2rem;
+                padding: 1.5rem 1.5rem;
                 border-radius: 16px;
-                margin-bottom: 2rem;
             }
             .config-card {
                 background: white;
@@ -201,13 +210,12 @@ export default function SettingsPage() {
                 transform: perspective(1000px) rotateX(2deg);
                 box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
                 border: 1px solid rgba(168, 85, 247, 0.2);
-                margin-top: auto; /* Push to bottom if needed */
             }
             .card-3d:hover {
                 transform: perspective(1000px) rotateX(0deg) translateY(-5px);
                 box-shadow: 0 25px 30px -5px rgba(168, 85, 247, 0.2);
             }
-            /* Corrected Alignment logic */
+            /* Alignment: stretch columns so cards fill evenly */
             .Polaris-Layout__Section {
                 display: flex !important;
                 flex-direction: column;
@@ -217,39 +225,108 @@ export default function SettingsPage() {
                 display: flex;
                 flex-direction: column;
             }
+            .Polaris-Layout__Section > .Polaris-BlockStack > .config-card:last-child {
+                flex: 1;
+            }
             .tip-fade {
                 transition: opacity 0.5s ease-in-out;
             }
             .tip-text {
-                font-size: 1rem !important;
+                font-size: 0.95rem !important;
                 line-height: 1.4 !important;
                 color: #1e293b;
             }
         `}</style>
             <Page fullWidth>
-                <BlockStack gap="600">
-                    <div className="settings-hero">
-                        <BlockStack gap="400">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
-                                    <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>Global Configuration ⚙️</h1>
+                <BlockStack gap="400">
+                    {/* TOP ROW: Hero + Grow Your Empire side by side */}
+                    <div className="top-row">
+                        <div className="settings-hero">
+                            <BlockStack gap="300">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
+                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Global Configuration ⚙️</h1>
+                                    </div>
+                                    <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO 💎" : "STARTER PLAN"}</Badge>
                                 </div>
-                                <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO 💎" : "STARTER PLAN"}</Badge>
-                            </div>
-                            <p style={{ fontSize: '1.1rem', opacity: 0.9, maxWidth: '600px' }}>
-                                Control how Empire Reviews behaves on your storefront and manages your data.
-                            </p>
-                            <Box paddingBlockStart="200">
-                                <Button onClick={handleSave} size="large">Save All Changes</Button>
-                            </Box>
-                        </BlockStack>
+                                <p style={{ fontSize: '0.95rem', opacity: 0.9 }}>
+                                    Control how Empire Reviews behaves on your storefront and manages your data.
+                                </p>
+                                <Box paddingBlockStart="100">
+                                    <Button onClick={handleSave} size="large">Save All Changes</Button>
+                                </Box>
+                            </BlockStack>
+                        </div>
+
+                        <div className="config-card card-3d" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)' }}>
+                            <BlockStack gap="300">
+                                <InlineStack align="space-between">
+                                    <Text as="h3" variant="headingMd">🚀 Grow Your Empire</Text>
+                                    <Button variant="plain" onClick={() => navigate("/app/campaigns")}>Optimize Campaigns →</Button>
+                                </InlineStack>
+                                <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                                    Real-time conversion hacks & psychological tips — auto-rotates every 5 seconds.
+                                </p>
+                                <div style={{
+                                    padding: '1rem',
+                                    background: 'white',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e2e8f0',
+                                    minHeight: '50px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    textAlign: 'center',
+                                    boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+                                    flex: 1
+                                }}>
+                                    <div className="tip-fade" style={{ opacity: fade ? 1 : 0 }}>
+                                        <div className="tip-text">
+                                            <strong>💡 {GROWTH_TIPS[tipIndex]}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </BlockStack>
+                        </div>
                     </div>
 
                     <Layout>
                         {/* LEFT COL */}
                         <Layout.Section variant="oneHalf">
                             <BlockStack gap="400">
+                                {/* BRAND IDENTITY — SINGLE COLOR */}
+                                <div className="config-card">
+                                    <BlockStack gap="400">
+                                        <Text as="h3" variant="headingMd">🎨 Brand Identity</Text>
+                                        <p style={{ color: '#64748b' }}>Customize your review widget to match your store's look & feel.</p>
+                                        <Divider />
+
+                                        {/* Primary Color */}
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                                <div style={{ width: 24, height: 24, background: themeColor, borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />
+                                                <Text as="p" variant="bodyMd" fontWeight="semibold">Theme Color</Text>
+                                            </div>
+                                            <TextField
+                                                label=""
+                                                value={themeColor}
+                                                onChange={setThemeColor}
+                                                autoComplete="off"
+                                                helpText="Used for text, borders, stars, and buttons."
+                                                connectedRight={
+                                                    <input
+                                                        type="color"
+                                                        value={themeColor}
+                                                        onChange={(e) => setThemeColor(e.target.value)}
+                                                        style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }}
+                                                    />
+                                                }
+                                            />
+                                        </div>
+                                    </BlockStack>
+                                </div>
+
                                 {/* AUTOMATION CARD */}
                                 <div className="config-card">
                                     <BlockStack gap="400">
@@ -271,7 +348,7 @@ export default function SettingsPage() {
                                     </BlockStack>
                                 </div>
 
-                                {/* NEW: REVIEW AUTOMATION SETTINGS */}
+                                {/* EMAIL TIMING */}
                                 <div className="config-card">
                                     <BlockStack gap="400">
                                         <Text as="h3" variant="headingMd">📧 Email Timing</Text>
@@ -290,8 +367,13 @@ export default function SettingsPage() {
                                         />
                                     </BlockStack>
                                 </div>
+                            </BlockStack>
+                        </Layout.Section>
 
-                                {/* NEW: BILLING & PLAN CARD */}
+                        {/* RIGHT COL */}
+                        <Layout.Section variant="oneHalf">
+                            <BlockStack gap="400">
+                                {/* BILLING & PLAN */}
                                 <div className="config-card" style={{ borderLeft: '4px solid #10b981' }}>
                                     <BlockStack gap="400">
                                         <InlineStack align="space-between">
@@ -326,57 +408,7 @@ export default function SettingsPage() {
                                     </BlockStack>
                                 </div>
 
-                                {/* RE-ALIGNED: EMPIRE GROWTH TIPS (3D Effect) */}
-                                <div className="config-card card-3d" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)', display: 'flex', flexDirection: 'column' }}>
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">🚀 Grow Your Empire</Text>
-                                        <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                                            Real-time conversion hacks and psychological tips.
-                                        </p>
-                                        <div style={{
-                                            padding: '1.5rem',
-                                            background: 'white',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e2e8f0',
-                                            minHeight: '80px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            textAlign: 'center',
-                                            boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)'
-                                        }}>
-                                            <div className="tip-fade" style={{ opacity: fade ? 1 : 0 }}>
-                                                <div className="tip-text">
-                                                    <strong>💡 {GROWTH_TIPS[tipIndex]}</strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style={{ marginTop: 'auto' }}>
-                                            <Button variant="plain" onClick={() => navigate("/app/campaigns")} fullWidth>Optimize Campaigns →</Button>
-                                        </div>
-                                    </BlockStack>
-                                </div>
-                            </BlockStack>
-                        </Layout.Section>
-
-                        {/* RIGHT COL */}
-                        <Layout.Section variant="oneHalf">
-                            <BlockStack gap="400">
-                                <div className="config-card">
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">🎨 Brand Identity</Text>
-                                        <p style={{ color: '#64748b' }}>Customize the widget to match your store's theme.</p>
-                                        <Divider />
-                                        <TextField
-                                            label="Accent Color (Hex)"
-                                            value={themeColor}
-                                            onChange={setThemeColor}
-                                            autoComplete="off"
-                                            prefix={<div style={{ width: 20, height: 20, background: themeColor, borderRadius: 4, border: '1px solid #ccc' }}></div>}
-                                        />
-                                    </BlockStack>
-                                </div>
-
+                                {/* INTEGRATIONS */}
                                 <div className="config-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
                                     <BlockStack gap="400">
                                         <Text as="h3" variant="headingMd">🔌 Ecosystem Integrations</Text>
@@ -431,7 +463,8 @@ export default function SettingsPage() {
                                     </BlockStack>
                                 </div>
 
-                                <div className="config-card" style={{ borderColor: '#fda4af', background: '#fff1f2', marginTop: 'auto' }}>
+                                {/* DANGER ZONE */}
+                                <div className="config-card" style={{ borderColor: '#fda4af', background: '#fff1f2' }}>
                                     <BlockStack gap="400">
                                         <Text as="h3" variant="headingMd" tone="critical">🚨 Danger Zone</Text>
                                         <p style={{ color: '#be123c' }}>Irreversible actions.</p>

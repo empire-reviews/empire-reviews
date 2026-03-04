@@ -11,40 +11,58 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const createdAtQuery = `created_at:>=${date.toISOString()}`;
 
     try {
-        // 2. Fetch Orders via GraphQL
-        const response = await admin.graphql(
-            `#graphql
-            query getOrders($query: String!) {
-                orders(first: 50, query: $query) {
-                    edges {
-                        node {
-                            id
-                            createdAt
-                            totalPriceSet {
-                                shopMoney {
-                                    amount
-                                    currencyCode
+        // 2. Fetch ALL Orders via cursor-based pagination
+        let allOrders: any[] = [];
+        let hasNextPage = true;
+        let cursor: string | null = null;
+        const MAX_PAGES = 10; // Safety cap: 10 pages × 250 = 2500 orders max
+        let page = 0;
+
+        while (hasNextPage && page < MAX_PAGES) {
+            const response = await admin.graphql(
+                `#graphql
+                query getOrders($query: String!, $cursor: String) {
+                    orders(first: 250, query: $query, after: $cursor) {
+                        edges {
+                            node {
+                                id
+                                createdAt
+                                totalPriceSet {
+                                    shopMoney {
+                                        amount
+                                        currencyCode
+                                    }
+                                }
+                                email
+                                customer {
+                                    email
                                 }
                             }
-                            email
-                            customer {
-                                email
-                            }
+                        }
+                        pageInfo {
+                            hasNextPage
+                            endCursor
                         }
                     }
-                }
-            }`,
-            { variables: { query: createdAtQuery } }
-        );
+                }`,
+                { variables: { query: createdAtQuery, cursor } }
+            );
 
-        const data = await response.json();
-        const orders = data.data.orders.edges;
+            const data = await response.json();
+            const orders = data.data.orders.edges;
+            const pageInfo = data.data.orders.pageInfo;
 
-        console.log(`Syncing ${orders.length} orders from ${createdAtQuery}`);
+            allOrders = allOrders.concat(orders);
+            hasNextPage = pageInfo.hasNextPage;
+            cursor = pageInfo.endCursor;
+            page++;
+        }
+
+        console.log(`Syncing ${allOrders.length} orders from ${createdAtQuery} (${page} pages)`);
 
         // 3. Upsert into Prisma
         let count = 0;
-        for (const edge of orders) {
+        for (const edge of allOrders) {
             const node = edge.node;
             const price = parseFloat(node.totalPriceSet.shopMoney.amount);
             const currency = node.totalPriceSet.shopMoney.currencyCode;

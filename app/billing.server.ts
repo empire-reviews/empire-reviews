@@ -24,7 +24,7 @@ export async function hasActivePayment(request: Request) {
     try {
         const billingCheck = await billing.check({
             plans: [MONTHLY_PLAN],
-            isTest: true,
+            isTest: true, // Set to false after App Store approval for real charges
         });
         return billingCheck.hasActivePayment;
     } catch (error) {
@@ -37,7 +37,7 @@ export async function getPlanDetails(request: Request) {
     try {
         const billingCheck = await billing.check({
             plans: [MONTHLY_PLAN],
-            isTest: true,
+            isTest: true, // Set to false after App Store approval for real charges
         });
 
         console.log("DEBUG: Billing Check Result:", JSON.stringify(billingCheck, null, 2));
@@ -58,17 +58,18 @@ export async function requirePayment(request: Request) {
     try {
         const billingCheck = await billing.check({
             plans: [MONTHLY_PLAN],
-            isTest: true,
+            isTest: true, // Set to false after App Store approval for real charges
         });
 
         if (billingCheck.hasActivePayment) {
             return billingCheck;
         }
 
+        const appUrl = (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim();
         return await billing.request({
             plan: MONTHLY_PLAN,
-            isTest: true,
-            returnUrl: "/app/settings",
+            isTest: false,
+            returnUrl: `${appUrl}/app/settings`,
         });
     } catch (error: any) {
         console.error("❌ Billing Flow Failure:", {

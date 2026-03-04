@@ -1,13 +1,13 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
 import { sendReviewRequest } from "../services/email.server";
-import shopify, { sessionStorage } from "../shopify.server";
+import { unauthenticated } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    // 1. Security Check
-    // if (process.env.CRON_SECRET && request.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    //     return json({ error: "Unauthorized" }, { status: 401 });
-    // }
+    // 1. Security Check — require CRON_SECRET to prevent public access
+    if (process.env.CRON_SECRET && request.headers.get("Authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+        return json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     console.log("⏱️ CRON: Processing Review Request Queue...");
 
@@ -81,23 +81,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 }
             });
 
-            // C. Integrate with Shopify Timeline
+            // C. Integrate with Shopify Timeline (unauthenticated admin access for cron)
             try {
-                const sessionId = shopify.session.getOfflineId(order.shop);
-                const session = await sessionStorage.loadSession(sessionId);
-
-                if (session) {
-                    const client = new shopify.clients.Graphql({ session });
-                    await client.request(
-                        `#graphql
-                        mutation parse($id: ID!) {
-                            orderUpdate(input: {id: $id, note: "📨 Empire Reviews: Review Request Email Sent"}) {
-                                userErrors { field message }
-                            }
-                        }`,
-                        { variables: { id: order.id } }
-                    );
-                }
+                const { admin } = await unauthenticated.admin(order.shop);
+                await admin.graphql(
+                    `#graphql
+                    mutation parse($id: ID!) {
+                        orderUpdate(input: {id: $id, note: "📨 Empire Reviews: Review Request Email Sent"}) {
+                            userErrors { field message }
+                        }
+                    }`,
+                    { variables: { id: order.id } }
+                );
             } catch (shopifyError) {
                 console.error("Failed to update Shopify Order:", shopifyError);
             }

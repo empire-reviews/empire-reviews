@@ -4,18 +4,9 @@ import { useState, useEffect } from "react";
 import {
     Page,
     Badge,
-    Box,
     InlineStack,
-    BlockStack,
     Text,
-    Grid,
-    Card,
-    Divider,
-    Button,
-    Modal,
-    TextField
 } from "@shopify/polaris";
-import { CheckIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment } from "../billing.server";
 import prisma from "../db.server";
@@ -53,7 +44,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: false, message: "Invalid access code." });
     }
 
-    return await requirePayment(request);
+    // Billing upgrade flow
+    try {
+        return await requirePayment(request);
+    } catch (error: any) {
+        // billing.request() throws a Response redirect — let it through
+        if (error instanceof Response) {
+            throw error;
+        }
+        console.error("❌ Billing action error:", error);
+        return json({ success: false, message: `Billing error: ${error.message || "Unknown error"}` });
+    }
 };
 
 export default function PlansPage() {
@@ -357,6 +358,187 @@ export default function PlansPage() {
                     .mastery-deck { padding: 4rem 2rem; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
                     .zenith-slabs { padding: 4rem 2rem; }
                 }
+
+                /* ═══ VIP Access Modal ═══ */
+                .vip-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    animation: vipFadeIn 0.3s ease-out;
+                }
+
+                @keyframes vipFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @keyframes vipSlideUp {
+                    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+
+                @keyframes vipGlowPulse {
+                    0%, 100% { opacity: 0.3; }
+                    50% { opacity: 0.6; }
+                }
+
+                .vip-modal {
+                    position: relative;
+                    width: 420px;
+                    max-width: 90vw;
+                    background: rgba(15, 23, 42, 0.95);
+                    border: 1px solid rgba(59, 130, 246, 0.25);
+                    border-radius: 24px;
+                    padding: 3rem 2.5rem 2.5rem;
+                    text-align: center;
+                    animation: vipSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                    overflow: hidden;
+                }
+
+                .vip-glow {
+                    position: absolute;
+                    top: -50%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 300px;
+                    height: 300px;
+                    background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+                    pointer-events: none;
+                    animation: vipGlowPulse 3s ease-in-out infinite;
+                }
+
+                .vip-close {
+                    position: absolute;
+                    top: 1rem;
+                    right: 1.25rem;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: #64748b;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                }
+
+                .vip-close:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    color: #fff;
+                    border-color: rgba(255, 255, 255, 0.2);
+                }
+
+                .vip-icon {
+                    font-size: 2.5rem;
+                    margin-bottom: 0.75rem;
+                    filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4));
+                }
+
+                .vip-title {
+                    font-family: 'Outfit', sans-serif;
+                    font-size: 1.75rem;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #fff 30%, #3b82f6 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin: 0 0 0.5rem;
+                    letter-spacing: -0.03em;
+                }
+
+                .vip-desc {
+                    font-size: 0.85rem;
+                    color: #64748b;
+                    line-height: 1.6;
+                    margin: 0 0 2rem;
+                    max-width: 320px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+
+                .vip-input-wrap {
+                    text-align: left;
+                    margin-bottom: 1.5rem;
+                }
+
+                .vip-label {
+                    display: block;
+                    font-size: 0.65rem;
+                    font-weight: 700;
+                    color: #475569;
+                    text-transform: uppercase;
+                    letter-spacing: 0.15em;
+                    margin-bottom: 0.5rem;
+                }
+
+                .vip-input {
+                    width: 100%;
+                    padding: 14px 18px;
+                    background: rgba(30, 41, 59, 0.6);
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 14px;
+                    color: #f1f5f9;
+                    font-size: 0.95rem;
+                    font-family: 'Inter', sans-serif;
+                    outline: none;
+                    transition: all 0.3s;
+                    box-sizing: border-box;
+                }
+
+                .vip-input::placeholder {
+                    color: #334155;
+                }
+
+                .vip-input:focus {
+                    border-color: rgba(59, 130, 246, 0.5);
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 20px rgba(59, 130, 246, 0.05);
+                    background: rgba(30, 41, 59, 0.8);
+                }
+
+                .vip-submit {
+                    width: 100%;
+                    padding: 16px;
+                    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+                    color: #fff;
+                    border: none;
+                    border-radius: 14px;
+                    font-size: 0.9rem;
+                    font-weight: 700;
+                    letter-spacing: 0.03em;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    text-transform: uppercase;
+                    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
+                }
+
+                .vip-submit:hover:not(:disabled) {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 30px rgba(37, 99, 235, 0.5);
+                }
+
+                .vip-submit:active:not(:disabled) {
+                    transform: translateY(1px);
+                }
+
+                .vip-submit:disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+                }
+
+                .vip-footer {
+                    font-size: 0.7rem;
+                    color: #334155;
+                    margin: 1.25rem 0 0;
+                    font-style: italic;
+                }
             `}</style>
 
             <div className="zenith-vault">
@@ -455,30 +637,41 @@ export default function PlansPage() {
                     </div>
                 </div>
             </div>
+            {/* Custom VIP Access Overlay */}
+            {referralOpen && (
+                <div className="vip-overlay" onClick={() => setReferralOpen(false)}>
+                    <div className="vip-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="vip-glow" />
+                        <button className="vip-close" onClick={() => setReferralOpen(false)}>✕</button>
 
-            <Modal
-                open={referralOpen}
-                onClose={() => setReferralOpen(false)}
-                title="VIP Access"
-                primaryAction={{
-                    content: 'Redeem Code',
-                    onAction: handleReferralSubmit,
-                    loading: fetcher.state === "submitting"
-                }}
-                secondaryActions={[{ content: 'Cancel', onAction: () => setReferralOpen(false) }]}
-            >
-                <Modal.Section>
-                    <BlockStack gap="400">
-                        <p>Enter your referral code to unlock exclusive Pro features.</p>
-                        <TextField
-                            label="Referral Code"
-                            value={referralCode}
-                            onChange={setReferralCode}
-                            autoComplete="off"
-                        />
-                    </BlockStack>
-                </Modal.Section>
-            </Modal>
+                        <div className="vip-icon">💎</div>
+                        <h2 className="vip-title">VIP Access</h2>
+                        <p className="vip-desc">Enter your exclusive code to unlock all Pro features — no subscription required.</p>
+
+                        <div className="vip-input-wrap">
+                            <label className="vip-label">ACCESS CODE</label>
+                            <input
+                                type="text"
+                                className="vip-input"
+                                value={referralCode}
+                                onChange={(e) => setReferralCode(e.target.value)}
+                                placeholder="Enter your code..."
+                                autoComplete="off"
+                                onKeyDown={(e) => e.key === 'Enter' && handleReferralSubmit()}
+                            />
+                        </div>
+
+                        <button
+                            className="vip-submit"
+                            onClick={handleReferralSubmit}
+                            disabled={fetcher.state === "submitting" || !referralCode.trim()}
+                        >
+                            {fetcher.state === "submitting" ? "Verifying..." : "Unlock Pro Access ⚡"}
+                        </button>
+                        <p className="vip-footer">Codes are one-time use and grant lifetime access.</p>
+                    </div>
+                </div>
+            )}
         </Page >
     );
 }

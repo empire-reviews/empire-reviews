@@ -1,5 +1,4 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
 
 export const loader = async () => {
     const vars = [
@@ -10,10 +9,10 @@ export const loader = async () => {
         'DATABASE_URL'
     ];
 
-    const envForensics: any = {};
+    const results: any = {};
     for (const v of vars) {
         const value = process.env[v] || "";
-        envForensics[v] = {
+        results[v] = {
             length: value.length,
             escaped: JSON.stringify(value),
             hasCarriageReturn: value.includes('\r'),
@@ -22,19 +21,5 @@ export const loader = async () => {
         };
     }
 
-    const diagnostics: any = {
-        timestamp: new Date().toISOString(),
-        env: envForensics,
-        tests: {}
-    };
-
-    // Test 1: Can we connect to the database?
-    try {
-        await prisma.$connect();
-        diagnostics.tests.databaseConnection = "SUCCESS";
-    } catch (error: any) {
-        diagnostics.tests.databaseConnection = `FAILED: ${error.message}`;
-    }
-
-    return json(diagnostics);
+    return json(results);
 };

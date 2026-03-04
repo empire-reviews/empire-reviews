@@ -9,12 +9,19 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+// Global sanitization for Vercel environment corruption
+process.env.SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || "").trim();
+process.env.SHOPIFY_API_SECRET = (process.env.SHOPIFY_API_SECRET || "").trim();
+process.env.SHOPIFY_APP_URL = (process.env.SHOPIFY_APP_URL || "").trim();
+process.env.SCOPES = (process.env.SCOPES || "").trim();
+process.env.DATABASE_URL = (process.env.DATABASE_URL || "").trim();
+
 const shopify = shopifyApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiKey: (process.env.SHOPIFY_API_KEY || "").trim(),
+  apiSecretKey: (process.env.SHOPIFY_API_SECRET || "").trim(),
   apiVersion: ApiVersion.October24,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  // Scopes managed via shopify.app.toml (use_legacy_install_flow = false)
+  appUrl: (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim(),
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
@@ -22,7 +29,6 @@ const shopify = shopifyApp({
     "Empire Pro": {
       lineItems: [
         {
-          name: "Empire Pro Subscription",
           amount: 9.99,
           currencyCode: "USD",
           interval: BillingInterval.Every30Days,
@@ -31,7 +37,7 @@ const shopify = shopifyApp({
       trialDays: 7,
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
     },
-  } as any,
+  },
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     expiringOfflineAccessTokens: true,

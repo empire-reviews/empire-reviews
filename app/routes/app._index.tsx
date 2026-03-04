@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
   Page,
@@ -18,8 +18,35 @@ import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../util
 import { CONVERSION_CONFIG } from "../config/conversion";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let session;
+  try {
+    const auth = await authenticate.admin(request);
+    session = auth.session;
+  } catch (error) {
+    // Auth can fail on Remix client-side revalidation requests
+    // where shop/host/embedded params are absent and App Bridge
+    // hasn't intercepted the request yet. Return minimal data
+    // so the page renders and App Bridge can initialize.
+    console.log("app._index: auth deferred, returning minimal data");
+    return json({
+      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, unrepliedCount: 0, urgentCount: 0 },
+      planName: "FREE",
+      phase: "awareness",
+      canShowUpgrade: false,
+      features: {},
+      impact: null,
+      insights: null,
+    });
+  }
   const { shop } = session;
+
+  // Preserve Shopify params so the redirected request can authenticate
+  const url = new URL(request.url);
+  const shopifyParams = new URLSearchParams();
+  for (const key of ["shop", "host", "embedded", "locale", "session", "timestamp", "hmac"]) {
+    if (url.searchParams.has(key)) shopifyParams.set(key, url.searchParams.get(key)!);
+  }
+  const paramString = shopifyParams.toString();
 
   // Check onboarding status - redirect if not completed
   const settings = await prisma.settings.findUnique({ where: { shop } });
@@ -30,7 +57,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         data: { shop, hasCompletedOnboarding: false },
       });
     }
-    return redirect("/app/onboarding");
+    return redirect(`/app/onboarding${paramString ? `?${paramString}` : ""}`);
   }
 
   const isPro = await hasActivePayment(request);

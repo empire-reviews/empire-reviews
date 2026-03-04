@@ -10,7 +10,7 @@ export function analyzeSentiment(text: string): "positive" | "negative" | "neutr
     // Score < 0: Negative
     // Score 0: Neutral (or very short text)
 
-    if (result.score > 1) return "positive";
-    if (result.score < 0) return "negative";
+    if (result.score >= 1) return "positive";
+    if (result.score <= -1) return "negative";
     return "neutral";
 }

@@ -1,6 +1,16 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
 
+/** Escape user-generated strings for safe XML output */
+function escapeXml(str: string): string {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
@@ -41,7 +51,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
     });
 
-    // Generate XML
+    // Generate XML — all user content is escaped to prevent XSS/injection
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -53,14 +63,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     <reviews>
         ${reviews.map(r => `
         <review>
-            <review_id>${r.id}</review_id>
+            <review_id>${escapeXml(r.id)}</review_id>
             <reviewer>
-                <name>${r.customerName || 'Anonymous'}</name>
+                <name>${escapeXml(r.customerName ?? 'Anonymous')}</name>
             </reviewer>
             <review_timestamp>${r.createdAt.toISOString()}</review_timestamp>
-            <title>${r.title || 'Review'}</title>
-            <content>${r.body || ''}</content>
-            <review_url>https://${shop}/products/${r.productId}</review_url>
+            <title>${escapeXml(r.title ?? 'Review')}</title>
+            <content>${escapeXml(r.body ?? '')}</content>
+            <review_url>https://${escapeXml(shop)}/products/${escapeXml(r.productId ?? '')}</review_url>
             <ratings>
                 <overall min="1" max="5">${r.rating}</overall>
             </ratings>
@@ -68,7 +78,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 <product>
                     <product_ids>
                         <gtins>
-                            <gtin>${r.productId}</gtin> 
+                            <gtin>${escapeXml(r.productId ?? '')}</gtin>
                         </gtins>
                     </product_ids>
                 </product>

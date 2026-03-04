@@ -2,24 +2,45 @@ import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-r
 import prisma from "../db.server";
 import { analyzeSentiment } from "../services/sentiment.server";
 
-// 🛡️ CORS HELPER
-function corsResponse() {
+// 🛡️ CORS HELPER — restrict to Shopify storefronts
+function getAllowedOrigin(request: Request): string {
+    const origin = request.headers.get("Origin") || "";
+    // Allow any *.myshopify.com storefront and custom domains via Shopify proxy
+    if (origin.endsWith(".myshopify.com") || origin.endsWith(".shopify.com")) {
+        return origin;
+    }
+    // Allow localhost for development
+    if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+        return origin;
+    }
+    return ""; // Reject unknown origins
+}
+
+function corsResponse(request: Request) {
+    const allowedOrigin = getAllowedOrigin(request);
     return new Response(null, {
         headers: {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": allowedOrigin,
             "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         }
     });
 }
 
+function corsHeaders(request: Request) {
+    return {
+        "Access-Control-Allow-Origin": getAllowedOrigin(request),
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    };
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Handle Preflight
-    if (request.method === "OPTIONS") return corsResponse();
+    if (request.method === "OPTIONS") return corsResponse(request);
 
     if (request.method !== "POST") {
-        return json({ error: "Method not allowed" }, { status: 405, headers: { "Access-Control-Allow-Origin": "*" } });
+        return json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders(request) });
     }
 
     try {
@@ -32,15 +53,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const title = formData.get("title") as string;
         const mediaUrls = formData.get("media_urls") as string; // Expecting comma-separated URLs
 
-        if (!productId || !rating) {
-            return json({ error: "Missing required fields" }, { status: 400, headers: { "Access-Control-Allow-Origin": "*" } });
+        // Get shop from form data (storefront widget must include this)
+        // Also check App Proxy header as fallback
+        const shop = (formData.get("shop") as string)
+            || request.headers.get("x-shopify-shop-domain")
+            || new URL(request.url).searchParams.get("shop");
+
+        if (!productId || !rating || !shop) {
+            return json({ error: "Missing required fields (productId, rating, shop)" }, { status: 400, headers: { "Access-Control-Allow-Origin": "*" } });
         }
 
         // 🧠 EMPIRE INTELLIGENCE LAYER
         const sentiment = analyzeSentiment(body || "");
 
         // Fetch Settings for Auto-Publish Rules
-        const settings = await prisma.settings.findFirst({ where: { shop: "empire-store" } });
+        const settings = await prisma.settings.findFirst({ where: { shop } });
 
         // 🚨 DEV MODE: Auto-approve everything so you can see it
         let status = "approved";
@@ -56,7 +83,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         const review = await prisma.review.create({
             data: {
-                shop: "empire-store", // In prod, get from session
+                shop,
                 productId: `gid://shopify/Product/${productId}`,
                 rating,
                 body: body || null,
@@ -87,7 +114,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 // Note: We need to import 'shopify' correctly.
                 const shopify = (await import("../shopify.server")).default;
                 // @ts-ignore: Session storage type mismatch
-                const sessionId = shopify.sessionStorage.getOfflineId("empire-store");
+                const sessionId = shopify.sessionStorage.getOfflineId(shop);
                 const session = await shopify.sessionStorage.loadSession(sessionId);
 
                 if (session) {
@@ -128,13 +155,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     } catch (error) {
         console.error("API Error:", error);
-        return json({ error: "Submission failed" }, { status: 500, headers: { "Access-Control-Allow-Origin": "*" } });
+        return json({ error: "Submission failed" }, { status: 500, headers: corsHeaders(request) });
     }
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Handle OPTIONS for CORS preflight
-    if (request.method === "OPTIONS") return corsResponse();
+    if (request.method === "OPTIONS") return corsResponse(request);
 
     const url = new URL(request.url);
     const productId = url.searchParams.get("productId");
@@ -161,8 +188,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             where.media = { some: {} }; // At least one media item
         }
 
-        // 🚨 SHOW ALL REVIEWS (Pending & Approved) - For Demo
-        // where.status = "approved"; 
+        // Only show approved reviews on storefronts
+        where.status = "approved";
 
         const reviews = await prisma.review.findMany({
             where,
@@ -195,14 +222,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         return json(
             { reviews, stats },
             {
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET,OPTIONS",
-                },
+                headers: corsHeaders(request),
             }
         );
     } catch (e) {
         console.error("API Fetch Error:", e);
-        return json({ error: "Fetch failed" }, { status: 500, headers: { "Access-Control-Allow-Origin": "*" } });
+        return json({ error: "Fetch failed" }, { status: 500, headers: corsHeaders(request) });
     }
 };

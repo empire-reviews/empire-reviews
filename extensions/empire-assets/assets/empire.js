@@ -1,7 +1,7 @@
 // Empire Reviews Client Script
 // Psychology: Load fast, show social proof immediately.
 
-const EMPIRE_APP_URL = "https://push-strain-performs-eco.trycloudflare.com"; // HARDCODED FOR DEV SESSION
+const EMPIRE_APP_URL = "https://empire-reviews.vercel.app"; // Production URL
 
 document.addEventListener("DOMContentLoaded", () => {
     initStarRatings();
@@ -108,6 +108,10 @@ async function handleEmpireSubmit(e, productId) {
     const form = e.target;
     const formData = new FormData(form);
     formData.append("productId", productId);
+    // Include shop domain so the API knows which store this review belongs to
+    if (window.Shopify && window.Shopify.shop) {
+        formData.append("shop", window.Shopify.shop);
+    }
 
     try {
         const res = await fetch(`${EMPIRE_APP_URL}/api/reviews`, {

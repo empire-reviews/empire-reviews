@@ -13,13 +13,24 @@
       "routes/webhooks.app.orders_create": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/webhooks.app.scopes_update": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/webhooks.app.uninstalled": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.env_forensics": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.redirect_test": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.cron.process-queue": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/campaigns.redirect.$id": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.auth-diagnostic": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.debug.campaigns": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.track.click.$id": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.track.open.$id": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.headers": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.reviews": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.health": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.orders.sync": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.unsubscribe": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.auth-test": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.env": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.keepalive": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/webhooks.gdpr": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
+      "routes/api.debug.db": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.feed.xml": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/api.reviews": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
       "routes/auth.login": "nodejs-eyJydW50aW1lIjoibm9kZWpzIn0",
@@ -72,11 +83,47 @@
           "runtime": "nodejs"
         }
       },
+      "routes/api.debug.env_forensics": {
+        "id": "routes/api.debug.env_forensics",
+        "parentId": "root",
+        "file": "app/routes/api.debug.env_forensics.tsx",
+        "path": "api/debug/env_forensics",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.debug.redirect_test": {
+        "id": "routes/api.debug.redirect_test",
+        "parentId": "root",
+        "file": "app/routes/api.debug.redirect_test.tsx",
+        "path": "api/debug/redirect_test",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.cron.process-queue": {
+        "id": "routes/api.cron.process-queue",
+        "parentId": "root",
+        "file": "app/routes/api.cron.process-queue.tsx",
+        "path": "api/cron/process-queue",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
       "routes/campaigns.redirect.$id": {
         "id": "routes/campaigns.redirect.$id",
         "parentId": "root",
         "file": "app/routes/campaigns.redirect.$id.tsx",
         "path": "campaigns/redirect/:id",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.auth-diagnostic": {
+        "id": "routes/api.auth-diagnostic",
+        "parentId": "root",
+        "file": "app/routes/api.auth-diagnostic.tsx",
+        "path": "api/auth-diagnostic",
         "config": {
           "runtime": "nodejs"
         }
@@ -108,11 +155,65 @@
           "runtime": "nodejs"
         }
       },
+      "routes/api.debug.headers": {
+        "id": "routes/api.debug.headers",
+        "parentId": "root",
+        "file": "app/routes/api.debug.headers.tsx",
+        "path": "api/debug/headers",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.debug.reviews": {
+        "id": "routes/api.debug.reviews",
+        "parentId": "root",
+        "file": "app/routes/api.debug.reviews.tsx",
+        "path": "api/debug/reviews",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.debug.health": {
+        "id": "routes/api.debug.health",
+        "parentId": "root",
+        "file": "app/routes/api.debug.health.tsx",
+        "path": "api/debug/health",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
       "routes/api.orders.sync": {
         "id": "routes/api.orders.sync",
         "parentId": "root",
         "file": "app/routes/api.orders.sync.tsx",
         "path": "api/orders/sync",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.unsubscribe": {
+        "id": "routes/api.unsubscribe",
+        "parentId": "root",
+        "file": "app/routes/api.unsubscribe.tsx",
+        "path": "api/unsubscribe",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.auth-test": {
+        "id": "routes/api.auth-test",
+        "parentId": "root",
+        "file": "app/routes/api.auth-test.tsx",
+        "path": "api/auth-test",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.debug.env": {
+        "id": "routes/api.debug.env",
+        "parentId": "root",
+        "file": "app/routes/api.debug.env.tsx",
+        "path": "api/debug/env",
         "config": {
           "runtime": "nodejs"
         }
@@ -131,6 +232,15 @@
         "parentId": "root",
         "file": "app/routes/webhooks.gdpr.tsx",
         "path": "webhooks/gdpr",
+        "config": {
+          "runtime": "nodejs"
+        }
+      },
+      "routes/api.debug.db": {
+        "id": "routes/api.debug.db",
+        "parentId": "root",
+        "file": "app/routes/api.debug.db.tsx",
+        "path": "api/debug/db",
         "config": {
           "runtime": "nodejs"
         }
@@ -332,11 +442,35 @@
         "file": "routes/webhooks.app.uninstalled.tsx",
         "path": "webhooks/app/uninstalled"
       },
+      "routes/api.debug.env_forensics": {
+        "id": "routes/api.debug.env_forensics",
+        "parentId": "root",
+        "file": "routes/api.debug.env_forensics.tsx",
+        "path": "api/debug/env_forensics"
+      },
+      "routes/api.debug.redirect_test": {
+        "id": "routes/api.debug.redirect_test",
+        "parentId": "root",
+        "file": "routes/api.debug.redirect_test.tsx",
+        "path": "api/debug/redirect_test"
+      },
+      "routes/api.cron.process-queue": {
+        "id": "routes/api.cron.process-queue",
+        "parentId": "root",
+        "file": "routes/api.cron.process-queue.tsx",
+        "path": "api/cron/process-queue"
+      },
       "routes/campaigns.redirect.$id": {
         "id": "routes/campaigns.redirect.$id",
         "parentId": "root",
         "file": "routes/campaigns.redirect.$id.tsx",
         "path": "campaigns/redirect/:id"
+      },
+      "routes/api.auth-diagnostic": {
+        "id": "routes/api.auth-diagnostic",
+        "parentId": "root",
+        "file": "routes/api.auth-diagnostic.tsx",
+        "path": "api/auth-diagnostic"
       },
       "routes/api.debug.campaigns": {
         "id": "routes/api.debug.campaigns",
@@ -356,11 +490,47 @@
         "file": "routes/api.track.open.$id.tsx",
         "path": "api/track/open/:id"
       },
+      "routes/api.debug.headers": {
+        "id": "routes/api.debug.headers",
+        "parentId": "root",
+        "file": "routes/api.debug.headers.tsx",
+        "path": "api/debug/headers"
+      },
+      "routes/api.debug.reviews": {
+        "id": "routes/api.debug.reviews",
+        "parentId": "root",
+        "file": "routes/api.debug.reviews.tsx",
+        "path": "api/debug/reviews"
+      },
+      "routes/api.debug.health": {
+        "id": "routes/api.debug.health",
+        "parentId": "root",
+        "file": "routes/api.debug.health.tsx",
+        "path": "api/debug/health"
+      },
       "routes/api.orders.sync": {
         "id": "routes/api.orders.sync",
         "parentId": "root",
         "file": "routes/api.orders.sync.tsx",
         "path": "api/orders/sync"
+      },
+      "routes/api.unsubscribe": {
+        "id": "routes/api.unsubscribe",
+        "parentId": "root",
+        "file": "routes/api.unsubscribe.tsx",
+        "path": "api/unsubscribe"
+      },
+      "routes/api.auth-test": {
+        "id": "routes/api.auth-test",
+        "parentId": "root",
+        "file": "routes/api.auth-test.tsx",
+        "path": "api/auth-test"
+      },
+      "routes/api.debug.env": {
+        "id": "routes/api.debug.env",
+        "parentId": "root",
+        "file": "routes/api.debug.env.tsx",
+        "path": "api/debug/env"
       },
       "routes/api.keepalive": {
         "id": "routes/api.keepalive",
@@ -373,6 +543,12 @@
         "parentId": "root",
         "file": "routes/webhooks.gdpr.tsx",
         "path": "webhooks/gdpr"
+      },
+      "routes/api.debug.db": {
+        "id": "routes/api.debug.db",
+        "parentId": "root",
+        "file": "routes/api.debug.db.tsx",
+        "path": "api/debug/db"
       },
       "routes/api.feed.xml": {
         "id": "routes/api.feed.xml",

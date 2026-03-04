@@ -266,6 +266,10 @@
             formData.append("body", body);
             formData.append("author", name);
             formData.append("email", email);
+            // Include shop domain so the API knows which store this review belongs to
+            if (window.Shopify && window.Shopify.shop) {
+                formData.append("shop", window.Shopify.shop);
+            }
 
             try {
                 const res = await fetch(API_BASE, { method: "POST", body: formData });
