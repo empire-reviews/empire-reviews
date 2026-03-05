@@ -514,22 +514,24 @@ export default function SettingsPage() {
                                             value={aiProvider}
                                             onChange={setAiProvider}
                                             disabled={!isPro}
-                                            helpText={aiProvider === 'ollama' ? 'Runs locally on your machine — no API key needed.' : 'Choose the AI model you prefer.'}
+                                            helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'}
                                         />
 
-                                        {aiProvider && aiProvider !== 'ollama' && (
+                                        {aiProvider && (
                                             <TextField
-                                                label="API Key"
+                                                label={aiProvider === 'ollama' ? "Model Name / Remote URL" : "API Key"}
                                                 value={aiApiKey}
                                                 onChange={setAiApiKey}
                                                 autoComplete="off"
-                                                type="password"
+                                                type={aiProvider === 'ollama' ? "text" : "password"}
                                                 disabled={!isPro}
+                                                placeholder={aiProvider === 'ollama' ? "e.g., gemma3:12b OR https://your-tunnel.ngrok.app|gemma3:12b" : ""}
                                                 helpText={
                                                     aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
                                                         aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
                                                             aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
-                                                                aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' : ''
+                                                                aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' :
+                                                                    aiProvider === 'ollama' ? 'Enter model name, or full URL if using a tunnel (e.g. https://xyz.ngrok.dev|llama3).' : ''
                                                 }
                                             />
                                         )}
@@ -558,7 +560,7 @@ export default function SettingsPage() {
                                                         }, 4000);
                                                     }}
                                                     loading={aiTestLoading}
-                                                    disabled={aiTestLoading || (!aiApiKey && aiProvider !== 'ollama')}
+                                                    disabled={aiTestLoading || !aiApiKey}
                                                     variant="primary"
                                                     size="micro"
                                                 >

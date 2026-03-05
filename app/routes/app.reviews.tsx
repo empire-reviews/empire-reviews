@@ -33,7 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         include: { replies: true }
     });
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-    const aiConfigured = !!(settings?.aiProvider && (settings?.aiApiKey || settings?.aiProvider === 'ollama'));
+    const aiConfigured = !!(settings?.aiProvider && settings?.aiApiKey);
     return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, aiApiKey: settings?.aiApiKey || null });
 };
 
@@ -61,7 +61,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const customerName = formData.get("customerName") as string;
 
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-        if (!settings?.aiProvider || (!settings?.aiApiKey && settings?.aiProvider !== 'ollama')) {
+        if (!settings?.aiProvider || !settings?.aiApiKey) {
             return json({ success: false, aiReply: null, error: "AI not configured. Go to Settings → AI Configuration." });
         }
 
@@ -82,7 +82,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
 
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-        if (!settings?.aiProvider || (!settings?.aiApiKey && settings?.aiProvider !== 'ollama')) {
+        if (!settings?.aiProvider || !settings?.aiApiKey) {
             return json({ success: false, error: "AI not configured" });
         }
 

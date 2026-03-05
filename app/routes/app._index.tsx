@@ -134,14 +134,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
     else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
 
-    insights = {
+    let insights: { score: number; label: string; aiSummary: string | null } = {
       score: sentimentScore,
       label: sentimentLabel,
-      aiSummary: null as string | null,
+      aiSummary: null,
     };
 
     // Try real AI insights if configured
-    if (settings?.aiProvider && (settings?.aiApiKey || settings?.aiProvider === 'ollama')) {
+    if (settings?.aiProvider && settings?.aiApiKey) {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
       const needsRefresh = !settings.aiInsightsUpdatedAt || new Date(settings.aiInsightsUpdatedAt) < oneHourAgo;
 
@@ -163,10 +163,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           insights.aiSummary = settings.aiInsightsSummary || null;
         }
       } else {
-        insights.aiSummary = settings.aiInsightsSummary || null;
+        if (insights) insights.aiSummary = settings.aiInsightsSummary || null;
       }
     }
   }
+
+  // Placeholder for trend, as it's not calculated in the original code
+  const trend = { value: 0, percentage: 0 }; // You might want to calculate this based on reviewsThisWeek vs. previous week
 
   return json({
     metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount },
@@ -175,7 +178,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     canShowUpgrade,
     features: CONVERSION_CONFIG.FEATURES,
     impact,
-    insights
+    insights: insights as { score: number; label: string; aiSummary: string | null } | null,
+    settings,
   });
 
 };
@@ -569,18 +573,18 @@ export default function EmpireDashboard() {
                     {planName === "EMPIRE_PRO" ? (
                       <div>
                         <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                          {insights.label}
+                          {insights?.label || "Insights"}
                         </div>
-                        {insights.aiSummary && (
+                        {insights?.aiSummary && (
                           <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '6px', lineHeight: '1.4' }}>
-                            {insights.aiSummary}
+                            {insights?.aiSummary}
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
                           {[1, 2, 3, 4, 5].map(s => (
                             <div key={s} style={{
                               width: '20px', height: '6px',
-                              background: s <= Math.round(insights.score) ? 'white' : 'rgba(255,255,255,0.3)',
+                              background: s <= Math.round(insights?.score || 0) ? 'white' : 'rgba(255,255,255,0.3)',
                               borderRadius: '4px'
                             }}></div>
                           ))}

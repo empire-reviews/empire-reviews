@@ -41,7 +41,7 @@ async function callAI(config: AIConfig, systemPrompt: string, userPrompt: string
             case "claude":
                 return await callClaude(apiKey, systemPrompt, userPrompt);
             case "ollama":
-                return await callOllama(systemPrompt, userPrompt);
+                return await callOllama(apiKey, systemPrompt, userPrompt);
             default:
                 throw new Error(`Unsupported AI provider: ${provider}`);
         }
@@ -130,12 +130,27 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
 }
 
 /** Ollama (local) */
-async function callOllama(systemPrompt: string, userPrompt: string): Promise<string> {
-    const res = await fetch(PROVIDER_ENDPOINTS.ollama, {
+async function callOllama(configKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
+    let endpoint = "http://localhost:11434/api/chat";
+    let model = "llama3";
+
+    if (configKey) {
+        if (configKey.includes("|")) {
+            const parts = configKey.split("|");
+            endpoint = parts[0].replace(/\/$/, "") + "/api/chat";
+            model = parts[1];
+        } else if (configKey.startsWith("http")) {
+            endpoint = configKey.replace(/\/$/, "") + "/api/chat";
+        } else {
+            model = configKey; // just model name
+        }
+    }
+
+    const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            model: PROVIDER_MODELS.ollama,
+            model: model,
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: userPrompt },
