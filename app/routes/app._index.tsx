@@ -16,6 +16,7 @@ import prisma from "../db.server";
 import { ArrowRightIcon, StarFilledIcon, ChatIcon, ArrowUpIcon, ImportIcon, SendIcon, ExternalIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
 import { CONVERSION_CONFIG } from "../config/conversion";
+import { generateInsights, type AIProvider } from "../services/ai.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   let session;
@@ -63,7 +64,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const isPro = await hasActivePayment(request);
   const planName = isPro ? "EMPIRE_PRO" : "FREE";
 
-  const reviews = await prisma.review.findMany({ select: { createdAt: true, rating: true, replies: true, sentiment: true } });
+  const reviews = await prisma.review.findMany({ select: { createdAt: true, rating: true, replies: true, sentiment: true, body: true } });
 
   const totalReviews = reviews.length;
   const now = new Date();
@@ -135,8 +136,36 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     insights = {
       score: sentimentScore,
-      label: sentimentLabel
+      label: sentimentLabel,
+      aiSummary: null as string | null,
     };
+
+    // Try real AI insights if configured
+    if (settings?.aiProvider && (settings?.aiApiKey || settings?.aiProvider === 'ollama')) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const needsRefresh = !settings.aiInsightsUpdatedAt || new Date(settings.aiInsightsUpdatedAt) < oneHourAgo;
+
+      if (needsRefresh && totalReviews > 0) {
+        try {
+          const recentReviews = reviews.slice(0, 20).map(r => ({ body: r.body ?? null, rating: r.rating }));
+          const aiResult = await generateInsights(
+            { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" },
+            recentReviews
+          );
+          insights.aiSummary = aiResult.summary;
+          // Cache the result
+          await prisma.settings.update({
+            where: { shop: session.shop },
+            data: { aiInsightsSummary: aiResult.summary, aiInsightsUpdatedAt: new Date() },
+          });
+        } catch (err) {
+          console.error("AI insights generation failed:", err);
+          insights.aiSummary = settings.aiInsightsSummary || null;
+        }
+      } else {
+        insights.aiSummary = settings.aiInsightsSummary || null;
+      }
+    }
   }
 
   return json({
@@ -542,6 +571,11 @@ export default function EmpireDashboard() {
                         <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
                           {insights.label}
                         </div>
+                        {insights.aiSummary && (
+                          <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '6px', lineHeight: '1.4' }}>
+                            {insights.aiSummary}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
                           {[1, 2, 3, 4, 5].map(s => (
                             <div key={s} style={{

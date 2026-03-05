@@ -16,26 +16,29 @@ import {
     ProgressBar,
     Tooltip,
     BlockStack,
+    Spinner,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon } from "@shopify/polaris-icons";
-
+import { generateReply, type AIProvider } from "../services/ai.server";
 import { hasActivePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
     const isPro = await hasActivePayment(request);
     const reviews = await prisma.review.findMany({
         orderBy: { createdAt: "desc" },
         include: { replies: true }
     });
-    return json({ reviews, isPro });
+    const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+    const aiConfigured = !!(settings?.aiProvider && (settings?.aiApiKey || settings?.aiProvider === 'ollama'));
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, aiApiKey: settings?.aiApiKey || null });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent") as string;
 
@@ -50,6 +53,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             await prisma.reply.create({ data: { reviewId, body } });
         }
         return json({ success: true, message: "Reply saved" });
+    }
+
+    if (intent === "generate_ai_reply") {
+        const reviewBody = formData.get("reviewBody") as string;
+        const rating = parseInt(formData.get("rating") as string) || 3;
+        const customerName = formData.get("customerName") as string;
+
+        const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+        if (!settings?.aiProvider || (!settings?.aiApiKey && settings?.aiProvider !== 'ollama')) {
+            return json({ success: false, aiReply: null, error: "AI not configured. Go to Settings → AI Configuration." });
+        }
+
+        try {
+            const aiReply = await generateReply(
+                { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" },
+                reviewBody,
+                rating,
+                customerName
+            );
+            return json({ success: true, aiReply });
+        } catch (error: any) {
+            return json({ success: false, aiReply: null, error: error.message || "AI generation failed" });
+        }
+    }
+
+    if (intent === "bulk_ai_reply") {
+        const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
+
+        const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+        if (!settings?.aiProvider || (!settings?.aiApiKey && settings?.aiProvider !== 'ollama')) {
+            return json({ success: false, error: "AI not configured" });
+        }
+
+        const config = { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" };
+        let repliedCount = 0;
+
+        for (const reviewId of reviewIds) {
+            const review = await prisma.review.findUnique({ where: { id: reviewId }, include: { replies: true } });
+            if (!review || review.replies.length > 0) continue; // Skip already replied
+
+            try {
+                const aiReply = await generateReply(config, review.body || "", review.rating, review.customerName);
+                await prisma.reply.create({ data: { reviewId, body: aiReply } });
+                repliedCount++;
+            } catch (err) {
+                console.error(`AI reply failed for review ${reviewId}:`, err);
+            }
+        }
+
+        return json({ success: true, message: `AI replied to ${repliedCount} reviews`, repliedCount });
     }
 
     if (intent === "delete_review") {
@@ -75,9 +128,15 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
+    const aiFetcher = useFetcher();
+
+    // AI Loading State
+    const [aiGenerating, setAiGenerating] = useState(false);
+    const [bulkAiModalOpen, setBulkAiModalOpen] = useState(false);
+    const [bulkAiLoading, setBulkAiLoading] = useState(false);
 
     // Stats for Gamification
     const totalReviews = reviews.length;
@@ -130,6 +189,56 @@ export default function ReviewsPage() {
         setShowConfetti(true);
         setTimeout(() => setShowConfetti(false), 3000); // 3s burst
         shopify.toast.show("Reply sent! Streak extended 🔥");
+    };
+
+    // AI Reply Handler
+    const handleAiReply = () => {
+        if (!selectedReview) return;
+        if (!isPro) { navigate("/app/plans"); shopify.toast.show("AI replies require Empire Pro 💎"); return; }
+        if (!aiConfigured) { navigate("/app/settings"); shopify.toast.show("Set up AI in Settings first"); return; }
+
+        setAiGenerating(true);
+        aiFetcher.submit(
+            {
+                intent: "generate_ai_reply",
+                reviewBody: selectedReview.body || "",
+                rating: String(selectedReview.rating),
+                customerName: selectedReview.customerName || "Anonymous",
+            },
+            { method: "post" }
+        );
+    };
+
+    // Listen for AI reply response
+    useEffect(() => {
+        if (aiFetcher.data && aiGenerating) {
+            setAiGenerating(false);
+            const data = aiFetcher.data as any;
+            if (data.aiReply) {
+                setTextInput(data.aiReply);
+                shopify.toast.show("AI draft generated ✨");
+            } else if (data.error) {
+                shopify.toast.show(data.error);
+            }
+        }
+    }, [aiFetcher.data]);
+
+    // Bulk AI Reply Handler
+    const handleBulkAiReply = () => {
+        if (!isPro) { navigate("/app/plans"); shopify.toast.show("Bulk AI requires Empire Pro 💎"); return; }
+        if (!aiConfigured) { navigate("/app/settings"); shopify.toast.show("Set up AI in Settings first"); return; }
+        setBulkAiModalOpen(true);
+    };
+
+    const handleConfirmBulkAi = () => {
+        setBulkAiLoading(true);
+        fetcher.submit(
+            { intent: "bulk_ai_reply", reviewIds: JSON.stringify(selectedResources) },
+            { method: "post" }
+        );
+        setBulkAiModalOpen(false);
+        setBulkAiLoading(false);
+        shopify.toast.show(`AI is replying to ${selectedResources.length} reviews... 🤖`);
     };
 
     // Delete Modal State
@@ -353,6 +462,10 @@ export default function ReviewsPage() {
                                     onSelectionChange={handleSelectionChange}
                                     promotedBulkActions={[
                                         {
+                                            content: '🤖 Bulk Reply with AI',
+                                            onAction: handleBulkAiReply,
+                                        },
+                                        {
                                             content: 'Delete reviews',
                                             onAction: () => setBulkDeleteModalOpen(true),
                                         },
@@ -396,7 +509,16 @@ export default function ReviewsPage() {
                                     <BlockStack gap="200">
                                         <InlineStack align="space-between">
                                             <Text as="p" variant="bodyMd" fontWeight="bold">Your Response</Text>
-                                            <Button variant="plain" size="micro" icon={MagicIcon} onClick={() => setTextInput(prev => prev + " Thank you so much for supporting our small business!")}>Add Magic Sign-off</Button>
+                                            <Button
+                                                variant="primary"
+                                                size="micro"
+                                                icon={MagicIcon}
+                                                onClick={handleAiReply}
+                                                loading={aiGenerating}
+                                                disabled={aiGenerating}
+                                            >
+                                                {aiGenerating ? 'Generating...' : '✨ Reply with AI'}
+                                            </Button>
                                         </InlineStack>
                                         <TextField
                                             label="Response"
@@ -466,6 +588,33 @@ export default function ReviewsPage() {
                     >
                         <Modal.Section>
                             <p>Are you sure you want to delete <strong>{selectedResources.length} reviews</strong>? This action cannot be undone.</p>
+                        </Modal.Section>
+                    </Modal>
+
+                    {/* BULK AI REPLY CONFIRMATION MODAL */}
+                    <Modal
+                        open={bulkAiModalOpen}
+                        onClose={() => setBulkAiModalOpen(false)}
+                        title="🤖 Bulk Reply with AI"
+                        primaryAction={{
+                            content: `Generate ${selectedResources.length} AI Replies`,
+                            onAction: handleConfirmBulkAi,
+                            loading: bulkAiLoading,
+                        }}
+                        secondaryActions={[{
+                            content: "Cancel",
+                            onAction: () => setBulkAiModalOpen(false),
+                        }]}
+                    >
+                        <Modal.Section>
+                            <BlockStack gap="400">
+                                <p>AI will generate personalized replies for <strong>{selectedResources.length} selected reviews</strong> that don't have replies yet.</p>
+                                <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                                    <Text as="p" variant="bodySm" fontWeight="semibold">
+                                        💡 You can edit each reply after generation from the review table.
+                                    </Text>
+                                </div>
+                            </BlockStack>
                         </Modal.Section>
                     </Modal>
 

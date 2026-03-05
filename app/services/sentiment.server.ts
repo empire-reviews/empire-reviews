@@ -2,7 +2,7 @@ import Sentiment from "sentiment";
 
 const analyzer = new Sentiment();
 
-export function analyzeSentiment(text: string): "positive" | "negative" | "neutral" {
+export function analyzeBasicSentiment(text: string): "positive" | "negative" | "neutral" {
     const result = analyzer.analyze(text);
 
     // Empire Logic:

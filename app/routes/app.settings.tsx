@@ -14,11 +14,14 @@ import {
     Divider,
     Modal,
     Badge,
+    Select,
+    Spinner,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment, getPlanDetails, MONTHLY_PLAN } from "../billing.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
+import { testAIConnection, type AIProvider } from "../services/ai.server";
 import { ArrowLeftIcon } from "@shopify/polaris-icons";
 
 const GROWTH_TIPS = [
@@ -74,9 +77,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: true, message: "App data reset" });
     }
 
+    if (intent === "test_ai") {
+        const aiProvider = formData.get("aiProvider") as AIProvider;
+        const aiApiKey = formData.get("aiApiKey") as string;
+        if (!aiProvider || !aiApiKey) {
+            return json({ success: false, aiTestResult: "Please select a provider and enter an API key." });
+        }
+        const result = await testAIConnection({ provider: aiProvider, apiKey: aiApiKey });
+        return json({ success: result.success, aiTestResult: result.message });
+    }
+
     const autoPublish = formData.get("autoPublish") === "true";
     const emailAlerts = formData.get("emailAlerts") === "true";
     const themeColor = formData.get("themeColor") as string;
+
+    // AI Configuration
+    const aiProvider = formData.get("aiProvider") as string || null;
+    const aiApiKey = formData.get("aiApiKey") as string || null;
 
     // Integrations
     const enableFlow = formData.get("enableFlow") === "true";
@@ -98,6 +115,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             autoPublish,
             emailAlerts,
             themeColor,
+            aiProvider,
+            aiApiKey,
             enableFlow,
             enableKlaviyo,
             klaviyoApiKey,
@@ -128,6 +147,13 @@ export default function SettingsPage() {
     const [klaviyoKey, setKlaviyoKey] = useState(settings.klaviyoApiKey || "");
     const [googleShoppingEnabled, setGoogleShoppingEnabled] = useState(settings.enableGoogle);
 
+    // AI Configuration States
+    const [aiProvider, setAiProvider] = useState(settings.aiProvider || "");
+    const [aiApiKey, setAiApiKey] = useState(settings.aiApiKey || "");
+    const [aiTestLoading, setAiTestLoading] = useState(false);
+    const [aiTestResult, setAiTestResult] = useState<string | null>(null);
+    const [aiTestSuccess, setAiTestSuccess] = useState(false);
+
     // Tip Rotation Logic
     const [tipIndex, setTipIndex] = useState(0);
     const [fade, setFade] = useState(true);
@@ -149,6 +175,8 @@ export default function SettingsPage() {
                 autoPublish: String(autoPublish),
                 emailAlerts: String(emailAlerts),
                 themeColor,
+                aiProvider,
+                aiApiKey,
                 enableFlow: String(flowEnabled),
                 enableKlaviyo: String(klaviyoEnabled),
                 klaviyoApiKey: klaviyoKey,
@@ -460,6 +488,115 @@ export default function SettingsPage() {
                                                 </div>
                                             )}
                                         </Box>
+                                    </BlockStack>
+                                </div>
+
+                                {/* AI CONFIGURATION CARD */}
+                                <div className="config-card card-3d" style={{ borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
+                                    <BlockStack gap="400">
+                                        <InlineStack align="space-between">
+                                            <Text as="h3" variant="headingMd">🤖 AI Configuration</Text>
+                                            {!isPro && <Badge tone="attention">PRO</Badge>}
+                                        </InlineStack>
+                                        <p style={{ color: '#64748b' }}>Connect your own AI provider for smart replies & insights.</p>
+                                        <Divider />
+
+                                        <Select
+                                            label="AI Provider"
+                                            options={[
+                                                { label: 'Select a provider...', value: '' },
+                                                { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
+                                                { label: '🔵 Google Gemini', value: 'gemini' },
+                                                { label: '🟠 Anthropic Claude', value: 'claude' },
+                                                { label: '🟣 DeepSeek', value: 'deepseek' },
+                                                { label: '⚫ Ollama (Local)', value: 'ollama' },
+                                            ]}
+                                            value={aiProvider}
+                                            onChange={setAiProvider}
+                                            disabled={!isPro}
+                                            helpText={aiProvider === 'ollama' ? 'Runs locally on your machine — no API key needed.' : 'Choose the AI model you prefer.'}
+                                        />
+
+                                        {aiProvider && aiProvider !== 'ollama' && (
+                                            <TextField
+                                                label="API Key"
+                                                value={aiApiKey}
+                                                onChange={setAiApiKey}
+                                                autoComplete="off"
+                                                type="password"
+                                                disabled={!isPro}
+                                                helpText={
+                                                    aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
+                                                        aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
+                                                            aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
+                                                                aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' : ''
+                                                }
+                                            />
+                                        )}
+
+                                        {aiProvider && isPro && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <Button
+                                                    onClick={() => {
+                                                        setAiTestLoading(true);
+                                                        setAiTestResult(null);
+                                                        fetcher.submit(
+                                                            { intent: 'test_ai', aiProvider, aiApiKey },
+                                                            { method: 'post' }
+                                                        );
+                                                        // Handle response via useEffect below
+                                                        setTimeout(() => {
+                                                            setAiTestLoading(false);
+                                                            const data = fetcher.data as any;
+                                                            if (data?.aiTestResult) {
+                                                                setAiTestResult(data.aiTestResult);
+                                                                setAiTestSuccess(data.success);
+                                                            } else {
+                                                                setAiTestResult('Test sent — check result after save.');
+                                                                setAiTestSuccess(true);
+                                                            }
+                                                        }, 4000);
+                                                    }}
+                                                    loading={aiTestLoading}
+                                                    disabled={aiTestLoading || (!aiApiKey && aiProvider !== 'ollama')}
+                                                    variant="primary"
+                                                    size="micro"
+                                                >
+                                                    ⚡ Test Connection
+                                                </Button>
+                                                {aiTestResult && (
+                                                    <div style={{
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 600,
+                                                        color: aiTestSuccess ? '#16a34a' : '#dc2626',
+                                                        background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '6px',
+                                                    }}>
+                                                        {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {!isPro && (
+                                            <button
+                                                onClick={handleUpgrade}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '10px',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    background: 'linear-gradient(to right, #a855f7, #ec4899)',
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.85rem'
+                                                }}
+                                            >
+                                                Upgrade to unlock AI features 💎
+                                            </button>
+                                        )}
                                     </BlockStack>
                                 </div>
 

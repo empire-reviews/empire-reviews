@@ -94,6 +94,12 @@ model Settings {
   plan           String  @default("FREE") // FREE, EMPRESS_PRO
   hasCompletedOnboarding Boolean @default(false)
   
+  // AI Configuration (BYOK)
+  aiProvider          String?    // "openai" | "gemini" | "claude" | "deepseek" | "ollama"
+  aiApiKey            String?    // Merchant's own API key
+  aiInsightsSummary   String?    // Cached AI insight text
+  aiInsightsUpdatedAt DateTime?  // Cache timestamp
+
   // Email Automation
   resendApiKey   String?
   reviewRequestDelay Int     @default(3) // Days after order to send email

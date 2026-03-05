@@ -1,6 +1,6 @@
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
-import { analyzeSentiment } from "../services/sentiment.server";
+import { analyzeBasicSentiment } from "../services/sentiment.server";
 
 // 🛡️ CORS HELPER — restrict to Shopify storefronts
 function getAllowedOrigin(request: Request): string {
@@ -64,7 +64,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         // 🧠 EMPIRE INTELLIGENCE LAYER
-        const sentiment = analyzeSentiment(body || "");
+        const sentiment = analyzeBasicSentiment(body || "");
 
         // Fetch Settings for Auto-Publish Rules
         const settings = await prisma.settings.findFirst({ where: { shop } });
