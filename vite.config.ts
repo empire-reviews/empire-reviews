@@ -34,6 +34,7 @@ if (host === "localhost") {
 
 export default defineConfig({
   server: {
+    host: "0.0.0.0",
     allowedHosts: [host],
     cors: {
       preflightContinue: true,
@@ -56,7 +57,6 @@ export default defineConfig({
         v3_singleFetch: false,
         v3_routeConfig: true,
       },
-      presets: [vercelPreset()],
     }),
     tsconfigPaths(),
   ],

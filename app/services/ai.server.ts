@@ -133,12 +133,16 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
 async function callOllama(configKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
     let endpoint = "http://localhost:11434/api/chat";
     let model = "llama3";
+    let apiKey = "";
 
     if (configKey) {
         if (configKey.includes("|")) {
             const parts = configKey.split("|");
             endpoint = parts[0].replace(/\/$/, "") + "/api/chat";
             model = parts[1];
+            if (parts.length > 2) {
+                apiKey = parts[2];
+            }
         } else if (configKey.startsWith("http")) {
             endpoint = configKey.replace(/\/$/, "") + "/api/chat";
         } else {
@@ -146,9 +150,14 @@ async function callOllama(configKey: string, systemPrompt: string, userPrompt: s
         }
     }
 
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+
     const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
             model: model,
             messages: [
