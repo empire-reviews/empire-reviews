@@ -505,11 +505,12 @@ export default function SettingsPage() {
                                             label="AI Provider"
                                             options={[
                                                 { label: 'Select a provider...', value: '' },
+                                                { label: '⚡ Groq (100% Free)', value: 'groq' },
                                                 { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
                                                 { label: '🔵 Google Gemini', value: 'gemini' },
                                                 { label: '🟠 Anthropic Claude', value: 'claude' },
                                                 { label: '🟣 DeepSeek', value: 'deepseek' },
-                                                { label: '⚫ Ollama (Local)', value: 'ollama' },
+                                                { label: '⚫ Ollama / Custom API', value: 'ollama' },
                                             ]}
                                             value={aiProvider}
                                             onChange={setAiProvider}

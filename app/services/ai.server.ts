@@ -3,7 +3,7 @@
  * Supports: OpenAI, Gemini, Claude, DeepSeek, Ollama
  */
 
-export type AIProvider = "openai" | "gemini" | "claude" | "deepseek" | "ollama";
+export type AIProvider = "openai" | "gemini" | "claude" | "deepseek" | "ollama" | "groq";
 
 interface AIConfig {
     provider: AIProvider;
@@ -16,6 +16,7 @@ const PROVIDER_ENDPOINTS: Record<AIProvider, string> = {
     gemini: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
     claude: "https://api.anthropic.com/v1/messages",
     deepseek: "https://api.deepseek.com/chat/completions",
+    groq: "https://api.groq.com/openai/v1/chat/completions",
     ollama: "http://localhost:11434/api/chat",
 };
 
@@ -24,6 +25,7 @@ const PROVIDER_MODELS: Record<AIProvider, string> = {
     gemini: "gemini-2.0-flash",
     claude: "claude-3-haiku-20240307",
     deepseek: "deepseek-chat",
+    groq: "llama-3.3-70b-versatile",
     ollama: "llama3",
 };
 
@@ -35,6 +37,7 @@ async function callAI(config: AIConfig, systemPrompt: string, userPrompt: string
         switch (provider) {
             case "openai":
             case "deepseek":
+            case "groq":
                 return await callOpenAICompatible(PROVIDER_ENDPOINTS[provider], apiKey, PROVIDER_MODELS[provider], systemPrompt, userPrompt);
             case "gemini":
                 return await callGemini(apiKey, systemPrompt, userPrompt);
@@ -53,7 +56,7 @@ async function callAI(config: AIConfig, systemPrompt: string, userPrompt: string
 
 // ─── PROVIDER ADAPTERS ───────────────────────────────────────────
 
-/** OpenAI & DeepSeek (same API format) */
+/** OpenAI, DeepSeek & Groq (same API format) */
 async function callOpenAICompatible(endpoint: string, apiKey: string, model: string, systemPrompt: string, userPrompt: string): Promise<string> {
     const res = await fetch(endpoint, {
         method: "POST",
