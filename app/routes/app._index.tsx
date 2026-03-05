@@ -522,7 +522,7 @@ export default function EmpireDashboard() {
                     {planName === "EMPIRE_PRO" ? (
                       <div>
                         <div style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                          {impact.formatted}
+                          {impact?.formatted || "$0.00"}
                         </div>
                         <p style={{ opacity: 0.8, fontSize: '0.8rem', marginTop: '4px' }}>
                           Revenue affected by reviews
