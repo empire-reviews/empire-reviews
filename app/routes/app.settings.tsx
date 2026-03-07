@@ -342,21 +342,61 @@ export default function SettingsPage() {
                     {activeTab === 'brand' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Brand Identity</Text>
-                            <Card>
-                                <BlockStack gap="400">
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="p" variant="bodyMd" tone="subdued">Customize your review widget to match your store's look & feel.</Text>
-                                    <Divider />
-                                    <div>
-                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Theme Color</Text>} value={themeColor} onChange={setThemeColor} autoComplete="off" helpText="Used for text, borders, stars, and buttons." connectedRight={<input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Theme Color</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Used for primary text and buttons.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', width: '220px' }}>
+                                            <div style={{ flex: 1 }}><TextField labelHidden label="Theme Color" value={themeColor} onChange={setThemeColor} autoComplete="off" /></div>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: themeColor, border: '1px solid #e2e8f0', overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
+                                                <input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} style={{ position: 'absolute', top: '-10px', left: '-10px', width: '60px', height: '60px', border: 'none', cursor: 'pointer', opacity: 0 }} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Widget Background</Text>} value={widgetBgColor} onChange={setWidgetBgColor} autoComplete="off" connectedRight={<input type="color" value={widgetBgColor} onChange={(e) => setWidgetBgColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Widget Background</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Background color of the review displays.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', width: '220px' }}>
+                                            <div style={{ flex: 1 }}><TextField labelHidden label="Widget Background" value={widgetBgColor} onChange={setWidgetBgColor} autoComplete="off" /></div>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: widgetBgColor, border: '1px solid #e2e8f0', overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
+                                                <input type="color" value={widgetBgColor} onChange={(e) => setWidgetBgColor(e.target.value)} style={{ position: 'absolute', top: '-10px', left: '-10px', width: '60px', height: '60px', border: 'none', cursor: 'pointer', opacity: 0 }} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Star Rating Color</Text>} value={starColor} onChange={setStarColor} autoComplete="off" connectedRight={<input type="color" value={starColor} onChange={(e) => setStarColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Star Rating Color</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>The fill color for rating stars.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', width: '220px' }}>
+                                            <div style={{ flex: 1 }}><TextField labelHidden label="Star Rating Color" value={starColor} onChange={setStarColor} autoComplete="off" /></div>
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '6px', background: starColor, border: '1px solid #e2e8f0', overflow: 'hidden', position: 'relative', flexShrink: 0, cursor: 'pointer' }}>
+                                                <input type="color" value={starColor} onChange={(e) => setStarColor(e.target.value)} style={{ position: 'absolute', top: '-10px', left: '-10px', width: '60px', height: '60px', border: 'none', cursor: 'pointer', opacity: 0 }} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <Select label={<Text as="p" variant="bodyMd" fontWeight="semibold">Corner Style</Text>} options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
-                                </BlockStack>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Corner Style</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Adjust the roundness of widget edges.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, width: '220px' }}>
+                                            <Select labelHidden label="Corner Style" options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
+                                        </div>
+                                    </div>
+                                </div>
                             </Card>
                         </BlockStack>
                     )}
@@ -364,22 +404,51 @@ export default function SettingsPage() {
                     {activeTab === 'automation' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Automation & Timing</Text>
-                            <Card>
-                                <BlockStack gap="400">
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Publishing & Alerts</Text>
                                     <Text as="p" variant="bodyMd" tone="subdued">Set it and forget it. Let the app handle the routine work.</Text>
-                                    <Divider />
-                                    <Checkbox label="Auto-publish 5-star reviews" helpText="Skip moderation for top-rated reviews." checked={autoPublish} onChange={setAutoPublish} />
-                                    <Checkbox label="Email Alerts for Negative Reviews" helpText="Get immediate notifications for 1-2 star ratings." checked={emailAlerts} onChange={setEmailAlerts} />
-                                </BlockStack>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Auto-publish 5-star reviews</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Skip moderation for top-rated reviews.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Checkbox labelHidden label="Auto-publish" checked={autoPublish} onChange={setAutoPublish} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Email Alerts</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Get immediate notifications for negative 1-2 star ratings.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Checkbox labelHidden label="Email Alerts" checked={emailAlerts} onChange={setEmailAlerts} />
+                                        </div>
+                                    </div>
+                                </div>
                             </Card>
-                            <Card>
-                                <BlockStack gap="400">
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Email Timing</Text>
                                     <Text as="p" variant="bodyMd" tone="subdued">When should we ask for a review?</Text>
-                                    <Divider />
-                                    <TextField label="Send Request After (Days)" type="number" value={String(reviewRequestDelay)} onChange={(val) => setReviewRequestDelay(parseInt(val) || 3)} autoComplete="off" helpText="Recommended: 3-5 days after order." suffix="days" min={1} max={30} />
-                                </BlockStack>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Send Request After (Days)</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Recommended: 3-5 days after order fulfillment.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, width: '120px' }}>
+                                            <TextField labelHidden label="Days" type="number" value={String(reviewRequestDelay)} onChange={(val) => setReviewRequestDelay(parseInt(val) || 3)} autoComplete="off" suffix="days" min={1} max={30} align="right" />
+                                        </div>
+                                    </div>
+                                </div>
                             </Card>
                         </BlockStack>
                     )}
@@ -387,53 +456,87 @@ export default function SettingsPage() {
                     {activeTab === 'ecosystem' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Integrations & AI</Text>
-                            <Card>
-                                <BlockStack gap="400">
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Ecosystem Sync</Text>
                                     <Text as="p" variant="bodyMd" tone="subdued">Connect Empire to your favorite tools.</Text>
-                                    <Divider />
-                                    <Checkbox label="Shopify Flow" helpText="Trigger workflows on negative reviews." checked={flowEnabled} onChange={setFlowEnabled} />
-                                    <Box>
-                                        <Checkbox label="Klaviyo Sync" helpText="Push reviewers to 'Safe Lists'." checked={klaviyoEnabled} onChange={setKlaviyoEnabled} />
-                                        {klaviyoEnabled && <div style={{ marginTop: '10px', paddingLeft: '20px' }}><TextField label="Secret API Key" value={klaviyoKey} onChange={setKlaviyoKey} autoComplete="off" type="password" /></div>}
-                                    </Box>
-                                    <Box>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                            <Checkbox label="Google Shopping XML" helpText="Generate product feed with stars." checked={googleShoppingEnabled} onChange={setGoogleShoppingEnabled} disabled={!isPro} />
-                                            {!isPro && <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock Pro</Button>}
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Shopify Flow</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Trigger workflows on negative reviews.</p>
                                         </div>
-                                        {googleShoppingEnabled && isPro && <div style={{ marginTop: '10px', background: '#f8fafc', padding: '10px', borderRadius: '6px', fontSize: '0.85rem' }}><strong>Feed URL:</strong><div style={{ wordBreak: 'break-all', color: '#6366f1' }}>{feedUrl}</div></div>}
-                                    </Box>
-                                </BlockStack>
-                            </Card>
-
-                            <Card>
-                                <BlockStack gap="400">
-                                    <Text as="h3" variant="headingMd" fontWeight="bold">AI Engine</Text>
-                                    <Text as="p" variant="bodyMd" tone="subdued">Power your store with ChatGPT, Claude, Groq, or DeepSeek.</Text>
-                                    <Divider />
-                                    {!isPro ? (
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                            <div style={{ opacity: 0.6, pointerEvents: 'none' }}>
-                                                <Checkbox label="Autonomous AI Engine" helpText="Unlock AI features" checked={false} onChange={() => { }} disabled />
-                                            </div>
-                                            <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock Pro</Button>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Checkbox labelHidden label="Shopify Flow" checked={flowEnabled} onChange={setFlowEnabled} />
                                         </div>
-                                    ) : (
-                                        <>
-                                            <Select label="AI Provider" options={[{ label: 'Select a provider...', value: '' }, { label: 'Groq (100% Free)', value: 'groq' }, { label: 'OpenAI (GPT-4o Mini)', value: 'openai' }, { label: 'Google Gemini', value: 'gemini' }, { label: 'Anthropic Claude', value: 'claude' }, { label: 'DeepSeek', value: 'deepseek' }, { label: 'Ollama / Custom API', value: 'ollama' }]} value={aiProvider} onChange={setAiProvider} helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'} />
-                                            {aiProvider && (
-                                                <TextField label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "Secret API Key"} value={aiApiKey} onChange={setAiApiKey} autoComplete="off" type={aiProvider === 'ollama' ? "text" : "password"} placeholder={aiProvider === 'ollama' ? "e.g., https://ollama.com|gpt-oss:120b|sk-key123" : ""} helpText={aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' : aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' : aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' : aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' : aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''} />
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Klaviyo Sync</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 12px' }}>Push reviewers to VIP lists.</p>
+                                            {klaviyoEnabled && (
+                                                <TextField labelHidden label="API Key" value={klaviyoKey} onChange={setKlaviyoKey} autoComplete="off" type="password" placeholder="pk_..." />
                                             )}
-                                            {aiProvider && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <Button onClick={() => { setAiTestLoading(true); setAiTestResult(null); fetcher.submit({ intent: 'test_ai', aiProvider, aiApiKey }, { method: 'post' }); setTimeout(() => { setAiTestLoading(false); const data = fetcher.data as any; if (data?.aiTestResult) { setAiTestResult(data.aiTestResult); setAiTestSuccess(data.success); } else { setAiTestResult('Test sent — check result after save.'); setAiTestSuccess(true); } }, 4000); }} loading={aiTestLoading} disabled={aiTestLoading || !aiApiKey} size="micro">Test Connection</Button>
-                                                    {aiTestResult && <div style={{ marginTop: '4px' }}><Badge tone={aiTestSuccess ? 'success' : 'critical'}>{aiTestResult}</Badge></div>}
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Checkbox labelHidden label="Klaviyo Sync" checked={klaviyoEnabled} onChange={setKlaviyoEnabled} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Google Shopping XML</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 12px' }}>Generate live product review feed for ads.</p>
+                                            {googleShoppingEnabled && isPro && (
+                                                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', border: '1px solid #e2e8f0' }}>
+                                                    <strong style={{ display: 'block', marginBottom: '4px' }}>Feed URL:</strong>
+                                                    <div style={{ wordBreak: 'break-all', color: '#6366f1' }}>{feedUrl}</div>
                                                 </div>
                                             )}
-                                        </>
-                                    )}
-                                </BlockStack>
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            {!isPro && <Button size="micro" onClick={handleUpgrade}>Unlock Pro</Button>}
+                                            <Checkbox labelHidden label="Google Shopping XML" checked={googleShoppingEnabled} onChange={setGoogleShoppingEnabled} disabled={!isPro} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
+                                    <Text as="h3" variant="headingMd" fontWeight="bold">AI Engine</Text>
+                                    <Text as="p" variant="bodyMd" tone="subdued">Power your store with ChatGPT, Claude, Groq, or DeepSeek.</Text>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Autonomous AI Capabilities</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 12px' }}>Enable automated replies and sentiment tracking.</p>
+                                            {isPro && (
+                                                <BlockStack gap="300">
+                                                    <Select labelHidden label="AI Provider" options={[{ label: 'Select a provider...', value: '' }, { label: 'Groq (100% Free)', value: 'groq' }, { label: 'OpenAI (GPT-4o Mini)', value: 'openai' }, { label: 'Google Gemini', value: 'gemini' }, { label: 'Anthropic Claude', value: 'claude' }, { label: 'DeepSeek', value: 'deepseek' }, { label: 'Ollama / Custom API', value: 'ollama' }]} value={aiProvider} onChange={setAiProvider} helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'} />
+                                                    {aiProvider && (
+                                                        <TextField labelHidden label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "Secret API Key"} value={aiApiKey} onChange={setAiApiKey} autoComplete="off" type={aiProvider === 'ollama' ? "text" : "password"} placeholder={aiProvider === 'ollama' ? "API Details" : "Secret Key"} helpText={aiProvider === 'openai' ? 'Get yours at platform.openai.com' : aiProvider === 'gemini' ? 'Get yours at aistudio.google.com' : aiProvider === 'claude' ? 'Get yours at console.anthropic.com' : aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com' : aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''} />
+                                                    )}
+                                                    {aiProvider && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <Button onClick={() => { setAiTestLoading(true); setAiTestResult(null); fetcher.submit({ intent: 'test_ai', aiProvider, aiApiKey }, { method: 'post' }); setTimeout(() => { setAiTestLoading(false); const data = fetcher.data as any; if (data?.aiTestResult) { setAiTestResult(data.aiTestResult); setAiTestSuccess(data.success); } else { setAiTestResult('Test sent — check result after save.'); setAiTestSuccess(true); } }, 4000); }} loading={aiTestLoading} disabled={aiTestLoading || !aiApiKey} size="micro">Test Connection</Button>
+                                                            {aiTestResult && <div style={{ marginTop: '0px' }}><Badge tone={aiTestSuccess ? 'success' : 'critical'}>{aiTestResult}</Badge></div>}
+                                                        </div>
+                                                    )}
+                                                </BlockStack>
+                                            )}
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            {!isPro && <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock Pro</Button>}
+                                            <Checkbox labelHidden label="AI Features" checked={isPro && !!aiProvider} onChange={() => { }} disabled />
+                                        </div>
+                                    </div>
+                                </div>
                             </Card>
                         </BlockStack>
                     )}
@@ -441,22 +544,32 @@ export default function SettingsPage() {
                     {activeTab === 'billing' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Plan & Billing</Text>
-                            <Card>
-                                <BlockStack gap="400">
-                                    <InlineStack align="space-between">
-                                        <Text as="h3" variant="headingMd" fontWeight="bold">Current Plan</Text>
-                                        <Badge tone={isPro ? "success" : "info"}>{isPro ? "PRO" : "STARTER"}</Badge>
-                                    </InlineStack>
-                                    <Text as="p" variant="bodyMd" tone="subdued">
-                                        {isPro ? "You are on the Empire Pro plan. Enjoy unlimited reviews and AI features." : "You are currently on the Starter plan. Limit: 50 reviews."}
-                                    </Text>
-                                    <Divider />
-                                    {isPro ? (
-                                        <Button fullWidth onClick={() => setBillingModalActive(true)}>Manage Subscription</Button>
-                                    ) : (
-                                        <Button fullWidth variant="primary" onClick={handleUpgrade}>Upgrade to Empire Pro</Button>
-                                    )}
-                                </BlockStack>
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
+                                    <Text as="h3" variant="headingMd" fontWeight="bold">Subscription</Text>
+                                    <Text as="p" variant="bodyMd" tone="subdued">Manage your Empire Reviews account limits.</Text>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Text as="h3" variant="headingSm" fontWeight="medium">{isPro ? "Empire Pro" : "Starter Plan"}</Text>
+                                                <Badge tone={isPro ? "success" : "info"}>{isPro ? "PRO" : "FREE"}</Badge>
+                                            </div>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>
+                                                {isPro ? "Unlimited reviews, autonomous AI, and Google Shopping feed." : "Basic features. Capped at 50 review storage."}
+                                            </p>
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            {isPro ? (
+                                                <Button onClick={() => setBillingModalActive(true)}>Manage Plan</Button>
+                                            ) : (
+                                                <Button variant="primary" onClick={handleUpgrade}>Upgrade Now</Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </Card>
                         </BlockStack>
                     )}
@@ -464,14 +577,18 @@ export default function SettingsPage() {
                     {activeTab === 'danger' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Danger Zone</Text>
-                            <Card background="bg-surface-critical">
-                                <BlockStack gap="400">
-                                    <Text as="h3" variant="headingMd" tone="critical" fontWeight="bold">Delete All Data</Text>
-                                    <Text as="p" variant="bodyMd">This will permanently delete all your reviews, replies, and reset your configuration. This action cannot be reversed.</Text>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                                        <Button tone="critical" variant="primary" onClick={() => setResetModalActive(true)}>Wipe Application Data</Button>
+                            <Card background="bg-surface-critical" padding="0">
+                                <div style={{ padding: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" tone="critical" fontWeight="bold">Delete All Data</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Permanently wipe all your reviews, replies, and configuration. Cannot be reversed.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Button tone="critical" variant="primary" onClick={() => setResetModalActive(true)}>Wipe Application</Button>
+                                        </div>
                                     </div>
-                                </BlockStack>
+                                </div>
                             </Card>
                         </BlockStack>
                     )}
