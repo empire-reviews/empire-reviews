@@ -605,176 +605,110 @@ export default function SettingsPage() {
                                 </div>
 
                                 {/* AI CONFIGURATION CARD */}
-                                <div className="config-card" style={{ position: 'relative', overflow: 'hidden' }}>
-
-                                    {!isPro ? (
-                                        <div style={{
-                                            background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
-                                            borderRadius: '12px',
-                                            padding: '1.5rem',
-                                            color: 'white',
-                                            boxShadow: '0 10px 25px -5px rgba(124, 58, 237, 0.4)',
-                                            position: 'relative',
-                                            overflow: 'hidden'
-                                        }}>
-                                            {/* Decorative Background Glows */}
-                                            <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(30px)' }}></div>
-
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: '#7c3aed', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                                                        <WandIcon width={20} height={20} />
-                                                    </div>
-                                                    <h3 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>Custom AI Integration</h3>
-                                                </div>
-                                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: 'white', backdropFilter: 'blur(4px)' }}>
-                                                    PRO
-                                                </div>
-                                            </div>
-
-                                            <p style={{ margin: '12px 0 24px', fontSize: '0.95rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.4' }}>
-                                                Connect your own AI API keys. Power your store with ChatGPT, Claude, Groq, or DeepSeek.
-                                            </p>
-
-                                            {/* Blurred Faux UI to mimic an API Key form */}
-                                            <div style={{
-                                                background: 'rgba(255,255,255,0.08)',
-                                                borderRadius: '8px',
-                                                padding: '16px',
-                                                marginBottom: '24px',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                            }}>
-                                                <div style={{ filter: 'blur(5.5px)', opacity: 0.85, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-                                                    {/* Faux Dropdown Group */}
-                                                    <div>
-                                                        <div style={{ width: '80px', height: '10px', background: 'rgba(255,255,255,0.6)', borderRadius: '4px', marginBottom: '8px' }}></div>
-                                                        <div style={{ width: '100%', height: '36px', background: 'rgba(255,255,255,0.4)', borderRadius: '6px' }}></div>
-                                                    </div>
-
-                                                    {/* Faux API Key Group */}
-                                                    <div>
-                                                        <div style={{ width: '60px', height: '10px', background: 'rgba(255,255,255,0.6)', borderRadius: '4px', marginBottom: '8px' }}></div>
-                                                        <div style={{ width: '100%', height: '36px', background: 'rgba(255,255,255,0.4)', borderRadius: '6px', marginBottom: '6px' }}></div>
-                                                        <div style={{ width: '140px', height: '8px', background: 'rgba(255,255,255,0.3)', borderRadius: '4px' }}></div>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-
-                                            <button
-                                                onClick={handleUpgrade}
-                                                type="button"
-                                                style={{
-                                                    alignSelf: 'flex-start',
-                                                    padding: '10px 16px',
-                                                    borderRadius: '8px',
-                                                    border: 'none',
-                                                    background: 'white',
-                                                    color: '#7c3aed',
-                                                    fontWeight: 800,
-                                                    fontSize: '0.95rem',
-                                                    cursor: 'pointer',
-                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                                    transition: 'all 0.2s ease'
-                                                }}
-                                            >
-                                                Unlock AI Features →
-                                            </button>
+                                <div className="config-card">
+                                    <BlockStack gap="400">
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Button icon={WandIcon} variant="plain" />
+                                            <Text as="h3" variant="headingMd">AI Configuration</Text>
                                         </div>
-                                    ) : (
-                                        <BlockStack gap="400">
-                                            <InlineStack align="space-between">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Button icon={WandIcon} variant="plain" />
-                                                    <Text as="h3" variant="headingMd">AI Configuration</Text>
+                                        <p style={{ color: '#64748b' }}>Connect your API keys to enable auto-replies...</p>
+                                        <Divider />
+
+                                        {!isPro ? (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                                <div style={{ filter: 'opacity(0.6)', pointerEvents: 'none' }}>
+                                                    <Checkbox
+                                                        label="Custom AI Integration"
+                                                        helpText="Power your store with ChatGPT, Claude, Groq, or DeepSeek."
+                                                        checked={false}
+                                                        onChange={() => { }}
+                                                        disabled={true}
+                                                    />
                                                 </div>
-                                            </InlineStack>
-                                            <p style={{ color: '#64748b' }}>Connect your own AI provider for smart replies & insights.</p>
-                                            <Divider />
-
-                                            <Select
-                                                label="AI Provider"
-                                                options={[
-                                                    { label: 'Select a provider...', value: '' },
-                                                    { label: '⚡ Groq (100% Free)', value: 'groq' },
-                                                    { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
-                                                    { label: '🔵 Google Gemini', value: 'gemini' },
-                                                    { label: '🟠 Anthropic Claude', value: 'claude' },
-                                                    { label: '🟣 DeepSeek', value: 'deepseek' },
-                                                    { label: '⚫ Ollama / Custom API', value: 'ollama' },
-                                                ]}
-                                                value={aiProvider}
-                                                onChange={setAiProvider}
-                                                disabled={!isPro}
-                                                helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'}
-                                            />
-
-                                            {aiProvider && (
-                                                <TextField
-                                                    label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "API Key"}
-                                                    value={aiApiKey}
-                                                    onChange={setAiApiKey}
-                                                    autoComplete="off"
-                                                    type={aiProvider === 'ollama' ? "text" : "password"}
-                                                    disabled={!isPro}
-                                                    placeholder={aiProvider === 'ollama' ? "e.g., https://ollama.com|gpt-oss:120b|sk-key123" : ""}
-                                                    helpText={
-                                                        aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
-                                                            aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
-                                                                aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
-                                                                    aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' :
-                                                                        aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''
-                                                    }
+                                                <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock Pro</Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <Select
+                                                    label="AI Provider"
+                                                    options={[
+                                                        { label: 'Select a provider...', value: '' },
+                                                        { label: '⚡ Groq (100% Free)', value: 'groq' },
+                                                        { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
+                                                        { label: '🔵 Google Gemini', value: 'gemini' },
+                                                        { label: '🟠 Anthropic Claude', value: 'claude' },
+                                                        { label: '🟣 DeepSeek', value: 'deepseek' },
+                                                        { label: '⚫ Ollama / Custom API', value: 'ollama' },
+                                                    ]}
+                                                    value={aiProvider}
+                                                    onChange={setAiProvider}
+                                                    helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'}
                                                 />
-                                            )}
 
-                                            {aiProvider && isPro && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <Button
-                                                        onClick={() => {
-                                                            setAiTestLoading(true);
-                                                            setAiTestResult(null);
-                                                            fetcher.submit(
-                                                                { intent: 'test_ai', aiProvider, aiApiKey },
-                                                                { method: 'post' }
-                                                            );
-                                                            // Handle response via useEffect below
-                                                            setTimeout(() => {
-                                                                setAiTestLoading(false);
-                                                                const data = fetcher.data as any;
-                                                                if (data?.aiTestResult) {
-                                                                    setAiTestResult(data.aiTestResult);
-                                                                    setAiTestSuccess(data.success);
-                                                                } else {
-                                                                    setAiTestResult('Test sent — check result after save.');
-                                                                    setAiTestSuccess(true);
-                                                                }
-                                                            }, 4000);
-                                                        }}
-                                                        loading={aiTestLoading}
-                                                        disabled={aiTestLoading || !aiApiKey}
-                                                        variant="primary"
-                                                        size="micro"
-                                                    >
-                                                        ⚡ Test Connection
-                                                    </Button>
-                                                    {aiTestResult && (
-                                                        <div style={{
-                                                            fontSize: '0.8rem',
-                                                            fontWeight: 600,
-                                                            color: aiTestSuccess ? '#16a34a' : '#dc2626',
-                                                            background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
-                                                            padding: '4px 10px',
-                                                            borderRadius: '6px',
-                                                        }}>
-                                                            {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </BlockStack>
-                                    )}
+                                                {aiProvider && (
+                                                    <TextField
+                                                        label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "API Key"}
+                                                        value={aiApiKey}
+                                                        onChange={setAiApiKey}
+                                                        autoComplete="off"
+                                                        type={aiProvider === 'ollama' ? "text" : "password"}
+                                                        placeholder={aiProvider === 'ollama' ? "e.g., https://ollama.com|gpt-oss:120b|sk-key123" : ""}
+                                                        helpText={
+                                                            aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
+                                                                aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
+                                                                    aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
+                                                                        aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' :
+                                                                            aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''
+                                                        }
+                                                    />
+                                                )}
+
+                                                {aiProvider && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <Button
+                                                            onClick={() => {
+                                                                setAiTestLoading(true);
+                                                                setAiTestResult(null);
+                                                                fetcher.submit(
+                                                                    { intent: 'test_ai', aiProvider, aiApiKey },
+                                                                    { method: 'post' }
+                                                                );
+                                                                setTimeout(() => {
+                                                                    setAiTestLoading(false);
+                                                                    const data = fetcher.data as any;
+                                                                    if (data?.aiTestResult) {
+                                                                        setAiTestResult(data.aiTestResult);
+                                                                        setAiTestSuccess(data.success);
+                                                                    } else {
+                                                                        setAiTestResult('Test sent — check result after save.');
+                                                                        setAiTestSuccess(true);
+                                                                    }
+                                                                }, 4000);
+                                                            }}
+                                                            loading={aiTestLoading}
+                                                            disabled={aiTestLoading || !aiApiKey}
+                                                            variant="primary"
+                                                            size="micro"
+                                                        >
+                                                            ⚡ Test Connection
+                                                        </Button>
+                                                        {aiTestResult && (
+                                                            <div style={{
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: 600,
+                                                                color: aiTestSuccess ? '#16a34a' : '#dc2626',
+                                                                background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
+                                                                padding: '4px 10px',
+                                                                borderRadius: '6px',
+                                                            }}>
+                                                                {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </BlockStack>
                                 </div>
 
                             </BlockStack>
