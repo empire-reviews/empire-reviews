@@ -56,6 +56,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "generate_ai_reply") {
+        const isPro = await hasActivePayment(request);
+        if (!isPro) {
+            return json({ success: false, aiReply: null, error: "AI Features require the Empire Pro plan." });
+        }
+
         const reviewBody = formData.get("reviewBody") as string;
         const rating = parseInt(formData.get("rating") as string) || 3;
         const customerName = formData.get("customerName") as string;
@@ -79,6 +84,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "bulk_ai_reply") {
+        const isPro = await hasActivePayment(request);
+        if (!isPro) {
+            return json({ success: false, error: "AI Features require the Empire Pro plan." });
+        }
+
         const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
 
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });

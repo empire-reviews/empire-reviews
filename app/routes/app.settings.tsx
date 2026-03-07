@@ -22,7 +22,7 @@ import { hasActivePayment, requirePayment, getPlanDetails, MONTHLY_PLAN } from "
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { testAIConnection, type AIProvider } from "../services/ai.server";
-import { ArrowLeftIcon } from "@shopify/polaris-icons";
+import { ArrowLeftIcon, SettingsIcon, ThemeIcon, WandIcon, PlayCircleIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 
 const GROWTH_TIPS = [
     "Stores with photo reviews see a 26% higher conversion rate. 📸",
@@ -78,6 +78,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "test_ai") {
+        const isPro = await hasActivePayment(request);
+        if (!isPro) {
+            return json({ success: false, aiTestResult: "AI Features require the Empire Pro plan." });
+        }
         const aiProvider = formData.get("aiProvider") as AIProvider;
         const aiApiKey = formData.get("aiApiKey") as string;
         if (!aiProvider || !aiApiKey) {
@@ -92,8 +96,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const themeColor = formData.get("themeColor") as string;
 
     // AI Configuration
-    const aiProvider = formData.get("aiProvider") as string || null;
-    const aiApiKey = formData.get("aiApiKey") as string || null;
+    let aiProvider = formData.get("aiProvider") as string || null;
+    let aiApiKey = formData.get("aiApiKey") as string || null;
 
     // Integrations
     const enableFlow = formData.get("enableFlow") === "true";
@@ -105,8 +109,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Double check gating on server side
     const isPro = await hasActivePayment(request);
-    if (!isPro && enableGoogle) {
+    if (!isPro) {
         enableGoogle = false; // Force disable if not pro
+        aiProvider = null; // Force disable AI if not pro
+        aiApiKey = null;
     }
 
     const settings = await prisma.settings.update({
@@ -140,6 +146,16 @@ export default function SettingsPage() {
     const [resetModalActive, setResetModalActive] = useState(false);
     const [billingModalActive, setBillingModalActive] = useState(false);
     const [reviewRequestDelay, setReviewRequestDelay] = useState(settings.reviewRequestDelay || 3);
+    const [widgetBgColor, setWidgetBgColor] = useState("#ffffff");
+    const [starColor, setStarColor] = useState("#fbbf24");
+    const [borderRadius, setBorderRadius] = useState("8px");
+
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Watch for changes to trigger Save Bar
+    useEffect(() => {
+        setIsDirty(true);
+    }, [autoPublish, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -185,13 +201,14 @@ export default function SettingsPage() {
             },
             { method: "post" }
         );
+        setIsDirty(false);
         shopify.toast.show("Settings saved");
     };
 
     const handleReset = () => {
         fetcher.submit({ intent: "reset" }, { method: "post" });
         setResetModalActive(false);
-        shopify.toast.show("App data wiped 🗑️");
+        shopify.toast.show("App data wiped");
     };
 
     const handleUpgrade = () => {
@@ -227,9 +244,9 @@ export default function SettingsPage() {
             .config-card {
                 background: white;
                 padding: 1.5rem;
-                border: 1px solid #e2e8f0;
+                border: 1px solid rgba(226, 232, 240, 0.8);
                 border-radius: 12px;
-                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
                 display: flex;
                 flex-direction: column;
                 transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -242,6 +259,11 @@ export default function SettingsPage() {
             .card-3d:hover {
                 transform: perspective(1000px) rotateX(0deg) translateY(-5px);
                 box-shadow: 0 25px 30px -5px rgba(168, 85, 247, 0.2);
+            }
+            .danger-zone {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                margin-top: 2rem;
             }
             /* Alignment: stretch columns so cards fill evenly */
             .Polaris-Layout__Section {
@@ -264,8 +286,30 @@ export default function SettingsPage() {
                 line-height: 1.4 !important;
                 color: #1e293b;
             }
+            .save-bar {
+                position: fixed;
+                bottom: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #0f172a;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 50px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+                z-index: 999;
+                transition: opacity 0.3s, transform 0.3s;
+            }
         `}</style>
             <Page fullWidth>
+                {isDirty && (
+                    <div className="save-bar">
+                        <p style={{ fontWeight: 500, color: 'white', margin: 0, fontSize: '0.95rem' }}>Unsaved changes</p>
+                        <Button variant="primary" onClick={handleSave} size="large">Save</Button>
+                    </div>
+                )}
                 <BlockStack gap="400">
                     {/* TOP ROW: Hero + Grow Your Empire side by side */}
                     <div className="top-row">
@@ -274,23 +318,23 @@ export default function SettingsPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
-                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Global Configuration ⚙️</h1>
+                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Global Configuration</h1>
                                     </div>
-                                    <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO 💎" : "STARTER PLAN"}</Badge>
+                                    <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO" : "STARTER PLAN"}</Badge>
                                 </div>
                                 <p style={{ fontSize: '0.95rem', opacity: 0.9 }}>
                                     Control how Empire Reviews behaves on your storefront and manages your data.
                                 </p>
-                                <Box paddingBlockStart="100">
-                                    <Button onClick={handleSave} size="large">Save All Changes</Button>
-                                </Box>
                             </BlockStack>
                         </div>
 
                         <div className="config-card card-3d" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)' }}>
                             <BlockStack gap="300">
                                 <InlineStack align="space-between">
-                                    <Text as="h3" variant="headingMd">🚀 Grow Your Empire</Text>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Button icon={PlayCircleIcon} variant="plain" />
+                                        <Text as="h3" variant="headingMd">Grow Your Empire</Text>
+                                    </div>
                                     <Button variant="plain" onClick={() => navigate("/app/campaigns")}>Optimize Campaigns →</Button>
                                 </InlineStack>
                                 <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
@@ -323,10 +367,13 @@ export default function SettingsPage() {
                         {/* LEFT COL */}
                         <Layout.Section variant="oneHalf">
                             <BlockStack gap="400">
-                                {/* BRAND IDENTITY — SINGLE COLOR */}
+                                {/* BRAND IDENTITY — EXPANDED COLOR PICKERS */}
                                 <div className="config-card">
                                     <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">🎨 Brand Identity</Text>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Button icon={ThemeIcon} variant="plain" />
+                                            <Text as="h3" variant="headingMd">Brand Identity</Text>
+                                        </div>
                                         <p style={{ color: '#64748b' }}>Customize your review widget to match your store's look & feel.</p>
                                         <Divider />
 
@@ -352,13 +399,73 @@ export default function SettingsPage() {
                                                 }
                                             />
                                         </div>
+
+                                        {/* Widget Background */}
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                                <div style={{ width: 24, height: 24, background: widgetBgColor, borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />
+                                                <Text as="p" variant="bodyMd" fontWeight="semibold">Widget Background</Text>
+                                            </div>
+                                            <TextField
+                                                label=""
+                                                value={widgetBgColor}
+                                                onChange={setWidgetBgColor}
+                                                autoComplete="off"
+                                                connectedRight={
+                                                    <input
+                                                        type="color"
+                                                        value={widgetBgColor}
+                                                        onChange={(e) => setWidgetBgColor(e.target.value)}
+                                                        style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }}
+                                                    />
+                                                }
+                                            />
+                                        </div>
+
+                                        {/* Star Rating Color */}
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                                <div style={{ width: 24, height: 24, background: starColor, borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />
+                                                <Text as="p" variant="bodyMd" fontWeight="semibold">Star Rating Color</Text>
+                                            </div>
+                                            <TextField
+                                                label=""
+                                                value={starColor}
+                                                onChange={setStarColor}
+                                                autoComplete="off"
+                                                connectedRight={
+                                                    <input
+                                                        type="color"
+                                                        value={starColor}
+                                                        onChange={(e) => setStarColor(e.target.value)}
+                                                        style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }}
+                                                    />
+                                                }
+                                            />
+                                        </div>
+
+                                        {/* Border Radius */}
+                                        <Select
+                                            label={<Text as="p" variant="bodyMd" fontWeight="semibold">Corner Style</Text>}
+                                            options={[
+                                                { label: 'Sharp (0px)', value: '0px' },
+                                                { label: 'Rounded (8px)', value: '8px' },
+                                                { label: 'Pill (16px)', value: '16px' }
+                                            ]}
+                                            value={borderRadius}
+                                            onChange={setBorderRadius}
+                                        />
+
                                     </BlockStack>
                                 </div>
 
                                 {/* AUTOMATION CARD */}
                                 <div className="config-card">
                                     <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">🤖 Automation Rules</Text>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Button icon={SettingsIcon} variant="plain" />
+                                            <Text as="h3" variant="headingMd">Automation Rules</Text>
+                                        </div>
                                         <p style={{ color: '#64748b' }}>Set it and forget it. Let the app handle the routine work.</p>
                                         <Divider />
                                         <Checkbox
@@ -379,7 +486,10 @@ export default function SettingsPage() {
                                 {/* EMAIL TIMING */}
                                 <div className="config-card">
                                     <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">📧 Email Timing</Text>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Button icon={ClockIcon} variant="plain" />
+                                            <Text as="h3" variant="headingMd">Email Timing</Text>
+                                        </div>
                                         <p style={{ color: '#64748b' }}>When should we ask for a review?</p>
                                         <Divider />
                                         <TextField
@@ -415,7 +525,7 @@ export default function SettingsPage() {
                                         </p>
                                         <Divider />
                                         {isPro ? (
-                                            <Button fullWidth onClick={() => setBillingModalActive(true)}>You are an Empire Pro 💎</Button>
+                                            <Button fullWidth onClick={() => setBillingModalActive(true)}>You are an Empire Pro</Button>
                                         ) : (
                                             <button
                                                 onClick={handleUpgrade}
@@ -430,7 +540,7 @@ export default function SettingsPage() {
                                                     cursor: 'pointer'
                                                 }}
                                             >
-                                                Upgrade to Empire Pro 👑
+                                                Upgrade to Empire Pro
                                             </button>
                                         )}
                                     </BlockStack>
@@ -439,7 +549,10 @@ export default function SettingsPage() {
                                 {/* INTEGRATIONS */}
                                 <div className="config-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
                                     <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">🔌 Ecosystem Integrations</Text>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Button icon={LinkIcon} variant="plain" />
+                                            <Text as="h3" variant="headingMd">Ecosystem Integrations</Text>
+                                        </div>
                                         <p style={{ color: '#64748b' }}>Connect Empire to your favorite tools.</p>
                                         <Divider />
                                         <Checkbox
@@ -477,7 +590,7 @@ export default function SettingsPage() {
                                                     disabled={!isPro}
                                                 />
                                                 {!isPro && (
-                                                    <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock 💎</Button>
+                                                    <Button size="micro" onClick={handleUpgrade} variant="primary">Unlock Pro</Button>
                                                 )}
                                             </div>
 
@@ -492,135 +605,188 @@ export default function SettingsPage() {
                                 </div>
 
                                 {/* AI CONFIGURATION CARD */}
-                                <div className="config-card card-3d" style={{ borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
-                                    <BlockStack gap="400">
-                                        <InlineStack align="space-between">
-                                            <Text as="h3" variant="headingMd">🤖 AI Configuration</Text>
-                                            {!isPro && <Badge tone="attention">PRO</Badge>}
-                                        </InlineStack>
-                                        <p style={{ color: '#64748b' }}>Connect your own AI provider for smart replies & insights.</p>
-                                        <Divider />
+                                <div className="config-card card-3d" style={{ borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)', position: 'relative', overflow: 'hidden' }}>
 
-                                        <Select
-                                            label="AI Provider"
-                                            options={[
-                                                { label: 'Select a provider...', value: '' },
-                                                { label: '⚡ Groq (100% Free)', value: 'groq' },
-                                                { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
-                                                { label: '🔵 Google Gemini', value: 'gemini' },
-                                                { label: '🟠 Anthropic Claude', value: 'claude' },
-                                                { label: '🟣 DeepSeek', value: 'deepseek' },
-                                                { label: '⚫ Ollama / Custom API', value: 'ollama' },
-                                            ]}
-                                            value={aiProvider}
-                                            onChange={setAiProvider}
-                                            disabled={!isPro}
-                                            helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'}
-                                        />
-
-                                        {aiProvider && (
-                                            <TextField
-                                                label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "API Key"}
-                                                value={aiApiKey}
-                                                onChange={setAiApiKey}
-                                                autoComplete="off"
-                                                type={aiProvider === 'ollama' ? "text" : "password"}
-                                                disabled={!isPro}
-                                                placeholder={aiProvider === 'ollama' ? "e.g., https://ollama.com|gpt-oss:120b|sk-key123" : ""}
-                                                helpText={
-                                                    aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
-                                                        aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
-                                                            aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
-                                                                aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' :
-                                                                    aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''
-                                                }
-                                            />
-                                        )}
-
-                                        {aiProvider && isPro && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                <Button
-                                                    onClick={() => {
-                                                        setAiTestLoading(true);
-                                                        setAiTestResult(null);
-                                                        fetcher.submit(
-                                                            { intent: 'test_ai', aiProvider, aiApiKey },
-                                                            { method: 'post' }
-                                                        );
-                                                        // Handle response via useEffect below
-                                                        setTimeout(() => {
-                                                            setAiTestLoading(false);
-                                                            const data = fetcher.data as any;
-                                                            if (data?.aiTestResult) {
-                                                                setAiTestResult(data.aiTestResult);
-                                                                setAiTestSuccess(data.success);
-                                                            } else {
-                                                                setAiTestResult('Test sent — check result after save.');
-                                                                setAiTestSuccess(true);
-                                                            }
-                                                        }, 4000);
+                                    {!isPro && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            zIndex: 10,
+                                            background: 'rgba(255, 255, 255, 0.5)',
+                                            backdropFilter: 'blur(6px)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: '2rem'
+                                        }}>
+                                            <div style={{
+                                                background: 'white',
+                                                padding: '2rem',
+                                                borderRadius: '16px',
+                                                boxShadow: '0 20px 40px -10px rgba(99, 102, 241, 0.3)',
+                                                border: '1px solid rgba(99, 102, 241, 0.1)',
+                                                textAlign: 'center',
+                                                width: '100%',
+                                                maxWidth: '350px'
+                                            }}>
+                                                <div style={{
+                                                    width: '48px', height: '48px', borderRadius: '12px',
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                                                    color: 'white', display: 'flex', alignItems: 'center',
+                                                    justifyContent: 'center', margin: '0 auto 16px',
+                                                    boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)'
+                                                }}>
+                                                    <span style={{ fontSize: '24px' }}><WandIcon width={24} height={24} /></span>
+                                                </div>
+                                                <Text as="h3" variant="headingLg">Unlock Pro AI</Text>
+                                                <p style={{ margin: '12px 0 24px', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
+                                                    Auto-reply to reviews and generate deep sentiment insights with Groq, OpenAI, or 4 other models.
+                                                </p>
+                                                <button
+                                                    onClick={handleUpgrade}
+                                                    type="button"
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '12px',
+                                                        borderRadius: '8px',
+                                                        border: 'none',
+                                                        background: 'linear-gradient(to right, #6366f1, #a855f7)',
+                                                        color: 'white',
+                                                        fontWeight: 800,
+                                                        fontSize: '1rem',
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.4)',
+                                                        transition: 'transform 0.2s',
                                                     }}
-                                                    loading={aiTestLoading}
-                                                    disabled={aiTestLoading || !aiApiKey}
-                                                    variant="primary"
-                                                    size="micro"
                                                 >
-                                                    ⚡ Test Connection
-                                                </Button>
-                                                {aiTestResult && (
-                                                    <div style={{
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 600,
-                                                        color: aiTestSuccess ? '#16a34a' : '#dc2626',
-                                                        background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
-                                                        padding: '4px 10px',
-                                                        borderRadius: '6px',
-                                                    }}>
-                                                        {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
-                                                    </div>
-                                                )}
+                                                    Upgrade to Empire Pro
+                                                </button>
                                             </div>
-                                        )}
+                                        </div>
+                                    )}
 
-                                        {!isPro && (
-                                            <button
-                                                onClick={handleUpgrade}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px',
-                                                    borderRadius: '8px',
-                                                    border: 'none',
-                                                    background: 'linear-gradient(to right, #a855f7, #ec4899)',
-                                                    color: 'white',
-                                                    fontWeight: 'bold',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85rem'
-                                                }}
-                                            >
-                                                Upgrade to unlock AI features 💎
-                                            </button>
-                                        )}
-                                    </BlockStack>
+                                    <div style={{ pointerEvents: isPro ? 'auto' : 'none', opacity: isPro ? 1 : 0.4, filter: isPro ? 'none' : 'blur(2px)', transition: 'all 0.3s' }}>
+                                        <BlockStack gap="400">
+                                            <InlineStack align="space-between">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Button icon={WandIcon} variant="plain" />
+                                                    <Text as="h3" variant="headingMd">AI Configuration</Text>
+                                                </div>
+                                                {!isPro && <Badge tone="attention">PRO</Badge>}
+                                            </InlineStack>
+                                            <p style={{ color: '#64748b' }}>Connect your own AI provider for smart replies & insights.</p>
+                                            <Divider />
+
+                                            <Select
+                                                label="AI Provider"
+                                                options={[
+                                                    { label: 'Select a provider...', value: '' },
+                                                    { label: '⚡ Groq (100% Free)', value: 'groq' },
+                                                    { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
+                                                    { label: '🔵 Google Gemini', value: 'gemini' },
+                                                    { label: '🟠 Anthropic Claude', value: 'claude' },
+                                                    { label: '🟣 DeepSeek', value: 'deepseek' },
+                                                    { label: '⚫ Ollama / Custom API', value: 'ollama' },
+                                                ]}
+                                                value={aiProvider}
+                                                onChange={setAiProvider}
+                                                disabled={!isPro}
+                                                helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'}
+                                            />
+
+                                            {aiProvider && (
+                                                <TextField
+                                                    label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "API Key"}
+                                                    value={aiApiKey}
+                                                    onChange={setAiApiKey}
+                                                    autoComplete="off"
+                                                    type={aiProvider === 'ollama' ? "text" : "password"}
+                                                    disabled={!isPro}
+                                                    placeholder={aiProvider === 'ollama' ? "e.g., https://ollama.com|gpt-oss:120b|sk-key123" : ""}
+                                                    helpText={
+                                                        aiProvider === 'openai' ? 'Get yours at platform.openai.com/api-keys' :
+                                                            aiProvider === 'gemini' ? 'Get yours at aistudio.google.com/apikey' :
+                                                                aiProvider === 'claude' ? 'Get yours at console.anthropic.com/settings/keys' :
+                                                                    aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com/api_keys' :
+                                                                        aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''
+                                                    }
+                                                />
+                                            )}
+
+                                            {aiProvider && isPro && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <Button
+                                                        onClick={() => {
+                                                            setAiTestLoading(true);
+                                                            setAiTestResult(null);
+                                                            fetcher.submit(
+                                                                { intent: 'test_ai', aiProvider, aiApiKey },
+                                                                { method: 'post' }
+                                                            );
+                                                            // Handle response via useEffect below
+                                                            setTimeout(() => {
+                                                                setAiTestLoading(false);
+                                                                const data = fetcher.data as any;
+                                                                if (data?.aiTestResult) {
+                                                                    setAiTestResult(data.aiTestResult);
+                                                                    setAiTestSuccess(data.success);
+                                                                } else {
+                                                                    setAiTestResult('Test sent — check result after save.');
+                                                                    setAiTestSuccess(true);
+                                                                }
+                                                            }, 4000);
+                                                        }}
+                                                        loading={aiTestLoading}
+                                                        disabled={aiTestLoading || !aiApiKey}
+                                                        variant="primary"
+                                                        size="micro"
+                                                    >
+                                                        ⚡ Test Connection
+                                                    </Button>
+                                                    {aiTestResult && (
+                                                        <div style={{
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 600,
+                                                            color: aiTestSuccess ? '#16a34a' : '#dc2626',
+                                                            background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                        }}>
+                                                            {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </BlockStack>
+                                    </div>
                                 </div>
 
-                                {/* DANGER ZONE */}
-                                <div className="config-card" style={{ borderColor: '#fda4af', background: '#fff1f2' }}>
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd" tone="critical">🚨 Danger Zone</Text>
-                                        <p style={{ color: '#be123c' }}>Irreversible actions.</p>
-                                        <Button
-                                            tone="critical"
-                                            onClick={() => setResetModalActive(true)}
-                                        >
-                                            Reset All App Data
-                                        </Button>
-                                    </BlockStack>
-                                </div>
                             </BlockStack>
                         </Layout.Section>
                     </Layout>
-                </BlockStack>
-            </Page>
+
+                    {/* DANGER ZONE (MOVED TO BOTTOM FULL WIDTH) */}
+                    <div className="danger-zone config-card">
+                        <BlockStack gap="400">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Button icon={AlertTriangleIcon} variant="plain" tone="critical" />
+                                <Text as="h3" variant="headingMd" tone="critical">Danger Zone</Text>
+                            </div>
+                            <p style={{ color: '#be123c' }}>Irreversible actions.</p>
+                            <div style={{ alignSelf: 'flex-start' }}>
+                                <Button
+                                    tone="critical"
+                                    onClick={() => setResetModalActive(true)}
+                                >
+                                    Reset All App Data
+                                </Button>
+                            </div>
+                        </BlockStack>
+                    </div>
+
+                </BlockStack >
+            </Page >
 
             <Modal
                 open={resetModalActive}
@@ -702,6 +868,6 @@ export default function SettingsPage() {
                     </BlockStack>
                 </Modal.Section>
             </Modal>
-        </div>
+        </div >
     );
 }

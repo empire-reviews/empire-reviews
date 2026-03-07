@@ -1,5 +1,6 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
+import { useState } from "react";
 import {
   Page,
   Layout,
@@ -11,20 +12,70 @@ import {
   Box,
   Button,
   InlineStack,
+  Divider,
+  Select,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
 import { hasActivePayment } from "../billing.server";
+import { generateInsights } from "../services/ai.server";
+import type { AIProvider } from "../services/ai.server";
+
+export const action = async ({ request }: LoaderFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const isPro = await hasActivePayment(request);
+
+  if (!isPro) {
+    return json({ success: false, error: "AI Insights require the Pro plan." });
+  }
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  const reportType = (formData.get("reportType") as "quick" | "executive") || "quick";
+
+  if (intent === "generate_ai_insight") {
+    const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+    if (!settings?.aiProvider || !settings?.aiApiKey) {
+      return json({ success: false, error: "AI not configured. Please add an API key in Settings." });
+    }
+
+    const reviews = await prisma.review.findMany({
+      where: { shop: session.shop },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+
+    try {
+      const config = { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" };
+      const { summary } = await generateInsights(config, reviews, reportType);
+
+      await prisma.settings.update({
+        where: { shop: session.shop },
+        data: {
+          aiInsightsSummary: summary,
+          aiInsightsUpdatedAt: new Date()
+        }
+      });
+      return json({ success: true, message: "Insights updated!" });
+    } catch (error: any) {
+      return json({ success: false, error: error.message || "Failed to generate AI insights." });
+    }
+  }
+  return json({ success: false, error: "Unknown action" });
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { billing } = await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   const isPro = await hasActivePayment(request); // Helper import needed? No, handled by copy-paste or just standard check
 
   // GATE: AI Insights is PRO Only
   if (!isPro) {
-    return json({ locked: true, stats: null, urgentReviews: [], topTopics: [] });
+    return json({ locked: true, stats: null, urgentReviews: [], topTopics: [], aiInsightsSummary: null, aiInsightsUpdatedAt: null, hasAiConfig: false });
   }
+
+  const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+  const hasAiConfig = !!(settings?.aiProvider && settings?.aiApiKey);
 
   const reviews = await prisma.review.findMany({
     include: { replies: true }
@@ -52,7 +103,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
   const topTopics = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([topic, count]) => ({ topic, count }));
 
-  return json({ locked: false, stats: { positive, neutral, negative, total }, urgentReviews, topTopics });
+  return json({
+    locked: false,
+    stats: { positive, neutral, negative, total },
+    urgentReviews,
+    topTopics,
+    aiInsightsSummary: settings?.aiInsightsSummary || null,
+    aiInsightsUpdatedAt: settings?.aiInsightsUpdatedAt || null,
+    hasAiConfig
+  });
 };
 
 export default function InsightsPage() {
@@ -245,6 +304,10 @@ export default function InsightsPage() {
   const neuPct = safeStats.total > 0 ? (safeStats.neutral / safeStats.total) * 100 : 0;
   const negPct = safeStats.total > 0 ? (safeStats.negative / safeStats.total) * 100 : 0;
 
+  const { aiInsightsSummary, aiInsightsUpdatedAt, hasAiConfig } = useLoaderData<typeof loader>();
+  const isGenerating = fetcher.state === "submitting" && fetcher.formData?.get("intent") === "generate_ai_insight";
+  const [reportType, setReportType] = useState("quick");
+
   return (
     <div className="empire-insights">
       <style>{`
@@ -306,15 +369,76 @@ export default function InsightsPage() {
                 We analyzed <strong>{safeStats.total} reviews</strong>. Your customers are mostly
                 <strong> {posPct > 50 ? "Delighted 😍" : "Neutral 😐"}</strong>.
               </p>
-              {fetcher.data && (
+              {(fetcher.data as any)?.count !== undefined && (
                 <Text as="p" tone="success">
-                  ✅ Synced {(fetcher.data as any).count} orders! Refresh to see impact.
+                  ✅ Synced {String((fetcher.data as any).count)} orders! Refresh to see impact.
                 </Text>
               )}
             </BlockStack>
           </div>
 
           <Layout>
+            <Layout.Section>
+              <div className="insight-card" style={{ borderTop: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
+                <InlineStack align="space-between">
+                  <Text as="h3" variant="headingMd">🧠 Deep AI Analysis</Text>
+                  {aiInsightsUpdatedAt && (
+                    <Text as="p" tone="subdued">Last updated: {new Date(aiInsightsUpdatedAt).toLocaleString()}</Text>
+                  )}
+                </InlineStack>
+
+                <Box paddingBlockStart="400">
+                  {aiInsightsSummary ? (
+                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1.05rem', color: '#334155' }}>
+                      {aiInsightsSummary}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
+                      <p>You haven't generated your AI Insights report yet.</p>
+                      {!hasAiConfig && <p style={{ marginTop: '0.5rem', color: '#dc2626' }}>⚠️ Please configure an AI provider in Settings first.</p>}
+                    </div>
+                  )}
+                </Box>
+
+                <Box paddingBlockStart="400">
+                  <Divider />
+                  <Box paddingBlockStart="400">
+                    <fetcher.Form method="post">
+                      <input type="hidden" name="intent" value="generate_ai_insight" />
+                      <input type="hidden" name="reportType" value={reportType} />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px' }}>
+
+                        <div style={{ width: '100%', maxWidth: '300px' }}>
+                          <Select
+                            label="Report Detail Level"
+                            options={[
+                              { label: 'Quick Summary (1-2 Sentences)', value: 'quick' },
+                              { label: 'Executive Summary (Detailed Markdown)', value: 'executive' },
+                            ]}
+                            value={reportType}
+                            onChange={setReportType}
+                            disabled={!hasAiConfig || isGenerating}
+                          />
+                        </div>
+
+                        <Button
+                          submit
+                          variant="primary"
+                          loading={isGenerating}
+                          disabled={!hasAiConfig || isGenerating}
+                        >
+                          ✨ Generate New Insights
+                        </Button>
+                        <Text as="p" tone="subdued" variant="bodySm">
+                          ⚠️ Generating insights uses your connected API key and may incur charges from your provider.
+                        </Text>
+                      </div>
+                    </fetcher.Form>
+                  </Box>
+                </Box>
+              </div>
+            </Layout.Section>
+
             {/* LEFT: VISUALIZATION */}
             <Layout.Section>
               <div className="insight-card">

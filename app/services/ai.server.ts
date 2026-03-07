@@ -210,7 +210,7 @@ Write a short, genuine reply from the store owner.`;
 
 // ─── PUBLIC API: INSIGHTS GENERATION ─────────────────────────────
 
-const INSIGHTS_SYSTEM_PROMPT = `You are an analytics AI for an e-commerce review management tool.
+const INSIGHTS_SYSTEM_PROMPT_QUICK = `You are an analytics AI for an e-commerce review management tool.
 Analyze a batch of recent customer reviews and provide a brief, actionable insight.
 
 Rules:
@@ -220,9 +220,23 @@ Rules:
 - If reviews are mostly positive, highlight what's working
 - If there are issues, flag them clearly but constructively`;
 
+const INSIGHTS_SYSTEM_PROMPT_EXEC = `You are an executive analytics AI for an e-commerce review management tool.
+Analyze a batch of recent customer reviews and provide a detailed business intelligence report.
+
+Rules:
+- Use markdown formatting
+- Include the following exact sections with emoji bullet points:
+  - 🌟 What's working:
+  - ⚠️ Major pain points:
+  - 💡 Actionable advice:
+- Be specific, referencing patterns or recurring words in the reviews
+- Keep it professional, concise, and highly informative
+- Do not add any introductory or concluding text outside of those 3 sections`;
+
 export async function generateInsights(
     config: AIConfig,
-    reviews: Array<{ body: string | null; rating: number }>
+    reviews: Array<{ body: string | null; rating: number }>,
+    reportType: "quick" | "executive" = "quick"
 ): Promise<{ summary: string; score: number }> {
     const reviewTexts = reviews
         .filter(r => r.body)
@@ -233,9 +247,10 @@ export async function generateInsights(
         return { summary: "Not enough review data to analyze.", score: 0 };
     }
 
-    const userPrompt = `Here are the most recent customer reviews:\n\n${reviewTexts}\n\nProvide a brief insight summary.`;
+    const systemPrompt = reportType === "executive" ? INSIGHTS_SYSTEM_PROMPT_EXEC : INSIGHTS_SYSTEM_PROMPT_QUICK;
+    const userPrompt = `Here are the most recent customer reviews:\n\n${reviewTexts}\n\nProvide the insight summary based on the requested rules.`;
 
-    const summary = await callAI(config, INSIGHTS_SYSTEM_PROMPT, userPrompt);
+    const summary = await callAI(config, systemPrompt, userPrompt);
     const avgRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
 
     return { summary, score: avgRating };
