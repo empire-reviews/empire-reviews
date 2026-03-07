@@ -222,9 +222,13 @@ export default function SettingsPage() {
     return (
         <div className="empire-settings">
             <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+            
             .empire-settings {
                  --empire-primary: #0f172a;
-                 font-family: 'Inter', sans-serif;
+            }
+            .Polaris-Page *, .Polaris-Text--root {
+                font-family: 'Playfair Display', serif !important;
             }
             .top-row {
                 display: flex;
