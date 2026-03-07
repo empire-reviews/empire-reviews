@@ -58,6 +58,7 @@ export default defineConfig({
         v3_routeConfig: true,
       },
     }),
+    ...(process.env.VERCEL ? [vercelPreset()] : []),
     tsconfigPaths(),
   ],
   build: {
