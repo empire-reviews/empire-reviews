@@ -236,7 +236,17 @@ export default function SettingsPage() {
             subtitle="Manage your Empire Reviews configuration"
             backAction={{ content: 'Dashboard', onAction: () => navigate("/app") }}
             primaryAction={isDirty ? { content: 'Save settings', onAction: handleSave } : undefined}
+            fullWidth
         >
+            <style>{`
+                .Polaris-ShadowBevel {
+                    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+                }
+                .Polaris-ShadowBevel:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15) !important;
+                }
+            `}</style>
             <Layout>
                 <Layout.Section variant="oneThird">
                     <BlockStack gap="400">
