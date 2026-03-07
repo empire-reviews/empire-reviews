@@ -17,6 +17,7 @@ import {
     Select,
     ActionList,
     Spinner,
+    InlineGrid
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment, getPlanDetails, MONTHLY_PLAN } from "../billing.server";
@@ -239,14 +240,60 @@ export default function SettingsPage() {
             fullWidth
         >
             <style>{`
-                .Polaris-ShadowBevel {
+                .glow-card {
                     transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+                    border-radius: 12px;
+                    border: 1px solid rgba(0,0,0,0.05);
                 }
-                .Polaris-ShadowBevel:hover {
+                .glow-card:hover {
                     transform: translateY(-4px);
-                    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15) !important;
+                    box-shadow: 0 20px 40px -8px rgba(99, 102, 241, 0.15), 0 0 0 1px rgba(99, 102, 241, 0.05) !important;
+                }
+                .Polaris-Layout__Section {
+                    max-width: none !important;
                 }
             `}</style>
+
+            <div style={{ marginBottom: '24px' }}>
+                <InlineGrid columns={{ xs: 1, sm: 1, md: 3 }} gap="400">
+                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">SYSTEM HEALTH</Text>
+                            <Badge tone={isPro ? "success" : "info"}>{isPro ? "Pro Optimized" : "Standard"}</Badge>
+                        </div>
+                        <Text as="p" variant="headingXl" fontWeight="bold">Optimal</Text>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>All core settings are configured.</p>
+                        <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: '100%', height: '100%', background: '#10b981' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">AI ENGINE</Text>
+                            <Badge tone={aiTestSuccess ? "success" : "attention"}>{aiTestSuccess ? "Connected" : "Standby"}</Badge>
+                        </div>
+                        <Text as="p" variant="headingXl" fontWeight="bold">{settings.aiProvider ? settings.aiProvider.toUpperCase() : "Inactive"}</Text>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>Auto-replies and sentiment analysis.</p>
+                        <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: settings.aiProvider && settings.aiApiKey ? '100%' : '15%', height: '100%', background: settings.aiProvider ? '#6366f1' : '#f59e0b' }}></div>
+                        </div>
+                    </div>
+
+                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">DATA CAPACITY</Text>
+                            <Badge tone={isPro ? "info" : "critical"}>{isPro ? "Unlimited" : "Capped"}</Badge>
+                        </div>
+                        <Text as="p" variant="headingXl" fontWeight="bold">{isPro ? "∞" : "50"}</Text>
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>{isPro ? "Unlimited review storage." : "Upgrade to prevent data loss."}</p>
+                        <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: isPro ? '100%' : '90%', height: '100%', background: isPro ? '#3b82f6' : '#ef4444' }}></div>
+                        </div>
+                    </div>
+                </InlineGrid>
+            </div>
+
             <Layout>
                 <Layout.Section variant="oneThird">
                     <BlockStack gap="400">
