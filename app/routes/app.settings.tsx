@@ -617,73 +617,81 @@ export default function SettingsPage() {
                                 {/* AI CONFIGURATION CARD */}
                                 <div className="config-card card-3d" style={{ borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)', position: 'relative', overflow: 'hidden' }}>
 
-                                    {!isPro && (
+                                    {!isPro ? (
                                         <div style={{
-                                            position: 'absolute',
-                                            inset: 0,
-                                            zIndex: 10,
-                                            background: 'rgba(255, 255, 255, 0.5)',
-                                            backdropFilter: 'blur(6px)',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            padding: '2rem'
+                                            background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
+                                            borderRadius: '12px',
+                                            padding: '1.5rem',
+                                            color: 'white',
+                                            boxShadow: '0 10px 25px -5px rgba(124, 58, 237, 0.4)',
+                                            position: 'relative',
+                                            overflow: 'hidden'
                                         }}>
-                                            <div style={{
-                                                background: 'white',
-                                                padding: '2rem',
-                                                borderRadius: '16px',
-                                                boxShadow: '0 20px 40px -10px rgba(99, 102, 241, 0.3)',
-                                                border: '1px solid rgba(99, 102, 241, 0.1)',
-                                                textAlign: 'center',
-                                                width: '100%',
-                                                maxWidth: '350px'
-                                            }}>
-                                                <div style={{
-                                                    width: '48px', height: '48px', borderRadius: '12px',
-                                                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                                                    color: 'white', display: 'flex', alignItems: 'center',
-                                                    justifyContent: 'center', margin: '0 auto 16px',
-                                                    boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)'
-                                                }}>
-                                                    <span style={{ fontSize: '24px' }}><WandIcon width={24} height={24} /></span>
-                                                </div>
-                                                <Text as="h3" variant="headingLg">Unlock Pro AI</Text>
-                                                <p style={{ margin: '12px 0 24px', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
-                                                    Auto-reply to reviews and generate deep sentiment insights with Groq, OpenAI, or 4 other models.
-                                                </p>
-                                                <button
-                                                    onClick={handleUpgrade}
-                                                    type="button"
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '12px',
-                                                        borderRadius: '8px',
-                                                        border: 'none',
-                                                        background: 'linear-gradient(to right, #6366f1, #a855f7)',
-                                                        color: 'white',
-                                                        fontWeight: 800,
-                                                        fontSize: '1rem',
-                                                        cursor: 'pointer',
-                                                        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.4)',
-                                                        transition: 'transform 0.2s',
-                                                    }}
-                                                >
-                                                    Upgrade to Empire Pro
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                            {/* Decorative Background Glows */}
+                                            <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '150px', height: '150px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(30px)' }}></div>
 
-                                    <div style={{ pointerEvents: isPro ? 'auto' : 'none', opacity: isPro ? 1 : 0.4, filter: isPro ? 'none' : 'blur(2px)', transition: 'all 0.3s' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: '#7c3aed', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                                        <WandIcon width={20} height={20} />
+                                                    </div>
+                                                    <h3 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>Pro AI Insights</h3>
+                                                </div>
+                                                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: 'white', backdropFilter: 'blur(4px)' }}>
+                                                    PRO
+                                                </div>
+                                            </div>
+
+                                            <p style={{ margin: '12px 0 24px', fontSize: '0.95rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.4' }}>
+                                                Deep sentiment analysis & auto-replies with 6 elite models including Groq, OpenAI, and Claude.
+                                            </p>
+
+                                            {/* Blurred Faux UI to create FOMO */}
+                                            <div style={{
+                                                background: 'rgba(255,255,255,0.08)',
+                                                borderRadius: '8px',
+                                                padding: '16px',
+                                                marginBottom: '24px',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                            }}>
+                                                <div style={{ filter: 'blur(5px)', opacity: 0.85, pointerEvents: 'none' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                        <div style={{ width: '35%', height: '10px', background: 'rgba(255,255,255,0.5)', borderRadius: '4px' }}></div>
+                                                        <div style={{ width: '15%', height: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px' }}></div>
+                                                    </div>
+                                                    <div style={{ width: '85%', height: '6px', background: 'rgba(255,255,255,0.4)', borderRadius: '3px', marginBottom: '10px' }}></div>
+                                                    <div style={{ width: '95%', height: '6px', background: 'rgba(255,255,255,0.3)', borderRadius: '3px', marginBottom: '10px' }}></div>
+                                                    <div style={{ width: '60%', height: '6px', background: 'rgba(255,255,255,0.3)', borderRadius: '3px' }}></div>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={handleUpgrade}
+                                                type="button"
+                                                style={{
+                                                    alignSelf: 'flex-start',
+                                                    padding: '10px 16px',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    background: 'white',
+                                                    color: '#7c3aed',
+                                                    fontWeight: 800,
+                                                    fontSize: '0.95rem',
+                                                    cursor: 'pointer',
+                                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                    transition: 'all 0.2s ease'
+                                                }}
+                                            >
+                                                Unlock AI Features →
+                                            </button>
+                                        </div>
+                                    ) : (
                                         <BlockStack gap="400">
                                             <InlineStack align="space-between">
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <Button icon={WandIcon} variant="plain" />
                                                     <Text as="h3" variant="headingMd">AI Configuration</Text>
                                                 </div>
-                                                {!isPro && <Badge tone="attention">PRO</Badge>}
                                             </InlineStack>
                                             <p style={{ color: '#64748b' }}>Connect your own AI provider for smart replies & insights.</p>
                                             <Divider />
@@ -769,7 +777,7 @@ export default function SettingsPage() {
                                                 </div>
                                             )}
                                         </BlockStack>
-                                    </div>
+                                    )}
                                 </div>
 
                             </BlockStack>
