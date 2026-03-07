@@ -25,16 +25,16 @@ import { testAIConnection, type AIProvider } from "../services/ai.server";
 import { ArrowLeftIcon, SettingsIcon, ThemeIcon, WandIcon, PlayCircleIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 
 const GROWTH_TIPS = [
-    "Stores with photo reviews see a 26% higher conversion rate. 📸",
-    "Automate requests to send 3 days after delivery for 2x replies. 🕒",
-    "Replying to negative reviews within 24h prevents customer churn. 🛡️",
-    "Displaying 'Verified Buyer' badges increases trust by 40%. 🥇",
-    "Incentivize photo reviews with a small discount for future orders. 🎁",
-    "Use AI Sentiment to spot trends before they become problems. 🧠",
-    "High-rating reviews with text build better SEO than stars alone. 🔍",
-    "Importing your existing CSV reviews is the fastest way to start. 🚢",
-    "A 4.5 star average feels more 'real' to buyers than a perfect 5. ⭐",
-    "Email campaigns with scarcity templates get 30% more clicks. 🔥"
+    "Stores with photo reviews see a 26% higher conversion rate.",
+    "Automate requests to send 3 days after delivery for 2x replies.",
+    "Replying to negative reviews within 24h prevents customer churn.",
+    "Displaying 'Verified Buyer' badges increases trust by 40%.",
+    "Incentivize photo reviews with a small discount for future orders.",
+    "Use AI Sentiment to spot trends before they become problems.",
+    "High-rating reviews with text build better SEO than stars alone.",
+    "Importing your existing CSV reviews is the fastest way to start.",
+    "A 4.5 star average feels more 'real' to buyers than a perfect 5.",
+    "Email campaigns with scarcity templates get 30% more clicks."
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -245,18 +245,28 @@ export default function SettingsPage() {
                 flex: 1;
                 min-width: 0;
             }
+            @keyframes panGradient {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
             .settings-hero {
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                background-image: 
-                    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-                    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-                background-size: 100% 100%, 20px 20px, 20px 20px;
+                background: linear-gradient(-45deg, #0f172a, #312e81, #1e1b4b, #0f172a);
+                background-size: 400% 400%;
+                animation: panGradient 15s ease infinite;
                 color: white;
-                padding: 1.5rem 2rem;
-                border-radius: 10px;
-                border: 1px solid rgba(255,255,255,0.08);
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px -5px rgba(49, 46, 129, 0.4);
+                position: relative;
+                overflow: hidden;
+            }
+            .settings-hero::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background-image: radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+                pointer-events: none;
             }
             .config-card {
                 background: white;
@@ -338,10 +348,10 @@ export default function SettingsPage() {
                     <div className="top-row">
                         <div className="settings-hero">
                             <BlockStack gap="300">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
-                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Global Configuration ⚙️</h1>
+                                        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>Global Configuration</h1>
                                     </div>
                                     <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO" : "STARTER PLAN"}</Badge>
                                 </div>
@@ -377,8 +387,9 @@ export default function SettingsPage() {
                                     flex: 1
                                 }}>
                                     <div className="tip-fade" style={{ opacity: fade ? 1 : 0 }}>
-                                        <div className="tip-text">
-                                            <strong>💡 {GROWTH_TIPS[tipIndex]}</strong>
+                                        <div className="tip-text" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>
+                                            <strong>{GROWTH_TIPS[tipIndex]}</strong>
                                         </div>
                                     </div>
                                 </div>
@@ -538,7 +549,10 @@ export default function SettingsPage() {
                                 <div className="config-card">
                                     <BlockStack gap="400">
                                         <InlineStack align="space-between">
-                                            <Text as="h3" variant="headingMd">💳 Plan & Billing</Text>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                                                <Text as="h3" variant="headingMd">Plan & Billing</Text>
+                                            </div>
                                             <Badge tone={isPro ? "success" : "attention"}>{isPro ? "PRO" : "FREE"}</Badge>
                                         </InlineStack>
                                         <p style={{ color: '#64748b' }}>
@@ -656,12 +670,12 @@ export default function SettingsPage() {
                                                     label="AI Provider"
                                                     options={[
                                                         { label: 'Select a provider...', value: '' },
-                                                        { label: '⚡ Groq (100% Free)', value: 'groq' },
-                                                        { label: '🟢 OpenAI (GPT-4o Mini)', value: 'openai' },
-                                                        { label: '🔵 Google Gemini', value: 'gemini' },
-                                                        { label: '🟠 Anthropic Claude', value: 'claude' },
-                                                        { label: '🟣 DeepSeek', value: 'deepseek' },
-                                                        { label: '⚫ Ollama / Custom API', value: 'ollama' },
+                                                        { label: 'Groq (100% Free)', value: 'groq' },
+                                                        { label: 'OpenAI (GPT-4o Mini)', value: 'openai' },
+                                                        { label: 'Google Gemini', value: 'gemini' },
+                                                        { label: 'Anthropic Claude', value: 'claude' },
+                                                        { label: 'DeepSeek', value: 'deepseek' },
+                                                        { label: 'Ollama / Custom API', value: 'ollama' },
                                                     ]}
                                                     value={aiProvider}
                                                     onChange={setAiProvider}
@@ -713,18 +727,13 @@ export default function SettingsPage() {
                                                             variant="primary"
                                                             size="micro"
                                                         >
-                                                            ⚡ Test Connection
+                                                            Test Connection
                                                         </Button>
                                                         {aiTestResult && (
-                                                            <div style={{
-                                                                fontSize: '0.8rem',
-                                                                fontWeight: 600,
-                                                                color: aiTestSuccess ? '#16a34a' : '#dc2626',
-                                                                background: aiTestSuccess ? '#f0fdf4' : '#fef2f2',
-                                                                padding: '4px 10px',
-                                                                borderRadius: '6px',
-                                                            }}>
-                                                                {aiTestSuccess ? '✅' : '❌'} {aiTestResult}
+                                                            <div style={{ marginTop: '4px' }}>
+                                                                <Badge tone={aiTestSuccess ? 'success' : 'critical'}>
+                                                                    {aiTestResult}
+                                                                </Badge>
                                                             </div>
                                                         )}
                                                     </div>
@@ -780,7 +789,7 @@ export default function SettingsPage() {
             <Modal
                 open={billingModalActive}
                 onClose={() => setBillingModalActive(false)}
-                title="Your Empire Membership 💎"
+                title="Your Empire Membership"
                 primaryAction={{
                     content: "Extend / Renew Plan",
                     onAction: handleUpgrade,
@@ -821,7 +830,7 @@ export default function SettingsPage() {
                                     <Divider />
                                     <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', marginTop: '8px' }}>
                                         <Text as="p" tone="subdued" fontWeight="bold">
-                                            🌟 VIP / Partner Access
+                                            VIP / Partner Access
                                         </Text>
                                         <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>
                                             You have lifetime access enabled manually (e.g. via Referral).
