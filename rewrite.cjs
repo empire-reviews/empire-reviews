@@ -1,226 +1,28 @@
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
-import {
-    Page,
-    Layout,
-    Card,
-    BlockStack,
-    Text,
-    Checkbox,
-    Button,
-    TextField,
-    Box,
-    InlineStack,
-    Divider,
-    Modal,
-    Badge,
-    Select,
-    ActionList,
-    Spinner,
-} from "@shopify/polaris";
-import { authenticate } from "../shopify.server";
-import { hasActivePayment, requirePayment, getPlanDetails, MONTHLY_PLAN } from "../billing.server";
-import prisma from "../db.server";
-import { useState, useEffect } from "react";
-import { testAIConnection, type AIProvider } from "../services/ai.server";
-import { ArrowLeftIcon, SettingsIcon, ThemeIcon, WandIcon, PlayCircleIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
+const fs = require('fs');
+const path = require('path');
 
-const GROWTH_TIPS = [
-    "Stores with photo reviews see a 26% higher conversion rate.",
-    "Automate requests to send 3 days after delivery for 2x replies.",
-    "Replying to negative reviews within 24h prevents customer churn.",
-    "Displaying 'Verified Buyer' badges increases trust by 40%.",
-    "Incentivize photo reviews with a small discount for future orders.",
-    "Use AI Sentiment to spot trends before they become problems.",
-    "High-rating reviews with text build better SEO than stars alone.",
-    "Importing your existing CSV reviews is the fastest way to start.",
-    "A 4.5 star average feels more 'real' to buyers than a perfect 5.",
-    "Email campaigns with scarcity templates get 30% more clicks."
-];
+const filePath = path.join(__dirname, 'app/routes/app.settings.tsx');
+let code = fs.readFileSync(filePath, 'utf8');
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
-    const billing = await hasActivePayment(request); // Re-fetching billing below, just need session here
-    const shop = session.shop;
+if (!code.includes('ActionList')) {
+    code = code.replace('Select,', 'Select,\\n    ActionList,');
+}
+if (!code.includes('CreditCardIcon')) {
+    code = code.replace('PlayCircleIcon,', 'PlayCircleIcon, CreditCardIcon,');
+}
 
-    // SYNC BILLING STATUS
-    const isPro = await hasActivePayment(request);
-    const planName = isPro ? "EMPIRE_PRO" : "FREE";
+const searchStr = '<div className="empire-settings">';
+const divIndex = code.indexOf(searchStr);
+const returnIndex = code.lastIndexOf('return (', divIndex);
 
-    let settings = await prisma.settings.findUnique({ where: { shop } });
+if (returnIndex === -1) {
+    console.log("Could not find the return block!");
+    process.exit(1);
+}
 
-    if (!settings) {
-        settings = await prisma.settings.create({ data: { shop, plan: planName } });
-    } else if (settings.plan !== planName) {
-        // Sync database if status changed
-        settings = await prisma.settings.update({
-            where: { shop },
-            data: { plan: planName }
-        });
-    }
+const beforeReturn = code.slice(0, returnIndex);
 
-
-    // Get full details for the dates
-    const subscription = await getPlanDetails(request);
-
-    return json({ settings, isPro, subscription });
-};
-
-export const action = async ({ request }: ActionFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
-    const shop = session.shop;
-    const formData = await request.formData();
-    const intent = formData.get("intent");
-
-    if (intent === "reset") {
-        await prisma.review.deleteMany({});
-        await prisma.reply.deleteMany({});
-        return json({ success: true, message: "App data reset" });
-    }
-
-    if (intent === "test_ai") {
-        const isPro = await hasActivePayment(request);
-        if (!isPro) {
-            return json({ success: false, aiTestResult: "AI Features require the Empire Pro plan." });
-        }
-        const aiProvider = formData.get("aiProvider") as AIProvider;
-        const aiApiKey = formData.get("aiApiKey") as string;
-        if (!aiProvider || !aiApiKey) {
-            return json({ success: false, aiTestResult: "Please select a provider and enter an API key." });
-        }
-        const result = await testAIConnection({ provider: aiProvider, apiKey: aiApiKey });
-        return json({ success: result.success, aiTestResult: result.message });
-    }
-
-    const autoPublish = formData.get("autoPublish") === "true";
-    const emailAlerts = formData.get("emailAlerts") === "true";
-    const themeColor = formData.get("themeColor") as string;
-
-    // AI Configuration
-    let aiProvider = formData.get("aiProvider") as string || null;
-    let aiApiKey = formData.get("aiApiKey") as string || null;
-
-    // Integrations
-    const enableFlow = formData.get("enableFlow") === "true";
-    const enableKlaviyo = formData.get("enableKlaviyo") === "true";
-    const klaviyoApiKey = formData.get("klaviyoApiKey") as string;
-    const reviewRequestDelay = parseInt(formData.get("reviewRequestDelay") as string) || 3;
-    // Google Feed is PRO feature
-    let enableGoogle = formData.get("enableGoogle") === "true";
-
-    // Double check gating on server side
-    const isPro = await hasActivePayment(request);
-    if (!isPro) {
-        enableGoogle = false; // Force disable if not pro
-        aiProvider = null; // Force disable AI if not pro
-        aiApiKey = null;
-    }
-
-    const settings = await prisma.settings.update({
-        where: { shop },
-        data: {
-            autoPublish,
-            emailAlerts,
-            themeColor,
-            aiProvider,
-            aiApiKey,
-            enableFlow,
-            enableKlaviyo,
-            klaviyoApiKey,
-            enableGoogle,
-            reviewRequestDelay
-        },
-    });
-
-    return json({ success: true, settings });
-};
-
-export default function SettingsPage() {
-    const { settings, isPro, subscription } = useLoaderData<typeof loader>();
-    const fetcher = useFetcher();
-    const navigate = useNavigate();
-
-    // Optimistic UI state
-    const [autoPublish, setAutoPublish] = useState(settings.autoPublish);
-    const [emailAlerts, setEmailAlerts] = useState(settings.emailAlerts);
-    const [themeColor, setThemeColor] = useState(settings.themeColor);
-    const [resetModalActive, setResetModalActive] = useState(false);
-    const [billingModalActive, setBillingModalActive] = useState(false);
-    const [reviewRequestDelay, setReviewRequestDelay] = useState(settings.reviewRequestDelay || 3);
-    const [widgetBgColor, setWidgetBgColor] = useState("#ffffff");
-    const [starColor, setStarColor] = useState("#fbbf24");
-    const [borderRadius, setBorderRadius] = useState("8px");
-
-    const [isDirty, setIsDirty] = useState(false);
-
-    // Watch for changes to trigger Save Bar
-    useEffect(() => {
-        setIsDirty(true);
-    }, [autoPublish, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
-
-    // Integration States
-    const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
-    const [klaviyoEnabled, setKlaviyoEnabled] = useState(settings.enableKlaviyo);
-    const [klaviyoKey, setKlaviyoKey] = useState(settings.klaviyoApiKey || "");
-    const [googleShoppingEnabled, setGoogleShoppingEnabled] = useState(settings.enableGoogle);
-
-    // AI Configuration States
-    const [aiProvider, setAiProvider] = useState(settings.aiProvider || "");
-    const [aiApiKey, setAiApiKey] = useState(settings.aiApiKey || "");
-    const [aiTestLoading, setAiTestLoading] = useState(false);
-    const [aiTestResult, setAiTestResult] = useState<string | null>(null);
-    const [aiTestSuccess, setAiTestSuccess] = useState(false);
-
-    // Tip Rotation Logic
-    const [tipIndex, setTipIndex] = useState(0);
-    const [fade, setFade] = useState(true);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setFade(false);
-            setTimeout(() => {
-                setTipIndex((prev) => (prev + 1) % GROWTH_TIPS.length);
-                setFade(true);
-            }, 500);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const handleSave = () => {
-        fetcher.submit(
-            {
-                autoPublish: String(autoPublish),
-                emailAlerts: String(emailAlerts),
-                themeColor,
-                aiProvider,
-                aiApiKey,
-                enableFlow: String(flowEnabled),
-                enableKlaviyo: String(klaviyoEnabled),
-                klaviyoApiKey: klaviyoKey,
-                enableGoogle: String(googleShoppingEnabled),
-                reviewRequestDelay: String(reviewRequestDelay)
-            },
-            { method: "post" }
-        );
-        setIsDirty(false);
-        shopify.toast.show("Settings saved");
-    };
-
-    const handleReset = () => {
-        fetcher.submit({ intent: "reset" }, { method: "post" });
-        setResetModalActive(false);
-        shopify.toast.show("App data wiped");
-    };
-
-    const handleUpgrade = () => {
-        navigate("/app/plans");
-    };
-
-    const feedUrl = typeof window !== "undefined"
-        ? `${window.location.origin}/api/feed/xml?shop=${settings.shop}`
-        : "";
-
-    const [activeTab, setActiveTab] = useState("brand");
+const newJSX = `    const [activeTab, setActiveTab] = useState("brand");
 
     const tabs = [
         { id: "brand", content: "Brand & Display", icon: ThemeIcon },
@@ -231,11 +33,11 @@ export default function SettingsPage() {
     ];
 
     return (
-        <Page
-            title="Settings"
+        <Page 
+            title="Settings" 
             subtitle="Manage your Empire Reviews configuration"
             backAction={{ content: 'Dashboard', onAction: () => navigate("/app") }}
-            primaryAction={isDirty ? { content: 'Save settings', onAction: handleSave } : undefined}
+            primaryAction={isDirty ? { content: 'Save settings', onAction: handleSave, tone: 'success' } : undefined}
         >
             <Layout>
                 <Layout.Section variant="oneThird">
@@ -251,7 +53,7 @@ export default function SettingsPage() {
                                 }))}
                             />
                         </Card>
-
+                        
                         <Card>
                             <BlockStack gap="300">
                                 <Text as="h3" variant="headingSm" fontWeight="bold">Did you know?</Text>
@@ -264,8 +66,8 @@ export default function SettingsPage() {
                         </Card>
                     </BlockStack>
                 </Layout.Section>
-
-                <Layout.Section>
+                
+                <Layout.Section variant="twoThirds">
                     {activeTab === 'brand' && (
                         <BlockStack gap="400">
                             <Text as="h2" variant="headingLg" fontWeight="bold">Brand Identity</Text>
@@ -445,3 +247,7 @@ export default function SettingsPage() {
         </Page>
     );
 }
+`;
+
+fs.writeFileSync(filePath, beforeReturn + newJSX);
+console.log("Rewrite complete.");
