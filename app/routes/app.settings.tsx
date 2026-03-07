@@ -240,15 +240,25 @@ export default function SettingsPage() {
             fullWidth
         >
             <style>{`
-                .glow-card {
-                    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+                .stat-card {
+                    background: white;
+                    padding: 1.5rem;
                     border-radius: 12px;
-                    border: 1px solid rgba(0,0,0,0.05);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1px solid #e2e8f0;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
                 }
-                .glow-card:hover {
+                .stat-card:hover {
                     transform: translateY(-4px);
                     box-shadow: 0 20px 40px -8px rgba(99, 102, 241, 0.15), 0 0 0 1px rgba(99, 102, 241, 0.05) !important;
+                    border-color: #6366f1;
                 }
+                .stat-value { font-size: 2.5rem; font-weight: 800; color: #0f172a; line-height: 1; margin: 0.5rem 0; }
+                .stat-label { font-size: 0.875rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
                 .Polaris-Layout__Section {
                     max-width: none !important;
                 }
@@ -256,37 +266,43 @@ export default function SettingsPage() {
 
             <div style={{ marginBottom: '24px' }}>
                 <InlineGrid columns={{ xs: 1, sm: 1, md: 3 }} gap="400">
-                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">SYSTEM HEALTH</Text>
-                            <Badge tone={isPro ? "success" : "info"}>{isPro ? "Pro Optimized" : "Standard"}</Badge>
+                    <div className="stat-card">
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <div className="stat-label">SYSTEM HEALTH</div>
+                                <Badge tone={isPro ? "success" : "info"}>{isPro ? "Pro Optimized" : "Standard"}</Badge>
+                            </div>
+                            <div className="stat-value">Optimal</div>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>All core settings are configured.</p>
                         </div>
-                        <Text as="p" variant="headingXl" fontWeight="bold">Optimal</Text>
-                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>All core settings are configured.</p>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ width: '100%', height: '100%', background: '#10b981' }}></div>
                         </div>
                     </div>
 
-                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">AI ENGINE</Text>
-                            <Badge tone={aiTestSuccess ? "success" : "attention"}>{aiTestSuccess ? "Connected" : "Standby"}</Badge>
+                    <div className="stat-card">
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <div className="stat-label">AI ENGINE</div>
+                                <Badge tone={aiTestSuccess ? "success" : "attention"}>{aiTestSuccess ? "Connected" : "Standby"}</Badge>
+                            </div>
+                            <div className="stat-value">{settings.aiProvider ? settings.aiProvider.toUpperCase() : "Inactive"}</div>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>Auto-replies and sentiment analysis.</p>
                         </div>
-                        <Text as="p" variant="headingXl" fontWeight="bold">{settings.aiProvider ? settings.aiProvider.toUpperCase() : "Inactive"}</Text>
-                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>Auto-replies and sentiment analysis.</p>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ width: settings.aiProvider && settings.aiApiKey ? '100%' : '15%', height: '100%', background: settings.aiProvider ? '#6366f1' : '#f59e0b' }}></div>
                         </div>
                     </div>
 
-                    <div className="glow-card" style={{ background: 'white', padding: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                            <Text as="h3" variant="headingSm" tone="subdued" fontWeight="bold">DATA CAPACITY</Text>
-                            <Badge tone={isPro ? "info" : "critical"}>{isPro ? "Unlimited" : "Capped"}</Badge>
+                    <div className="stat-card">
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <div className="stat-label">DATA CAPACITY</div>
+                                <Badge tone={isPro ? "info" : "critical"}>{isPro ? "Unlimited" : "Capped"}</Badge>
+                            </div>
+                            <div className="stat-value">{isPro ? "∞" : "50"}</div>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>{isPro ? "Unlimited review storage." : "Upgrade to prevent data loss."}</p>
                         </div>
-                        <Text as="p" variant="headingXl" fontWeight="bold">{isPro ? "∞" : "50"}</Text>
-                        <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>{isPro ? "Unlimited review storage." : "Upgrade to prevent data loss."}</p>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ width: isPro ? '100%' : '90%', height: '100%', background: isPro ? '#3b82f6' : '#ef4444' }}></div>
                         </div>
@@ -331,25 +347,13 @@ export default function SettingsPage() {
                                     <Text as="p" variant="bodyMd" tone="subdued">Customize your review widget to match your store's look & feel.</Text>
                                     <Divider />
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                                            <div style={{ width: 24, height: 24, background: themeColor, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                                            <Text as="p" variant="bodyMd" fontWeight="semibold">Theme Color</Text>
-                                        </div>
-                                        <TextField label="" value={themeColor} onChange={setThemeColor} autoComplete="off" helpText="Used for text, borders, stars, and buttons." connectedRight={<input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Theme Color</Text>} value={themeColor} onChange={setThemeColor} autoComplete="off" helpText="Used for text, borders, stars, and buttons." connectedRight={<input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
                                     </div>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                                            <div style={{ width: 24, height: 24, background: widgetBgColor, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                                            <Text as="p" variant="bodyMd" fontWeight="semibold">Widget Background</Text>
-                                        </div>
-                                        <TextField label="" value={widgetBgColor} onChange={setWidgetBgColor} autoComplete="off" connectedRight={<input type="color" value={widgetBgColor} onChange={(e) => setWidgetBgColor(e.target.value)} style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Widget Background</Text>} value={widgetBgColor} onChange={setWidgetBgColor} autoComplete="off" connectedRight={<input type="color" value={widgetBgColor} onChange={(e) => setWidgetBgColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
                                     </div>
                                     <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                                            <div style={{ width: 24, height: 24, background: starColor, borderRadius: 6, border: '1px solid #e2e8f0' }} />
-                                            <Text as="p" variant="bodyMd" fontWeight="semibold">Star Rating Color</Text>
-                                        </div>
-                                        <TextField label="" value={starColor} onChange={setStarColor} autoComplete="off" connectedRight={<input type="color" value={starColor} onChange={(e) => setStarColor(e.target.value)} style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
+                                        <TextField label={<Text as="p" variant="bodyMd" fontWeight="semibold">Star Rating Color</Text>} value={starColor} onChange={setStarColor} autoComplete="off" connectedRight={<input type="color" value={starColor} onChange={(e) => setStarColor(e.target.value)} style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', padding: 0, background: 'transparent' }} />} />
                                     </div>
                                     <Select label={<Text as="p" variant="bodyMd" fontWeight="semibold">Corner Style</Text>} options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
                                 </BlockStack>
