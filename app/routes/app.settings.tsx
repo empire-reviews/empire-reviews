@@ -246,29 +246,19 @@ export default function SettingsPage() {
                 min-width: 0;
             }
             .settings-hero {
-                background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+                background: #0f172a;
                 color: white;
-                padding: 1.5rem 1.5rem;
-                border-radius: 16px;
+                padding: 1.5rem 2rem;
+                border-radius: 8px;
             }
             .config-card {
                 background: white;
                 padding: 1.5rem;
-                border: 1px solid rgba(226, 232, 240, 0.8);
-                border-radius: 12px;
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
                 display: flex;
                 flex-direction: column;
-                transition: transform 0.3s ease, box-shadow 0.3s ease;
-            }
-            .card-3d {
-                transform: perspective(1000px) rotateX(2deg);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                border: 1px solid rgba(168, 85, 247, 0.2);
-            }
-            .card-3d:hover {
-                transform: perspective(1000px) rotateX(0deg) translateY(-5px);
-                box-shadow: 0 25px 30px -5px rgba(168, 85, 247, 0.2);
             }
             .danger-zone {
                 background: #fef2f2;
@@ -328,7 +318,7 @@ export default function SettingsPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
-                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Global Configuration</h1>
+                                        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Global Configuration ⚙️</h1>
                                     </div>
                                     <Badge tone={isPro ? "success" : "info"}>{isPro ? "EMPIRE PRO" : "STARTER PLAN"}</Badge>
                                 </div>
@@ -338,7 +328,7 @@ export default function SettingsPage() {
                             </BlockStack>
                         </div>
 
-                        <div className="config-card card-3d" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)' }}>
+                        <div className="config-card">
                             <BlockStack gap="300">
                                 <InlineStack align="space-between">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -522,7 +512,7 @@ export default function SettingsPage() {
                         <Layout.Section variant="oneHalf">
                             <BlockStack gap="400">
                                 {/* BILLING & PLAN */}
-                                <div className="config-card" style={{ borderLeft: '4px solid #10b981' }}>
+                                <div className="config-card">
                                     <BlockStack gap="400">
                                         <InlineStack align="space-between">
                                             <Text as="h3" variant="headingMd">💳 Plan & Billing</Text>
@@ -557,7 +547,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 {/* INTEGRATIONS */}
-                                <div className="config-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+                                <div className="config-card">
                                     <BlockStack gap="400">
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <Button icon={LinkIcon} variant="plain" />
@@ -615,7 +605,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 {/* AI CONFIGURATION CARD */}
-                                <div className="config-card card-3d" style={{ borderLeft: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)', position: 'relative', overflow: 'hidden' }}>
+                                <div className="config-card" style={{ position: 'relative', overflow: 'hidden' }}>
 
                                     {!isPro ? (
                                         <div style={{

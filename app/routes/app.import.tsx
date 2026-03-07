@@ -642,96 +642,99 @@ export default function ImportPage() {
                             </div>
                         </div>
 
-                        {/* STEP 2: PREVIEW & CONFIRM (The "Previous Method") */}
-                        {step === 2 && previewData && (
-                            <div className="tilt-card" style={{
-                                background: 'white',
-                                borderRadius: '40px',
-                                padding: '3rem',
-                                border: '1px solid #e2e8f0',
-                                boxShadow: '0 40px 80px -20px rgba(0,0,0,0.1)'
-                            }}>
-                                <BlockStack gap="600">
-                                    <div style={{ textAlign: 'center' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧐</div>
-                                        <Text as="h2" variant="headingLg">Review Inspection</Text>
-                                        <Text as="p" tone="subdued">We found {previewData.count} reviews. Please double-check the data below.</Text>
-                                    </div>
+                    </div>
+                )}
 
-                                    {/* MAPPING STATUS */}
-                                    <div style={{ background: previewData.hasBody ? '#ecfdf5' : '#fef2f2', padding: '1.5rem', borderRadius: '20px', border: `1px solid ${previewData.hasBody ? '#10b981' : '#ef4444'}` }}>
-                                        <BlockStack gap="200">
-                                            <InlineStack align="space-between">
-                                                <Text as="h3" variant="headingSm">Content Detection Status:</Text>
-                                                {previewData.hasBody ? (
-                                                    <Badge tone="success">✅ Body Found</Badge>
-                                                ) : (
-                                                    <Badge tone="critical">❌ BODY MISSING</Badge>
-                                                )}
-                                            </InlineStack>
-                                            {!previewData.hasBody && (
-                                                <Text as="p" tone="critical">
-                                                    We couldn't find a column for review text. Please rename your column to "Review Body" or "Body".
-                                                    Found Headers: {previewData.headers.join(', ')}
-                                                </Text>
-                                            )}
-                                        </BlockStack>
-                                    </div>
+                {/* STEP 2: PREVIEW & CONFIRM */}
+                {step === 2 && previewData && (
+                    <div className="tilt-card" style={{
+                        background: 'white',
+                        borderRadius: '40px',
+                        padding: '3rem',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 40px 80px -20px rgba(0,0,0,0.1)',
+                        maxWidth: '800px',
+                        margin: '0 auto'
+                    }}>
+                        <BlockStack gap="600">
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧐</div>
+                                <Text as="h2" variant="headingLg">Review Inspection</Text>
+                                <Text as="p" tone="subdued">We found {previewData.count} reviews. Please double-check the data below.</Text>
+                            </div>
 
-                                    {/* PREVIEW TABLE */}
-                                    <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                            <thead>
-                                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                                                    <th style={{ padding: '12px', textAlign: 'left' }}>Values Found</th>
-                                                    {previewData.headers.map((h: string, i: number) => (
-                                                        <th key={i} style={{ padding: '12px', textAlign: 'left', textTransform: 'capitalize' }}>{h}</th>
-                                                    ))}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {previewData.samples.map((row: any, i: number) => (
-                                                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                        <td style={{ padding: '12px', background: '#f8fafc', fontWeight: 600, width: '150px' }}>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                                <span>⭐ {row.rating}</span>
-                                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.customer}</span>
-                                                                <div style={{ fontSize: '0.75rem', padding: '4px', background: row.body ? '#dcfce7' : '#fee2e2', borderRadius: '4px', color: row.body ? '#166534' : '#991b1b' }}>
-                                                                    {row.body ? (row.body.length > 30 ? row.body.substring(0, 30) + '...' : row.body) : 'EMPTY'}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        {/* Show RAW values for debugging */}
-                                                        {previewData.rawSamples[i].map((cell: string, ci: number) => (
-                                                            <td key={ci} style={{ padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                {cell}
-                                                            </td>
-                                                        ))}
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    <BlockStack gap="400">
-                                        <Button
-                                            size="large"
-                                            variant="primary"
-                                            tone="success"
-                                            onClick={handleImport}
-                                            loading={fetcher.state === "submitting"}
-                                            disabled={!previewData.hasBody}
-                                            fullWidth
-                                        >
-                                            Looks Good? Start Migration →
-                                        </Button>
-                                        <Button variant="plain" onClick={() => setStep(1)}>
-                                            Upload Different File
-                                        </Button>
-                                    </BlockStack>
+                            {/* MAPPING STATUS */}
+                            <div style={{ background: previewData.hasBody ? '#ecfdf5' : '#fef2f2', padding: '1.5rem', borderRadius: '20px', border: `1px solid ${previewData.hasBody ? '#10b981' : '#ef4444'}` }}>
+                                <BlockStack gap="200">
+                                    <InlineStack align="space-between">
+                                        <Text as="h3" variant="headingSm">Content Detection Status:</Text>
+                                        {previewData.hasBody ? (
+                                            <Badge tone="success">✅ Body Found</Badge>
+                                        ) : (
+                                            <Badge tone="critical">❌ BODY MISSING</Badge>
+                                        )}
+                                    </InlineStack>
+                                    {!previewData.hasBody && (
+                                        <Text as="p" tone="critical">
+                                            We couldn't find a column for review text. Please rename your column to "Review Body" or "Body".
+                                            Found Headers: {previewData.headers.join(', ')}
+                                        </Text>
+                                    )}
                                 </BlockStack>
                             </div>
-                        )}
+
+                            {/* PREVIEW TABLE */}
+                            <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                            <th style={{ padding: '12px', textAlign: 'left' }}>Values Found</th>
+                                            {previewData.headers.map((h: string, i: number) => (
+                                                <th key={i} style={{ padding: '12px', textAlign: 'left', textTransform: 'capitalize' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewData.samples.map((row: any, i: number) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                <td style={{ padding: '12px', background: '#f8fafc', fontWeight: 600, width: '150px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span>⭐ {row.rating}</span>
+                                                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{row.customer}</span>
+                                                        <div style={{ fontSize: '0.75rem', padding: '4px', background: row.body ? '#dcfce7' : '#fee2e2', borderRadius: '4px', color: row.body ? '#166534' : '#991b1b' }}>
+                                                            {row.body ? (row.body.length > 30 ? row.body.substring(0, 30) + '...' : row.body) : 'EMPTY'}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {/* Show RAW values for debugging */}
+                                                {previewData.rawSamples[i].map((cell: string, ci: number) => (
+                                                    <td key={ci} style={{ padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {cell}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <BlockStack gap="400">
+                                <Button
+                                    size="large"
+                                    variant="primary"
+                                    tone="success"
+                                    onClick={handleImport}
+                                    loading={fetcher.state === "submitting"}
+                                    disabled={!previewData.hasBody}
+                                    fullWidth
+                                >
+                                    Looks Good? Start Migration →
+                                </Button>
+                                <Button variant="plain" onClick={() => setStep(1)}>
+                                    Upload Different File
+                                </Button>
+                            </BlockStack>
+                        </BlockStack>
                     </div>
                 )}
 

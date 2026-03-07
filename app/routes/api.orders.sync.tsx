@@ -19,7 +19,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         let page = 0;
 
         while (hasNextPage && page < MAX_PAGES) {
-            const response = await admin.graphql(
+            const gqlResponse: any = await admin.graphql(
                 `#graphql
                 query getOrders($query: String!, $cursor: String) {
                     orders(first: 250, query: $query, after: $cursor) {
@@ -48,9 +48,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 { variables: { query: createdAtQuery, cursor } }
             );
 
-            const data = await response.json();
+            const data: any = await gqlResponse.json();
             const orders = data.data.orders.edges;
-            const pageInfo = data.data.orders.pageInfo;
+            const pageInfo: any = data.data.orders.pageInfo;
 
             allOrders = allOrders.concat(orders);
             hasNextPage = pageInfo.hasNextPage;
