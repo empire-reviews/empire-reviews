@@ -635,7 +635,7 @@ export default function SettingsPage() {
                                                     <div style={{ background: 'white', padding: '6px', borderRadius: '8px', color: '#7c3aed', display: 'flex', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                                                         <WandIcon width={20} height={20} />
                                                     </div>
-                                                    <h3 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>Pro AI Insights</h3>
+                                                    <h3 style={{ color: 'white', fontSize: '1.3rem', fontWeight: 800, margin: 0 }}>Custom AI Integration</h3>
                                                 </div>
                                                 <div style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, color: 'white', backdropFilter: 'blur(4px)' }}>
                                                     PRO
@@ -643,10 +643,10 @@ export default function SettingsPage() {
                                             </div>
 
                                             <p style={{ margin: '12px 0 24px', fontSize: '0.95rem', color: 'rgba(255,255,255,0.95)', lineHeight: '1.4' }}>
-                                                Deep sentiment analysis & auto-replies with 6 elite models including Groq, OpenAI, and Claude.
+                                                Connect your own AI API keys. Power your store with ChatGPT, Claude, Groq, or DeepSeek.
                                             </p>
 
-                                            {/* Blurred Faux UI to create FOMO */}
+                                            {/* Blurred Faux UI to mimic an API Key form */}
                                             <div style={{
                                                 background: 'rgba(255,255,255,0.08)',
                                                 borderRadius: '8px',
@@ -654,14 +654,21 @@ export default function SettingsPage() {
                                                 marginBottom: '24px',
                                                 border: '1px solid rgba(255,255,255,0.1)',
                                             }}>
-                                                <div style={{ filter: 'blur(5px)', opacity: 0.85, pointerEvents: 'none' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                                        <div style={{ width: '35%', height: '10px', background: 'rgba(255,255,255,0.5)', borderRadius: '4px' }}></div>
-                                                        <div style={{ width: '15%', height: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '4px' }}></div>
+                                                <div style={{ filter: 'blur(5.5px)', opacity: 0.85, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                                                    {/* Faux Dropdown Group */}
+                                                    <div>
+                                                        <div style={{ width: '80px', height: '10px', background: 'rgba(255,255,255,0.6)', borderRadius: '4px', marginBottom: '8px' }}></div>
+                                                        <div style={{ width: '100%', height: '36px', background: 'rgba(255,255,255,0.4)', borderRadius: '6px' }}></div>
                                                     </div>
-                                                    <div style={{ width: '85%', height: '6px', background: 'rgba(255,255,255,0.4)', borderRadius: '3px', marginBottom: '10px' }}></div>
-                                                    <div style={{ width: '95%', height: '6px', background: 'rgba(255,255,255,0.3)', borderRadius: '3px', marginBottom: '10px' }}></div>
-                                                    <div style={{ width: '60%', height: '6px', background: 'rgba(255,255,255,0.3)', borderRadius: '3px' }}></div>
+
+                                                    {/* Faux API Key Group */}
+                                                    <div>
+                                                        <div style={{ width: '60px', height: '10px', background: 'rgba(255,255,255,0.6)', borderRadius: '4px', marginBottom: '8px' }}></div>
+                                                        <div style={{ width: '100%', height: '36px', background: 'rgba(255,255,255,0.4)', borderRadius: '6px', marginBottom: '6px' }}></div>
+                                                        <div style={{ width: '140px', height: '8px', background: 'rgba(255,255,255,0.3)', borderRadius: '4px' }}></div>
+                                                    </div>
+
                                                 </div>
                                             </div>
 
