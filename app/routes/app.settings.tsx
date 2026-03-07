@@ -222,13 +222,19 @@ export default function SettingsPage() {
     return (
         <div className="empire-settings">
             <style>{`
-            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
             
             .empire-settings {
                  --empire-primary: #0f172a;
             }
             .Polaris-Page *, .Polaris-Text--root {
-                font-family: 'Playfair Display', serif !important;
+                font-family: 'Inter', system-ui, sans-serif !important;
+            }
+            /* Make headings bold and attractive */
+            h1, h2, h3, .Polaris-Text--headingMd, .Polaris-Text--headingLg {
+                font-weight: 800 !important;
+                letter-spacing: -0.035em !important;
+                color: #0f172a !important;
             }
             .top-row {
                 display: flex;
