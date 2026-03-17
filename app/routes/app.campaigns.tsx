@@ -22,6 +22,7 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
+import { callAIForCampaign } from "../services/ai.server";
 import { useState, useCallback } from "react";
 import {
     ArrowLeftIcon,
@@ -117,11 +118,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: true, renamedId: campaignId });
     }
 
-    // 1. Create Campaign in DB
+    // 1. Resolve subject & body (AI-generated or manual)
     const templateType = formData.get("templateType") as string;
     const discount = formData.get("discount") ? parseInt(formData.get("discount") as string) : null;
-    const subject = formData.get("subject") as string;
-    const body = formData.get("body") as string;
+    let subject = formData.get("subject") as string;
+    let body = formData.get("body") as string;
+
+    // AI template: generate subject + body using merchant's configured AI provider
+    if (templateType === "ai") {
+        const aiPrompt = formData.get("aiPrompt") as string;
+        const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+
+        if (settings?.aiProvider && settings?.aiApiKey && aiPrompt) {
+            try {
+                const generated = await callAIForCampaign(
+                    { provider: settings.aiProvider as any, apiKey: settings.aiApiKey },
+                    aiPrompt
+                );
+                subject = generated.subject;
+                body = generated.body;
+            } catch (err) {
+                console.error("AI Campaign generation failed:", err);
+                // Fall back to defaults if AI fails
+                subject = subject || "We'd love your feedback!";
+                body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
+            }
+        } else {
+            // No AI configured — use safe defaults
+            subject = subject || "We'd love your feedback!";
+            body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
+        }
+    }
 
     const campaign = await prisma.campaign.create({
         data: {
@@ -138,10 +165,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
     });
 
-    // 2. Register Marketing Activity in Shopify (Optional - Best Effort)
-    // [REMOVED] User found these entries cluttered and unnecessary.
-    // They are internal only (not customer facing) but we will stop generating them.
-    // 3. Fetch recent customers (Target Audience)
+    // 2. Fetch recent customers (Target Audience)
     const response = await admin.graphql(
         `#graphql
         query getRecentOrders {
@@ -219,6 +243,8 @@ export default function CampaignsPage() {
     const [subject, setSubject] = useState("How did we do? 🌟");
     const [body, setBody] = useState("Hi {{ name }},\\n\\nWe hope you're loving your new order! \\n\\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.");
     const [discount, setDiscount] = useState("15");
+    // AI Template State
+    const [aiPrompt, setAiPrompt] = useState("");
 
     // Psychological Triggers
     const templates: any = {
@@ -246,14 +272,18 @@ export default function CampaignsPage() {
     };
 
     const handleLaunch = () => {
-        fetcher.submit({
+        const payload: Record<string, string> = {
             subject,
             body,
             templateType,
             discount
-        }, { method: "post" });
+        };
+        if (templateType === "ai") {
+            payload.aiPrompt = aiPrompt;
+        }
+        fetcher.submit(payload, { method: "post" });
 
-        shopify.toast.show("Campaign Launched! 🚀");
+        shopify.toast.show(templateType === "ai" ? "AI Campaign Generating & Launching! 🤖🚀" : "Campaign Launched! 🚀");
         setSelectedTab(0); // Go back to dashboard
     };
 
@@ -473,7 +503,7 @@ export default function CampaignsPage() {
                 /* CHIP SELECTOR (Light) */
                 .neuro-chip-grid {
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(4, 1fr);
                     gap: 1rem;
                     margin-top: 1.5rem;
                 }
@@ -708,10 +738,27 @@ export default function CampaignsPage() {
                                     <span className="chip-icon">⏳</span>
                                     <div className="chip-name">Scarcity</div>
                                 </div>
+                                <div
+                                    className={`neuro-chip ${templateType === 'ai' ? 'selected' : ''}`}
+                                    onClick={() => {
+                                        setTemplateType('ai');
+                                        setSubject("(AI will write this)");
+                                        setBody("(AI will write this based on your prompt)");
+                                    }}
+                                    style={{ borderColor: templateType === 'ai' ? '#7c3aed' : undefined }}
+                                >
+                                    <span className="chip-icon">🤖</span>
+                                    <div className="chip-name">AI Write</div>
+                                </div>
                             </div>
 
                             <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                                <Text as="p" tone="magic" fontWeight="bold">{templates[templateType].hint}</Text>
+                                <Text as="p" tone="magic" fontWeight="bold">
+                                    {templateType === 'ai'
+                                        ? '🤖 AI Write: Describe the email you want — your AI assistant will write the subject and body automatically.'
+                                        : templates[templateType]?.hint
+                                    }
+                                </Text>
                             </div>
 
                             <BlockStack gap="400">
@@ -729,8 +776,22 @@ export default function CampaignsPage() {
                                         suffix="%"
                                     />
                                 )}
-                                <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off" />
-                                <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off" />
+                                {templateType === 'ai' ? (
+                                    <TextField
+                                        label="What should the AI write? (Your prompt)"
+                                        value={aiPrompt}
+                                        onChange={setAiPrompt}
+                                        multiline={4}
+                                        autoComplete="off"
+                                        placeholder="e.g. Write a friendly review request email for a skincare brand. Mention we care about honest feedback and offer a 10% discount on next order."
+                                        helpText="Your AI provider configured in Settings will generate the subject line and email body."
+                                    />
+                                ) : (
+                                    <>
+                                        <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off" />
+                                        <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off" />
+                                    </>
+                                )}
                             </BlockStack>
 
                             <button className="ignite-btn" onClick={handleLaunch} disabled={fetcher.state === "submitting"}>

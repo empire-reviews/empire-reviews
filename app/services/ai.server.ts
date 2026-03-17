@@ -266,3 +266,45 @@ export async function testAIConnection(config: AIConfig): Promise<{ success: boo
         return { success: false, message: error.message || "Connection failed" };
     }
 }
+
+// ─── PUBLIC API: CAMPAIGN EMAIL GENERATION ───────────────────────
+
+const CAMPAIGN_SYSTEM_PROMPT = `You are an expert email marketing copywriter for e-commerce stores.
+Your job is to write a short, persuasive review-request email based on the merchant's description.
+
+Rules:
+- Return ONLY valid JSON with exactly two fields: "subject" and "body"
+- subject: A compelling email subject line (max 60 characters)
+- body: The email body text. Use {{ name }} as the customer name placeholder.
+- Keep the body under 120 words. Be warm, human, and persuasive.
+- Do NOT include any markdown, code fences, or extra text outside the JSON.
+
+Example output format:
+{"subject": "Your opinion matters to us 💬", "body": "Hi {{ name }},\\n\\nWe hope you loved your recent order! ..."}`;
+
+export async function callAIForCampaign(
+    config: AIConfig,
+    prompt: string
+): Promise<{ subject: string; body: string }> {
+    const userPrompt = `Merchant's instructions: "${prompt}"\n\nWrite the campaign email now. Return only JSON.`;
+
+    const raw = await callAI(config, CAMPAIGN_SYSTEM_PROMPT, userPrompt);
+
+    // Parse the JSON output from the AI
+    try {
+        // Strip any accidental code fences the AI might add
+        const cleaned = raw.replace(/```json?/gi, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed.subject && parsed.body) {
+            return { subject: parsed.subject, body: parsed.body };
+        }
+    } catch (e) {
+        console.error("[AI Campaign] Failed to parse JSON response:", raw);
+    }
+
+    // Graceful fallback if parsing fails
+    return {
+        subject: "We'd love your feedback! 🌟",
+        body: `Hi {{ name }},\n\nThank you for your recent order! We would love to hear your thoughts. Could you spare a moment to leave us a quick review?\n\nYour feedback helps us improve and grow.\n\nThank you!`
+    };
+}
