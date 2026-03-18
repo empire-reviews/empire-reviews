@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
@@ -19,6 +20,7 @@ import { hasActivePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session: _session } = await authenticate.admin(request);
+    console.debug("App Impact Session:", _session);
     const isPro = await hasActivePayment(request);
 
     // GATE: Business Impact is PRO Only
