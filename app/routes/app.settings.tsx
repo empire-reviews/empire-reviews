@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
 import {
     Page,
@@ -10,22 +9,19 @@ import {
     Checkbox,
     Button,
     TextField,
-    Box,
-    InlineStack,
     Divider,
     Modal,
     Badge,
     Select,
     ActionList,
-    Spinner,
     InlineGrid
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { hasActivePayment, requirePayment, getPlanDetails, MONTHLY_PLAN } from "../billing.server";
+import { hasActivePayment, getPlanDetails } from "../billing.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { testAIConnection, type AIProvider } from "../services/ai.server";
-import { ArrowLeftIcon, SettingsIcon, ThemeIcon, WandIcon, PlayCircleIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
+import { ThemeIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 
 const GROWTH_TIPS = [
     "Stores with photo reviews see a 26% higher conversion rate.",
@@ -42,8 +38,6 @@ const GROWTH_TIPS = [
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
-    const billing = await hasActivePayment(request); // Re-fetching billing below, just need session here
-    console.debug("Billing info:", billing);
     const shop = session.shop;
 
     // SYNC BILLING STATUS

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
@@ -7,20 +6,14 @@ import {
     Card,
     BlockStack,
     Text,
-    Badge,
-    Grid,
-    Box,
-    Button,
-    InlineStack,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
+import { LockIcon } from "@shopify/polaris-icons";
 import { hasActivePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session: _session } = await authenticate.admin(request);
-    console.debug("App Impact Session:", _session);
+    await authenticate.admin(request);
     const isPro = await hasActivePayment(request);
 
     // GATE: Business Impact is PRO Only

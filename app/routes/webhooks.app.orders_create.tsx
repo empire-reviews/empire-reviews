@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { topic, shop, session, admin, payload } = await authenticate.webhook(request);
-    console.debug("Webhook session:", session);
+    const { topic, shop, admin, payload } = await authenticate.webhook(request);
 
     if (!admin) {
         // The library handles this verification usually, but if we process unauthenticated webhooks differently...

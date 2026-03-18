@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
@@ -8,13 +7,11 @@ import {
   InlineGrid,
   InlineStack,
   Text,
-  Badge,
-  Box,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment } from "../billing.server";
 import prisma from "../db.server";
-import { ArrowRightIcon, StarFilledIcon, ChatIcon, ArrowUpIcon, ImportIcon, SendIcon, ExternalIcon } from "@shopify/polaris-icons";
+import { ArrowRightIcon, ArrowUpIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
 import { CONVERSION_CONFIG } from "../config/conversion";
 import { generateInsights, type AIProvider } from "../services/ai.server";
@@ -179,8 +176,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   // Placeholder for trend, as it's not calculated in the original code
-  const trend = { value: 0, percentage: 0 }; // You might want to calculate this based on reviewsThisWeek vs. previous week
-  console.debug("Sentiment Trend:", trend);
 
   return json({
     metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },

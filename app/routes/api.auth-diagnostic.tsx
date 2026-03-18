@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
 
@@ -7,9 +6,6 @@ import prisma from "../db.server";
  * Returns auth-related diagnostic info to help debug 401 issues.
  */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const _url = new URL(request.url);
-    console.debug("Diagnostic request URL:", _url);
-
     // Check request headers for auth-related info
     const hasAuthHeader = !!request.headers.get("authorization");
     const hasShopHeader = !!request.headers.get("x-shopify-shop-domain");
