@@ -1,0 +1,1 @@
+{"include": ["./app/**/*", "*.ts", "*.tsx", ".graphqlrc.ts"], "compilerOptions": {"strict": true, "removeComments": false, "skipLibCheck": true, "isolatedModules": true, "noEmitOnError": true, "jsx": "preserve", "module": "ES2022", "moduleResolution": "bundler", "target": "ES2022", "paths": { "~/*": ["./app/*"] }}}

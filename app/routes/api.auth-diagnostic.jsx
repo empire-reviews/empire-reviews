@@ -1,20 +1,17 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import prisma from "../db.server";
-
 /**
  * Safe diagnostic endpoint - does NOT expose secrets.
  * Returns auth-related diagnostic info to help debug 401 issues.
  */
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const _url = new URL(request.url);
-
+export const loader = async ({ request }) => {
+    const url = new URL(request.url);
     // Check request headers for auth-related info
     const hasAuthHeader = !!request.headers.get("authorization");
     const hasShopHeader = !!request.headers.get("x-shopify-shop-domain");
-
     // Check session count in DB
     let sessionCount = 0;
-    let sessions: { id: string; shop: string; isOnline: boolean; expires: Date | null; scope: string | null }[] = [];
+    let sessions = [];
     try {
         sessionCount = await prisma.session.count();
         sessions = await prisma.session.findMany({
@@ -27,13 +24,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             },
             take: 10,
         });
-    } catch (e: any) {
+    }
+    catch (e) {
         return json({
             error: "DB connection failed",
             message: e.message,
         });
     }
-
     return json({
         status: "ok",
         timestamp: new Date().toISOString(),

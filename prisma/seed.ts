@@ -5,7 +5,7 @@ async function main() {
     console.log("🧠 Seeding Empire Brain with Psychological Triggers...");
 
     // 1. Social Proof: The "Perfect" Review with Media
-    const review1 = await prisma.review.create({
+    await prisma.review.create({
         data: {
             shop: "empire-test-1.myshopify.com", // Adjust if needed, or we'll fetch dynamic
             productId: "gid://shopify/Product/123456789",
@@ -28,7 +28,7 @@ async function main() {
     });
 
     // 2. The "Honest" Review (Builds Trust)
-    const review2 = await prisma.review.create({
+    await prisma.review.create({
         data: {
             shop: "empire-test-1.myshopify.com",
             productId: "gid://shopify/Product/987654321",
@@ -45,7 +45,7 @@ async function main() {
     });
 
     // 3. The "Pain Point" Review (Needs Action)
-    const review3 = await prisma.review.create({
+    await prisma.review.create({
         data: {
             shop: "empire-test-1.myshopify.com",
             productId: "gid://shopify/Product/555555555",

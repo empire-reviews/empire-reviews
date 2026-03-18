@@ -1,148 +1,118 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
 import { useState } from "react";
-import {
-  Page,
-  Layout,
-  Card,
-  BlockStack,
-  Text,
-  Badge,
-  Grid,
-  Box,
-  Button,
-  InlineStack,
-  Divider,
-  Select,
-} from "@shopify/polaris";
+import { Page, Layout, BlockStack, Text, Badge, Grid, Box, Button, InlineStack, Divider, Select, } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
 import { hasActivePayment } from "../billing.server";
 import { generateInsights } from "../services/ai.server";
-import type { AIProvider } from "../services/ai.server";
-
-export const action = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const isPro = await hasActivePayment(request);
-
-  if (!isPro) {
-    return json({ success: false, error: "AI Insights require the Pro plan." });
-  }
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  const reportType = (formData.get("reportType") as "quick" | "executive") || "quick";
-
-  if (intent === "generate_ai_insight") {
-    const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-    if (!settings?.aiProvider || !settings?.aiApiKey) {
-      return json({ success: false, error: "AI not configured. Please add an API key in Settings." });
+export const action = async ({ request }) => {
+    const { session } = await authenticate.admin(request);
+    const isPro = await hasActivePayment(request);
+    if (!isPro) {
+        return json({ success: false, error: "AI Insights require the Pro plan." });
     }
-
-    const reviews = await prisma.review.findMany({
-      where: { shop: session.shop },
-      orderBy: { createdAt: 'desc' },
-      take: 50
-    });
-
-    try {
-      const config = { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" };
-      const { summary } = await generateInsights(config, reviews, reportType);
-
-      await prisma.settings.update({
-        where: { shop: session.shop },
-        data: {
-          aiInsightsSummary: summary,
-          aiInsightsUpdatedAt: new Date()
+    const formData = await request.formData();
+    const intent = formData.get("intent");
+    const reportType = formData.get("reportType") || "quick";
+    if (intent === "generate_ai_insight") {
+        const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+        if (!settings?.aiProvider || !settings?.aiApiKey) {
+            return json({ success: false, error: "AI not configured. Please add an API key in Settings." });
         }
-      });
-      return json({ success: true, message: "Insights updated!" });
-    } catch (error: any) {
-      return json({ success: false, error: error.message || "Failed to generate AI insights." });
+        const reviews = await prisma.review.findMany({
+            where: { shop: session.shop },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+        try {
+            const config = { provider: settings.aiProvider, apiKey: settings.aiApiKey || "" };
+            const { summary } = await generateInsights(config, reviews, reportType);
+            await prisma.settings.update({
+                where: { shop: session.shop },
+                data: {
+                    aiInsightsSummary: summary,
+                    aiInsightsUpdatedAt: new Date()
+                }
+            });
+            return json({ success: true, message: "Insights updated!" });
+        }
+        catch (error) {
+            return json({ success: false, error: error.message || "Failed to generate AI insights." });
+        }
     }
-  }
-  return json({ success: false, error: "Unknown action" });
+    return json({ success: false, error: "Unknown action" });
 };
-
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const isPro = await hasActivePayment(request); // Helper import needed? No, handled by copy-paste or just standard check
-
-  // GATE: AI Insights is PRO Only
-  if (!isPro) {
-    return json({ locked: true, stats: null, urgentReviews: [], topTopics: [], aiInsightsSummary: null, aiInsightsUpdatedAt: null, hasAiConfig: false });
-  }
-
-  const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-  const hasAiConfig = !!(settings?.aiProvider && settings?.aiApiKey);
-
-  const reviews = await prisma.review.findMany({
-    include: { replies: true }
-  });
-  // ... rest of logic ...
-  const positive = reviews.filter(r => r.rating >= 4).length;
-  // ... (Abbreviated for tool call, assuming standard logic remains if !locked)
-  // Re-implementing the stats logic for the ELSE block
-  const neutral = reviews.filter(r => r.rating === 3).length;
-  const negative = reviews.filter(r => r.rating <= 2).length;
-  const total = reviews.length;
-  const urgentReviews = reviews
-    .filter(r => r.rating <= 2 && r.replies.length === 0)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-
-  // Simple NLP
-  const stopWords = new Set(['the', 'and', 'a', 'to', 'of', 'in', 'it', 'for', 'is', 'was', 'with', 'on', 'my', 'i', 'very', 'really', 'so', 'but']);
-  const words: Record<string, number> = {};
-  reviews.forEach(r => {
-    if (r.body) {
-      const tokens = r.body.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
-      tokens.forEach(t => { if (t.length > 3 && !stopWords.has(t)) words[t] = (words[t] || 0) + 1; });
+export const loader = async ({ request }) => {
+    const { session, billing } = await authenticate.admin(request);
+    const isPro = await hasActivePayment(request); // Helper import needed? No, handled by copy-paste or just standard check
+    // GATE: AI Insights is PRO Only
+    if (!isPro) {
+        return json({ locked: true, stats: null, urgentReviews: [], topTopics: [], aiInsightsSummary: null, aiInsightsUpdatedAt: null, hasAiConfig: false });
     }
-  });
-  const topTopics = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([topic, count]) => ({ topic, count }));
-
-  return json({
-    locked: false,
-    stats: { positive, neutral, negative, total },
-    urgentReviews,
-    topTopics,
-    aiInsightsSummary: settings?.aiInsightsSummary || null,
-    aiInsightsUpdatedAt: settings?.aiInsightsUpdatedAt || null,
-    hasAiConfig
-  });
+    const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+    const hasAiConfig = !!(settings?.aiProvider && settings?.aiApiKey);
+    const reviews = await prisma.review.findMany({
+        include: { replies: true }
+    });
+    // ... rest of logic ...
+    const positive = reviews.filter(r => r.rating >= 4).length;
+    // ... (Abbreviated for tool call, assuming standard logic remains if !locked)
+    // Re-implementing the stats logic for the ELSE block
+    const neutral = reviews.filter(r => r.rating === 3).length;
+    const negative = reviews.filter(r => r.rating <= 2).length;
+    const total = reviews.length;
+    const urgentReviews = reviews
+        .filter(r => r.rating <= 2 && r.replies.length === 0)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5);
+    // Simple NLP
+    const stopWords = new Set(['the', 'and', 'a', 'to', 'of', 'in', 'it', 'for', 'is', 'was', 'with', 'on', 'my', 'i', 'very', 'really', 'so', 'but']);
+    const words = {};
+    reviews.forEach(r => {
+        if (r.body) {
+            const tokens = r.body.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+            tokens.forEach(t => { if (t.length > 3 && !stopWords.has(t))
+                words[t] = (words[t] || 0) + 1; });
+        }
+    });
+    const topTopics = Object.entries(words).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([topic, count]) => ({ topic, count }));
+    return json({
+        locked: false,
+        stats: { positive, neutral, negative, total },
+        urgentReviews,
+        topTopics,
+        aiInsightsSummary: settings?.aiInsightsSummary || null,
+        aiInsightsUpdatedAt: settings?.aiInsightsUpdatedAt || null,
+        hasAiConfig
+    });
 };
-
 export default function InsightsPage() {
-  const { locked, stats, urgentReviews, aiInsightsSummary, aiInsightsUpdatedAt, hasAiConfig } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
-  const fetcher = useFetcher(); // For upgrade action, if needed
-  const [reportType, setReportType] = useState("quick");
-  const isGenerating = fetcher.state === "submitting" && fetcher.formData?.get("intent") === "generate_ai_insight";
-
-  if (locked) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0f172a',
-        padding: '2rem',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+    const { locked, stats, urgentReviews } = useLoaderData();
+    const navigate = useNavigate();
+    const fetcher = useFetcher(); // For upgrade action, if needed
+    if (locked) {
+        return (<div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#0f172a',
+                padding: '2rem',
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
         {/* IMMERSIVE BLURRED BACKGROUND (Curiosity Gap) */}
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.5,
-          filter: 'blur(12px)',
-          transform: 'scale(1.1)',
-          pointerEvents: 'none',
-          overflow: 'hidden'
-        }}>
+                position: 'absolute',
+                inset: 0,
+                opacity: 0.5,
+                filter: 'blur(12px)',
+                transform: 'scale(1.1)',
+                pointerEvents: 'none',
+                overflow: 'hidden'
+            }}>
           {/* Sentiment Blobs */}
           <div style={{ position: 'absolute', top: '10%', left: '5%', width: '150px', height: '150px', background: 'rgba(99, 102, 241, 0.3)', borderRadius: '50%', filter: 'blur(20px)' }}></div>
           <div style={{ position: 'absolute', top: '15%', right: '10%', width: '120px', height: '120px', background: 'rgba(168, 85, 247, 0.3)', borderRadius: '50%', filter: 'blur(15px)' }}></div>
@@ -151,23 +121,19 @@ export default function InsightsPage() {
           {/* Varied Data Previews */}
           <div style={{ padding: '60px', display: 'flex', flexDirection: 'column', gap: '80px', height: '100%' }}>
             <div style={{ display: 'flex', gap: '40px', justifyContent: 'space-around' }}>
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} style={{ width: '180px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}></div>
-              ))}
+              {[1, 2, 3, 4].map(i => (<div key={i} style={{ width: '180px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}></div>))}
             </div>
 
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '20px', padding: '0 40px' }}>
               {/* Dynamic Bar Chart Tease */}
               <div style={{ flex: 1, height: '300px', display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
-                {[40, 70, 45, 90, 60, 100, 55, 80, 50, 95, 35, 75, 40, 85].map((h, i) => (
-                  <div key={i} style={{
+                {[40, 70, 45, 90, 60, 100, 55, 80, 50, 95, 35, 75, 40, 85].map((h, i) => (<div key={i} style={{
                     flex: 1,
                     height: `${h}%`,
                     background: i % 3 === 0 ? 'rgba(168, 85, 247, 0.4)' : 'rgba(99, 102, 241, 0.4)',
                     borderRadius: '8px',
                     opacity: 0.8 - (i * 0.02)
-                  }}></div>
-                ))}
+                }}></div>))}
               </div>
 
               {/* Circular Metric Tease */}
@@ -184,28 +150,28 @@ export default function InsightsPage() {
         </div>
 
         <div style={{
-          background: 'white',
-          borderRadius: '32px',
-          boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.5)',
-          width: '100%',
-          maxWidth: '900px', // Horizontal 16:9 focus
-          aspectRatio: '16 / 9',
-          display: 'flex',
-          overflow: 'hidden',
-          position: 'relative',
-          zIndex: 10,
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}>
+                background: 'white',
+                borderRadius: '32px',
+                boxShadow: '0 50px 100px -20px rgba(0, 0, 0, 0.5)',
+                width: '100%',
+                maxWidth: '900px', // Horizontal 16:9 focus
+                aspectRatio: '16 / 9',
+                display: 'flex',
+                overflow: 'hidden',
+                position: 'relative',
+                zIndex: 10,
+                border: '1px solid rgba(255,255,255,0.1)'
+            }}>
           {/* LEFT: VISUAL TEASE */}
           <div style={{
-            flex: 1,
-            background: 'linear-gradient(225deg, #1e293b 0%, #0f172a 100%)',
-            padding: '3rem',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            position: 'relative'
-          }}>
+                flex: 1,
+                background: 'linear-gradient(225deg, #1e293b 0%, #0f172a 100%)',
+                padding: '3rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                position: 'relative'
+            }}>
             <div style={{ marginBottom: '2rem' }}>
               <div style={{
                 width: '64px',
@@ -216,8 +182,8 @@ export default function InsightsPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)'
-              }}>
-                <LockIcon style={{ width: 32, color: 'white' }} />
+            }}>
+                <LockIcon style={{ width: 32, color: 'white' }}/>
               </div>
             </div>
             <BlockStack gap="400">
@@ -235,13 +201,13 @@ export default function InsightsPage() {
 
           {/* RIGHT: CONVERSION CONTENT */}
           <div style={{
-            width: '45%',
-            padding: '3rem',
-            background: 'white',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
+                width: '45%',
+                padding: '3rem',
+                background: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
+            }}>
             <BlockStack gap="600">
               <BlockStack gap="400">
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -260,24 +226,24 @@ export default function InsightsPage() {
 
               <BlockStack gap="300">
                 <form action="/app/settings" method="post" style={{ width: '100%' }}>
-                  <input type="hidden" name="intent" value="upgrade" />
+                  <input type="hidden" name="intent" value="upgrade"/>
                   <button style={{
-                    background: 'linear-gradient(to right, #6366f1, #a855f7)',
-                    color: 'white',
-                    padding: '1.25rem',
-                    width: '100%',
-                    border: 'none',
-                    borderRadius: '16px',
-                    fontSize: '1.2rem',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    boxShadow: '0 20px 30px -5px rgba(99, 102, 241, 0.5)',
-                    transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}>
+                background: 'linear-gradient(to right, #6366f1, #a855f7)',
+                color: 'white',
+                padding: '1.25rem',
+                width: '100%',
+                border: 'none',
+                borderRadius: '16px',
+                fontSize: '1.2rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 20px 30px -5px rgba(99, 102, 241, 0.5)',
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+            }}>
                     Unlock Pro Stats — $9.99/mo 🚀
                   </button>
                 </form>
@@ -285,31 +251,24 @@ export default function InsightsPage() {
                   Risk-free • Cancel anytime
                 </div>
               </BlockStack>
-              <button
-                onClick={() => navigate("/app")}
-                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 600 }}
-              >
+              <button onClick={() => navigate("/app")} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontWeight: 600 }}>
                 Maybe later
               </button>
             </BlockStack>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  // Percentage Calculations (Safe)
-  const safeStats = stats || { positive: 0, neutral: 0, negative: 0, total: 0 };
-  const safeReviews = urgentReviews || [];
-
-  const posPct = safeStats.total > 0 ? (safeStats.positive / safeStats.total) * 100 : 0;
-  const neuPct = safeStats.total > 0 ? (safeStats.neutral / safeStats.total) * 100 : 0;
-  const negPct = safeStats.total > 0 ? (safeStats.negative / safeStats.total) * 100 : 0;
-
-
-
-  return (
-    <div className="empire-insights">
+      </div>);
+    }
+    // Percentage Calculations (Safe)
+    const safeStats = stats || { positive: 0, neutral: 0, negative: 0, total: 0 };
+    const safeReviews = urgentReviews || [];
+    const posPct = safeStats.total > 0 ? (safeStats.positive / safeStats.total) * 100 : 0;
+    const neuPct = safeStats.total > 0 ? (safeStats.neutral / safeStats.total) * 100 : 0;
+    const negPct = safeStats.total > 0 ? (safeStats.negative / safeStats.total) * 100 : 0;
+    const { aiInsightsSummary, aiInsightsUpdatedAt, hasAiConfig } = useLoaderData();
+    const isGenerating = fetcher.state === "submitting" && fetcher.formData?.get("intent") === "generate_ai_insight";
+    const [reportType, setReportType] = useState("quick");
+    return (<div className="empire-insights">
       <style>{`
             .empire-insights {
                 --empire-primary: #0f172a;
@@ -350,17 +309,12 @@ export default function InsightsPage() {
             <BlockStack gap="400">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
+                  <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain"/>
                   <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>AI Sentiment Analysis 🧠</h1>
                 </div>
                 {/* SYNC BUTTON */}
                 <fetcher.Form method="post" action="/api/orders/sync">
-                  <Button
-                    submit
-                    loading={fetcher.state === "submitting"}
-                    variant="primary"
-                    tone="critical"
-                  >
+                  <Button submit loading={fetcher.state === "submitting"} variant="primary" tone="critical">
                     Sync Historical Data
                   </Button>
                 </fetcher.Form>
@@ -369,11 +323,9 @@ export default function InsightsPage() {
                 We analyzed <strong>{safeStats.total} reviews</strong>. Your customers are mostly
                 <strong> {posPct > 50 ? "Delighted 😍" : "Neutral 😐"}</strong>.
               </p>
-              {(fetcher.data as any)?.count !== undefined && (
-                <Text as="p" tone="success">
-                  ✅ Synced {String((fetcher.data as any).count)} orders! Refresh to see impact.
-                </Text>
-              )}
+              {fetcher.data?.count !== undefined && (<Text as="p" tone="success">
+                  ✅ Synced {String(fetcher.data.count)} orders! Refresh to see impact.
+                </Text>)}
             </BlockStack>
           </div>
 
@@ -382,51 +334,34 @@ export default function InsightsPage() {
               <div className="insight-card" style={{ borderTop: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
                 <InlineStack align="space-between">
                   <Text as="h3" variant="headingMd">🧠 Deep AI Analysis</Text>
-                  {aiInsightsUpdatedAt && (
-                    <Text as="p" tone="subdued">Last updated: {new Date(aiInsightsUpdatedAt).toLocaleString()}</Text>
-                  )}
+                  {aiInsightsUpdatedAt && (<Text as="p" tone="subdued">Last updated: {new Date(aiInsightsUpdatedAt).toLocaleString()}</Text>)}
                 </InlineStack>
 
                 <Box paddingBlockStart="400">
-                  {aiInsightsSummary ? (
-                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1.05rem', color: '#334155' }}>
+                  {aiInsightsSummary ? (<div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1.05rem', color: '#334155' }}>
                       {aiInsightsSummary}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
+                    </div>) : (<div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
                       <p>You haven't generated your AI Insights report yet.</p>
                       {!hasAiConfig && <p style={{ marginTop: '0.5rem', color: '#dc2626' }}>⚠️ Please configure an AI provider in Settings first.</p>}
-                    </div>
-                  )}
+                    </div>)}
                 </Box>
 
                 <Box paddingBlockStart="400">
                   <Divider />
                   <Box paddingBlockStart="400">
                     <fetcher.Form method="post">
-                      <input type="hidden" name="intent" value="generate_ai_insight" />
-                      <input type="hidden" name="reportType" value={reportType} />
+                      <input type="hidden" name="intent" value="generate_ai_insight"/>
+                      <input type="hidden" name="reportType" value={reportType}/>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '16px' }}>
 
                         <div style={{ width: '100%', maxWidth: '300px' }}>
-                          <Select
-                            label="Report Detail Level"
-                            options={[
-                              { label: 'Quick Summary (1-2 Sentences)', value: 'quick' },
-                              { label: 'Executive Summary (Detailed Markdown)', value: 'executive' },
-                            ]}
-                            value={reportType}
-                            onChange={setReportType}
-                            disabled={!hasAiConfig || isGenerating}
-                          />
+                          <Select label="Report Detail Level" options={[
+            { label: 'Quick Summary (1-2 Sentences)', value: 'quick' },
+            { label: 'Executive Summary (Detailed Markdown)', value: 'executive' },
+        ]} value={reportType} onChange={setReportType} disabled={!hasAiConfig || isGenerating}/>
                         </div>
 
-                        <Button
-                          submit
-                          variant="primary"
-                          loading={isGenerating}
-                          disabled={!hasAiConfig || isGenerating}
-                        >
+                        <Button submit variant="primary" loading={isGenerating} disabled={!hasAiConfig || isGenerating}>
                           ✨ Generate New Insights
                         </Button>
                         <Text as="p" tone="subdued" variant="bodySm">
@@ -481,15 +416,11 @@ export default function InsightsPage() {
                 <div className="insight-card" style={{ borderTop: '4px solid #f43f5e' }}>
                   <Text as="h3" variant="headingMd" tone="critical">🔥 Firefighting (Urgent)</Text>
                   <Box paddingBlockStart="400">
-                    {safeReviews.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '2rem 0', color: '#10b981' }}>
+                    {safeReviews.length === 0 ? (<div style={{ textAlign: 'center', padding: '2rem 0', color: '#10b981' }}>
                         <Text as="h1" variant="headingXl">🎉</Text>
                         <Text as="p" fontWeight="bold">Zero Critical Issues</Text>
                         <Text as="p" tone="subdued">You are doing great!</Text>
-                      </div>
-                    ) : (
-                      safeReviews.map(r => (
-                        <div key={r?.id} className="urgent-item">
+                      </div>) : (safeReviews.map(r => (<div key={r?.id} className="urgent-item">
                           <BlockStack gap="200">
                             <InlineStack align="space-between">
                               <Text as="span" fontWeight="bold">{r?.customerName || "Customer"}</Text>
@@ -498,9 +429,7 @@ export default function InsightsPage() {
                             <Text as="p" truncate>{r?.body || ""}</Text>
                             <Button size="micro" onClick={() => navigate("/app/reviews")}>Reply Now</Button>
                           </BlockStack>
-                        </div>
-                      ))
-                    )}
+                        </div>)))}
                   </Box>
                 </div>
               </BlockStack>
@@ -509,6 +438,5 @@ export default function InsightsPage() {
 
         </BlockStack>
       </Page>
-    </div>
-  );
+    </div>);
 }

@@ -1,54 +1,22 @@
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
-import {
-    Page,
-    Layout,
-    Card,
-    BlockStack,
-    Text,
-    Button,
-    TextField,
-    Box,
-    InlineStack,
-    Badge,
-    Divider,
-    Select,
-    Banner,
-    Tooltip,
-    ProgressBar,
-    Modal,
-
-} from "@shopify/polaris";
+import { Page, BlockStack, Text, Button, TextField, InlineStack, Badge, Divider, Select, Modal, } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
 import { callAIForCampaign } from "../services/ai.server";
-import { useState, useCallback } from "react";
-import {
-    ArrowLeftIcon,
-    EmailIcon,
-    MagicIcon,
-    SendIcon,
-    ClockIcon,
-    CheckIcon,
-    ChartVerticalIcon,
-    EditIcon
-} from "@shopify/polaris-icons";
-
-
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+import { useState } from "react";
+import { MagicIcon, SendIcon, ChartVerticalIcon, EditIcon } from "@shopify/polaris-icons";
+export const loader = async ({ request }) => {
     const { admin, session } = await authenticate.admin(request);
-
     // 1. Fetch campaigns from DB
     const dbCampaigns = await prisma.campaign.findMany({
         where: { shop: session.shop },
         orderBy: { createdAt: 'desc' },
         include: { metrics: true }
     });
-
     // 2. Fetch audience (Real Shopify Data)
-    const response = await admin.graphql(
-        `#graphql
+    const response = await admin.graphql(`#graphql
         query getRecentOrders {
             orders(first: 50, reverse: true) {
                 nodes {
@@ -63,24 +31,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                     }
                 }
             }
-        }`
-    );
+        }`);
     const data = await response.json();
     const potentialAudience = data.data.orders.nodes.length;
-
     // 3. Calculate Aggregate Stats
-    const totalSent = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalSent || 0), 0);
-    const totalOpened = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalOpened || 0), 0);
-    const totalClicked = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalClicked || 0), 0);
-    const totalReviews = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalReviews || 0), 0);
-
+    const totalSent = dbCampaigns.reduce((acc, c) => acc + (c.metrics?.totalSent || 0), 0);
+    const totalOpened = dbCampaigns.reduce((acc, c) => acc + (c.metrics?.totalOpened || 0), 0);
+    const totalClicked = dbCampaigns.reduce((acc, c) => acc + (c.metrics?.totalClicked || 0), 0);
+    const totalReviews = dbCampaigns.reduce((acc, c) => acc + (c.metrics?.totalReviews || 0), 0);
     // Avoid division by zero
     const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
     const clickRate = totalSent > 0 ? Math.round((totalClicked / totalSent) * 100) : 0;
-
     return json({
         stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience },
-        activeCampaigns: dbCampaigns.map((c: any) => ({
+        activeCampaigns: dbCampaigns.map((c) => ({
             id: c.id,
             name: c.name,
             status: c.status,
@@ -89,70 +53,57 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }))
     });
 };
-
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const action = async ({ request }) => {
     const { admin, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent");
-
     if (intent === "delete") {
-        const campaignId = formData.get("campaignId") as string;
-
+        const campaignId = formData.get("campaignId");
         // Transactional delete to handle Foreign Key Constraints
         await prisma.$transaction([
             prisma.campaignMetrics.deleteMany({ where: { campaignId } }),
             prisma.campaignSend.deleteMany({ where: { campaignId } }),
             prisma.campaign.deleteMany({ where: { id: campaignId } })
         ]);
-
         return json({ success: true, deletedId: campaignId });
     }
-
     if (intent === "rename") {
-        const campaignId = formData.get("campaignId") as string;
-        const newName = formData.get("newName") as string;
-
+        const campaignId = formData.get("campaignId");
+        const newName = formData.get("newName");
         await prisma.campaign.update({
             where: { id: campaignId },
             data: { name: newName }
         });
-
         return json({ success: true, renamedId: campaignId });
     }
-
     // 1. Resolve subject & body (AI-generated or manual)
-    const templateType = formData.get("templateType") as string;
-    const rawDiscount = formData.get("discount") as string;
+    const templateType = formData.get("templateType");
+    const rawDiscount = formData.get("discount");
     const discount = rawDiscount ? (isNaN(parseInt(rawDiscount)) ? null : parseInt(rawDiscount)) : null;
-
-    let subject = formData.get("subject") as string;
-    let body = formData.get("body") as string;
-    const audience = formData.get("audience") as string;
-
+    let subject = formData.get("subject");
+    let body = formData.get("body");
+    const audience = formData.get("audience");
     // AI template: generate subject + body using merchant's configured AI provider
     if (templateType === "ai") {
-        const aiPrompt = formData.get("aiPrompt") as string;
+        const aiPrompt = formData.get("aiPrompt");
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
-
         if (settings?.aiProvider && settings?.aiApiKey && aiPrompt) {
             try {
-                const generated = await callAIForCampaign(
-                    { provider: settings.aiProvider as any, apiKey: settings.aiApiKey },
-                    aiPrompt
-                );
+                const generated = await callAIForCampaign({ provider: settings.aiProvider, apiKey: settings.aiApiKey }, aiPrompt);
                 subject = generated.subject;
                 body = generated.body;
-            } catch (err) {
+            }
+            catch (err) {
                 console.error("AI Campaign generation failed:", err);
                 subject = subject || "We'd love your feedback!";
                 body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
             }
-        } else {
+        }
+        else {
             subject = subject || "We'd love your feedback!";
             body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
         }
     }
-
     if (intent === "test") {
         const shopSession = await prisma.session.findFirst({
             where: { shop: session.shop },
@@ -161,23 +112,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const sessionEmail = shopSession?.email || "test@empirereviews.com";
         const dummyProduct = "Sample Product";
         const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
-        
         const personalizedBody = body
             .replace(/{{ name }}/g, "Test User")
             .replace(/{{ store_name }}/g, session.shop)
             .replace(/{{ product_title }}/g, dummyProduct)
             .replace(/{{ review_link }}/g, dummyReviewLink);
-
-        await sendCampaignEmail(
-            session.shop,
-            sessionEmail,
-            subject.replace(/{{ store_name }}/g, session.shop),
-            personalizedBody,
-            "test-campaign-" + Date.now()
-        );
+        await sendCampaignEmail(session.shop, sessionEmail, subject.replace(/{{ store_name }}/g, session.shop), personalizedBody, "test-campaign-" + Date.now());
         return json({ success: true, testMode: true });
     }
-
     const campaign = await prisma.campaign.create({
         data: {
             shop: session.shop,
@@ -192,7 +134,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
         }
     });
-
     // 2. Fetch Audience
     let queryStr = "";
     if (audience === "recent") {
@@ -200,10 +141,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         queryStr = `created_at:>=${thirtyDaysAgo.toISOString().split('T')[0]}`;
     }
-    
     // Add product fetch
-    const response = await admin.graphql(
-        `#graphql
+    const response = await admin.graphql(`#graphql
         query getTargetOrders($query: String!) {
             orders(first: 50, reverse: true, query: $query) {
                 nodes {
@@ -225,34 +164,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     }
                 }
             }
-        }`,
-        { variables: { query: queryStr } }
-    );
+        }`, { variables: { query: queryStr } });
     const data = await response.json();
     const orders = data.data?.orders?.nodes || [];
-
     // Filter past sends and reviews to avoid spam
     const pastSends = await prisma.campaignSend.findMany({ where: { campaign: { shop: session.shop } }, select: { customerEmail: true } });
     const pastReviews = await prisma.review.findMany({ where: { shop: session.shop }, select: { customerEmail: true } });
     const excludedEmails = new Set([...pastSends.map(s => s.customerEmail), ...pastReviews.map(r => r.customerEmail)]);
-
     // 4. Send Emails & Create Tracking Records
     let sentCount = 0;
     const appUrl = (process.env.SHOPIFY_APP_URL || `https://${session.shop}`).trim();
-
     for (const order of orders) {
         const email = order.email || order.customer?.defaultEmailAddress?.emailAddress;
-        if (!email || excludedEmails.has(email)) continue;
-
+        if (!email || excludedEmails.has(email))
+            continue;
         const name = order.customer?.firstName || "Customer";
-        
         // Extract Product details for review link
         const product = order.lineItems?.nodes?.[0]?.product;
+        const productId = product?.id ? product.id.split('/').pop() : "";
         const productTitle = product?.title || "your recent purchase";
-        
         const numericOrderId = order.id.split('/').pop();
-        const reviewLink = `${appUrl}/review/${numericOrderId}?shop=${session.shop}`; 
-
+        const reviewLink = `${appUrl}/review/${numericOrderId}?shop=${session.shop}`;
         // Create Send Record
         const sendRecord = await prisma.campaignSend.create({
             data: {
@@ -262,50 +194,36 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 orderId: order.id
             }
         });
-
         // Replace variables
         const personalizedBody = body
             .replace(/{{ name }}/g, name)
             .replace(/{{ store_name }}/g, session.shop)
             .replace(/{{ product_title }}/g, productTitle)
             .replace(/{{ review_link }}/g, reviewLink);
-            
         const personalizedSubject = subject
             .replace(/{{ name }}/g, name)
             .replace(/{{ store_name }}/g, session.shop);
-
-        await sendCampaignEmail(
-            session.shop,
-            email,
-            personalizedSubject,
-            personalizedBody,
-            sendRecord.id // Tracking ID
+        await sendCampaignEmail(session.shop, email, personalizedSubject, personalizedBody, sendRecord.id // Tracking ID
         );
-
         sentCount++;
     }
-
     // 5. Update Metrics
     await prisma.campaignMetrics.update({
         where: { campaignId: campaign.id },
         data: { totalSent: sentCount }
     });
-
     return json({ success: true, campaignId: campaign.id });
 };
-
 export default function CampaignsPage() {
-    const { stats, activeCampaigns } = useLoaderData<typeof loader>();
+    const { stats, activeCampaigns } = useLoaderData();
     const fetcher = useFetcher();
-
+    const navigate = useNavigate();
     const [selectedTab, setSelectedTab] = useState(0);
     const [templateType, setTemplateType] = useState("reciprocity");
-
     // Rename State
     const [renameModalOpen, setRenameModalOpen] = useState(false);
     const [renameId, setRenameId] = useState("");
     const [renameValue, setRenameValue] = useState("");
-
     // Email Builder State
     const [subject, setSubject] = useState("How did we do? 🌟");
     const [body, setBody] = useState("Hi {{ name }},\\n\\nWe hope you're loving your new order! \\n\\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\\n\\n{{ review_link }}");
@@ -314,9 +232,8 @@ export default function CampaignsPage() {
     const [testing, setTesting] = useState(false);
     // AI Template State
     const [aiPrompt, setAiPrompt] = useState("");
-
     // Psychological Triggers
-    const templates: any = {
+    const templates = {
         reciprocity: {
             subject: "A customized gift for you 🎁",
             body: "Hi {{ name }},\\n\\nWe noticed you recently bought from us. As a small token of thanks, we'd love to send you a coupon (Code: {{ discount_code }}) for your next order!\\n\\nJust leave us a quick review to unlock it instantly.\\n\\n{{ review_link }}",
@@ -333,45 +250,42 @@ export default function CampaignsPage() {
             hint: "💡 Scarcity/Urgency: FOMO (Fear Of Missing Out) drives immediate action."
         }
     };
-
-    const handleTemplateChange = (val: string) => {
+    const handleTemplateChange = (val) => {
         setTemplateType(val);
         setSubject(templates[val].subject.replace('{{ discount_code }}', discount));
         setBody(templates[val].body.replace('{{ discount_code }}', discount));
     };
-
     const handleLaunch = () => {
-        const payload: Record<string, string> = {
+        const payload = {
             subject,
             body,
             templateType,
             discount,
             audience
         };
-        if (templateType === "ai") payload.aiPrompt = aiPrompt;
+        if (templateType === "ai")
+            payload.aiPrompt = aiPrompt;
         fetcher.submit(payload, { method: "post" });
         shopify.toast.show(templateType === "ai" ? "AI Campaign Generating & Launching! 🤖🚀" : "Campaign Launched! 🚀");
         setSelectedTab(0);
     };
-
     const handleTest = () => {
         setTesting(true);
-        const payload: Record<string, string> = {
+        const payload = {
             intent: "test", subject, body, templateType, discount, audience
         };
         fetcher.submit(payload, { method: "post" });
         shopify.toast.show("Sending test email to your inbox...");
         setTimeout(() => setTesting(false), 2000);
     };
-
     const handleLaunchConfirm = () => {
         if (confirm("Launch this campaign to your customers now?")) {
             handleLaunch();
         }
     };
-
-    return (
-        <div className="holographic-void">
+    // Confetti Effect (CSS only)
+    const [launching, setLaunching] = useState(false);
+    return (<div className="holographic-void">
             <style>{`
                 /* --- LIGHT THEME EMPIRE --- */
                 .holographic-void {
@@ -708,15 +622,14 @@ export default function CampaignsPage() {
                 {/* FLOATING DOCK */}
                 <div className="holo-dock">
                     <button className={`dock-item ${selectedTab === 0 ? 'active' : ''}`} onClick={() => setSelectedTab(0)}>
-                        <ChartVerticalIcon style={{ width: 16 }} /> Dashboard
+                        <ChartVerticalIcon style={{ width: 16 }}/> Dashboard
                     </button>
                     <button className={`dock-item ${selectedTab === 1 ? 'active' : ''}`} onClick={() => setSelectedTab(1)}>
-                        <MagicIcon style={{ width: 16 }} /> Create Campaign
+                        <MagicIcon style={{ width: 16 }}/> Create Campaign
                     </button>
                 </div>
 
-                {selectedTab === 0 && (
-                    <>
+                {selectedTab === 0 && (<>
                         <div className="prism-grid">
                             <div className="prism-card">
                                 <div className="prism-label"><span className="prism-spark"></span>Audience Size</div>
@@ -747,17 +660,13 @@ export default function CampaignsPage() {
                                 <Text as="h3" variant="headingLg" tone="magic">Recent Activity</Text>
                             </div>
                             <div style={{ padding: '2rem' }}>
-                                {activeCampaigns.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+                                {activeCampaigns.length === 0 ? (<div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
                                         <InlineStack align="center" gap="200">
-                                            <SendIcon style={{ width: 32, opacity: 0.3 }} />
+                                            <SendIcon style={{ width: 32, opacity: 0.3 }}/>
                                             <div style={{ fontSize: '1.2rem' }}>No campaigns sent yet.</div>
                                         </InlineStack>
-                                    </div>
-                                ) : (
-                                    <div className="beam-container">
-                                        {activeCampaigns.map(c => (
-                                            <div key={c.id} className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}>
+                                    </div>) : (<div className="beam-container">
+                                        {activeCampaigns.map(c => (<div key={c.id} className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}>
                                                 <div>
                                                     <div className="tb-name">{c.name}</div>
                                                     <div className="tb-meta">STATUS: <span style={{ color: c.status === 'active' ? '#34d399' : '#f59e0b' }}>{c.status.toUpperCase()}</span></div>
@@ -773,62 +682,45 @@ export default function CampaignsPage() {
                                                 <div>
                                                     <InlineStack gap="200">
                                                         <Button variant="plain" icon={EditIcon} onClick={() => {
-                                                            setRenameId(c.id);
-                                                            setRenameValue(c.name);
-                                                            setRenameModalOpen(true);
-                                                        }} />
+                        setRenameId(c.id);
+                        setRenameValue(c.name);
+                        setRenameModalOpen(true);
+                    }}/>
                                                         <Button variant="plain" tone="critical" onClick={() => {
-                                                            if(confirm("Are you sure you want to delete this campaign and all its history?")) {
-                                                                fetcher.submit({ intent: "delete", campaignId: c.id }, { method: "post" });
-                                                            }
-                                                        }}>Delete</Button>
+                        if (confirm("Are you sure you want to delete this campaign and all its history?")) {
+                            fetcher.submit({ intent: "delete", campaignId: c.id }, { method: "post" });
+                        }
+                    }}>Delete</Button>
                                                     </InlineStack>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            </div>))}
+                                    </div>)}
                             </div>
                         </div>
-                    </>
-                )}
+                    </>)}
 
-                {selectedTab === 1 && (
-                    <div className="forge-grid">
+                {selectedTab === 1 && (<div className="forge-grid">
                         {/* LEFT: STRATEGY */}
                         <div className="forge-panel">
                             <Text as="h3" variant="headingMd" tone="magic">1. Select Strategy</Text>
                             <div className="neuro-chip-grid">
-                                <div
-                                    className={`neuro-chip ${templateType === 'reciprocity' ? 'selected' : ''}`}
-                                    onClick={() => handleTemplateChange('reciprocity')}
-                                >
+                                <div className={`neuro-chip ${templateType === 'reciprocity' ? 'selected' : ''}`} onClick={() => handleTemplateChange('reciprocity')}>
                                     <span className="chip-icon">🎁</span>
                                     <div className="chip-name">Reciprocity</div>
                                 </div>
-                                <div
-                                    className={`neuro-chip ${templateType === 'altruism' ? 'selected' : ''}`}
-                                    onClick={() => handleTemplateChange('altruism')}
-                                >
+                                <div className={`neuro-chip ${templateType === 'altruism' ? 'selected' : ''}`} onClick={() => handleTemplateChange('altruism')}>
                                     <span className="chip-icon">🌱</span>
                                     <div className="chip-name">Altruism</div>
                                 </div>
-                                <div
-                                    className={`neuro-chip ${templateType === 'scarcity' ? 'selected' : ''}`}
-                                    onClick={() => handleTemplateChange('scarcity')}
-                                >
+                                <div className={`neuro-chip ${templateType === 'scarcity' ? 'selected' : ''}`} onClick={() => handleTemplateChange('scarcity')}>
                                     <span className="chip-icon">⏳</span>
                                     <div className="chip-name">Scarcity</div>
                                 </div>
-                                <div
-                                    className={`neuro-chip ${templateType === 'ai' ? 'selected' : ''}`}
-                                    onClick={() => {
-                                        setTemplateType('ai');
-                                        setSubject("(AI will write this)");
-                                        setBody("(AI will write this based on your prompt)");
-                                    }}
-                                    style={{ borderColor: templateType === 'ai' ? '#7c3aed' : undefined }}
-                                >
+                                <div className={`neuro-chip ${templateType === 'ai' ? 'selected' : ''}`} onClick={() => {
+                setTemplateType('ai');
+                setSubject("(AI will write this)");
+                setBody("(AI will write this based on your prompt)");
+            }} style={{ borderColor: templateType === 'ai' ? '#7c3aed' : undefined }}>
                                     <span className="chip-icon">🤖</span>
                                     <div className="chip-name">AI Write</div>
                                 </div>
@@ -837,62 +729,35 @@ export default function CampaignsPage() {
                             <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
                                 <Text as="p" tone="magic" fontWeight="bold">
                                     {templateType === 'ai'
-                                        ? '🤖 AI Write: Describe the email you want — your AI assistant will write the subject and body automatically.'
-                                        : templates[templateType]?.hint
-                                    }
+                ? '🤖 AI Write: Describe the email you want — your AI assistant will write the subject and body automatically.'
+                : templates[templateType]?.hint}
                                 </Text>
                             </div>
 
                             <BlockStack gap="400">
                                 <Text as="h3" variant="headingMd" tone="magic">2. Audience Segmentation</Text>
-                                <Select
-                                    label="Target Audience"
-                                    options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]}
-                                    value={audience}
-                                    onChange={setAudience}
-                                    helpText="We automatically exclude customers who have already reviewed or unsubscribed."
-                                />
+                                <Select label="Target Audience" options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]} value={audience} onChange={setAudience} helpText="We automatically exclude customers who have already reviewed or unsubscribed."/>
                             </BlockStack>
-                            <br/>
+                            <br />
 
                             <BlockStack gap="400">
                                 <Text as="h3" variant="headingMd" tone="magic">3. Customize Content</Text>
                                 <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
-                                    <strong>Available merge tags:</strong> <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ store_name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ product_title }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ review_link }}"}</code>
+                                    <strong>Available merge tags:</strong> <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{"{{ name }}"}</code>, <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{"{{ store_name }}"}</code>, <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{"{{ product_title }}"}</code>, <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{"{{ review_link }}"}</code>
                                 </div>
-                                {templateType === 'reciprocity' && (
-                                    <TextField
-                                        label="Discount Code Name (e.g. SAVE15)"
-                                        value={discount}
-                                        onChange={(v) => {
-                                            setDiscount(v);
-                                        }}
-                                        autoComplete="off"
-                                        helpText="Make sure to manually create this exact code in your Shopify Admin -> Discounts."
-                                    />
-                                )}
-                                {templateType === 'ai' ? (
-                                    <TextField
-                                        label="What should the AI write? (Your prompt)"
-                                        value={aiPrompt}
-                                        onChange={setAiPrompt}
-                                        multiline={4}
-                                        autoComplete="off"
-                                        placeholder="e.g. Write a friendly review request email for a skincare brand. Mention we care about honest feedback and offer a 10% discount on next order."
-                                        helpText="Your AI provider configured in Settings will generate the subject line and email body."
-                                    />
-                                ) : (
-                                    <>
-                                        <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off" />
-                                        <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off" />
-                                    </>
-                                )}
+                                {templateType === 'reciprocity' && (<TextField label="Discount Code Name (e.g. SAVE15)" value={discount} onChange={(v) => {
+                    setDiscount(v);
+                }} autoComplete="off" helpText="Make sure to manually create this exact code in your Shopify Admin -> Discounts."/>)}
+                                {templateType === 'ai' ? (<TextField label="What should the AI write? (Your prompt)" value={aiPrompt} onChange={setAiPrompt} multiline={4} autoComplete="off" placeholder="e.g. Write a friendly review request email for a skincare brand. Mention we care about honest feedback and offer a 10% discount on next order." helpText="Your AI provider configured in Settings will generate the subject line and email body."/>) : (<>
+                                        <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off"/>
+                                        <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off"/>
+                                    </>)}
                             </BlockStack>
 
                             <InlineStack gap="300" align="end">
                                 <Button variant="secondary" onClick={handleTest} loading={testing}>Send Test Email</Button>
-                                <div style={{flex: 1}}>
-                                    <button className="ignite-btn" style={{marginTop: 0}} onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
+                                <div style={{ flex: 1 }}>
+                                    <button className="ignite-btn" style={{ marginTop: 0 }} onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
                                         {fetcher.state === "submitting" ? "Launching..." : "Launch Campaign 🚀"}
                                     </button>
                                 </div>
@@ -921,20 +786,18 @@ export default function CampaignsPage() {
                                     </div>
 
                                     <div className="holo-email-body">
-                                        {body.replace('{{ name }}', 'Alex').split('\n').map((line, i) => (
-                                            <p key={i} style={{ marginBottom: line ? '1em' : '0' }}>{line}</p>
-                                        ))}
+                                        {body.replace('{{ name }}', 'Alex').split('\n').map((line, i) => (<p key={i} style={{ marginBottom: line ? '1em' : '0' }}>{line}</p>))}
 
                                         <div style={{ textAlign: 'center', marginTop: '30px' }}>
                                             <div style={{
-                                                background: '#000',
-                                                color: '#fff',
-                                                padding: '12px 24px',
-                                                borderRadius: '8px',
-                                                display: 'inline-block',
-                                                fontWeight: 'bold',
-                                                fontSize: '14px'
-                                            }}>
+                background: '#000',
+                color: '#fff',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                display: 'inline-block',
+                fontWeight: 'bold',
+                fontSize: '14px'
+            }}>
                                                 Write a Review
                                             </div>
                                         </div>
@@ -949,27 +812,19 @@ export default function CampaignsPage() {
                                 Live Mobile Preview
                             </div>
                         </div>
-                    </div>
-                )}
+                    </div>)}
 
-                <Modal
-                    open={renameModalOpen}
-                    onClose={() => setRenameModalOpen(false)}
-                    title="Rename Campaign"
-                    primaryAction={{
-                        content: 'Save',
-                        onAction: () => {
-                            fetcher.submit({ intent: "rename", campaignId: renameId, newName: renameValue }, { method: "post" });
-                            setRenameModalOpen(false);
-                        },
-                    }}
-                    secondaryActions={[{ content: 'Cancel', onAction: () => setRenameModalOpen(false) }]}
-                >
+                <Modal open={renameModalOpen} onClose={() => setRenameModalOpen(false)} title="Rename Campaign" primaryAction={{
+            content: 'Save',
+            onAction: () => {
+                fetcher.submit({ intent: "rename", campaignId: renameId, newName: renameValue }, { method: "post" });
+                setRenameModalOpen(false);
+            },
+        }} secondaryActions={[{ content: 'Cancel', onAction: () => setRenameModalOpen(false) }]}>
                     <Modal.Section>
-                        <TextField label="Campaign Name" value={renameValue} onChange={setRenameValue} autoComplete="off" />
+                        <TextField label="Campaign Name" value={renameValue} onChange={setRenameValue} autoComplete="off"/>
                     </Modal.Section>
                 </Modal>
             </Page>
-        </div>
-    );
+        </div>);
 }

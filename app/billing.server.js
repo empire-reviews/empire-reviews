@@ -1,0 +1,74 @@
+import { authenticate } from "./shopify.server";
+import prisma from "./db.server";
+export const MONTHLY_PLAN = "Empire Pro";
+// Stay compatible with boolean checks
+export async function hasActivePayment(request) {
+    const { billing, session } = await authenticate.admin(request);
+    // 1. Check DB for Lifetime/Referral status (VIP Access)
+    try {
+        const settings = await prisma.settings.findFirst({
+            where: { shop: session.shop }
+        });
+        if (settings?.plan === "EMPIRE_PRO") {
+            return true;
+        }
+    }
+    catch (e) {
+        console.log("Error checking local plan status", e);
+    }
+    // 2. Check Shopify Billing
+    try {
+        const billingCheck = await billing.check({
+            plans: [MONTHLY_PLAN],
+            isTest: true, // Set to false after App Store approval for real charges
+        });
+        return billingCheck.hasActivePayment;
+    }
+    catch (error) {
+        return false;
+    }
+}
+export async function getPlanDetails(request) {
+    const { billing } = await authenticate.admin(request);
+    try {
+        const billingCheck = await billing.check({
+            plans: [MONTHLY_PLAN],
+            isTest: true, // Set to false after App Store approval for real charges
+        });
+        console.log("DEBUG: Billing Check Result:", JSON.stringify(billingCheck, null, 2));
+        if (billingCheck.hasActivePayment && billingCheck.appSubscriptions.length > 0) {
+            return billingCheck.appSubscriptions[0];
+        }
+        return null;
+    }
+    catch (error) {
+        console.error("DEBUG: Billing Check Error:", error);
+        return null;
+    }
+}
+export async function requirePayment(request) {
+    const { billing } = await authenticate.admin(request);
+    try {
+        const billingCheck = await billing.check({
+            plans: [MONTHLY_PLAN],
+            isTest: true, // Set to false after App Store approval for real charges
+        });
+        if (billingCheck.hasActivePayment) {
+            return billingCheck;
+        }
+        const appUrl = (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim();
+        return await billing.request({
+            plan: MONTHLY_PLAN,
+            isTest: false,
+            returnUrl: `${appUrl}/app/settings`,
+        });
+    }
+    catch (error) {
+        console.error("❌ Billing Flow Failure:", {
+            message: error.message,
+            stack: error.stack,
+            response: error.response?.data
+        });
+        throw error;
+    }
+}
