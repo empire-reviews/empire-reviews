@@ -84,11 +84,11 @@ jobs:
         run: |
           git add .
           git checkout -b temp_javascript_updates
-          git commit -m "Convert template to Javascript"
-          git fetch origin javascript:javascript || git branch javascript
-          git checkout javascript
+          git commit -m "Convert template to Javascript" || true
+          git fetch origin javascript:javascript || true
+          git checkout javascript || git checkout -b javascript || true
           git pull origin javascript || true
-          git checkout temp_javascript_updates
+          git checkout temp_javascript_updates || true
           git rebase -m -X theirs javascript || true
           git push -f origin temp_javascript_updates:javascript_updates
 
