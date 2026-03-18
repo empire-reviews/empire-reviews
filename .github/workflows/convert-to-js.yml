@@ -85,10 +85,11 @@ jobs:
           git add .
           git checkout -b temp_javascript_updates
           git commit -m "Convert template to Javascript"
+          git fetch origin javascript:javascript || git branch javascript
           git checkout javascript
-          git pull
-          git checkout -
-          git rebase -m -X theirs javascript
+          git pull origin javascript || true
+          git checkout temp_javascript_updates
+          git rebase -m -X theirs javascript || true
           git push -f origin temp_javascript_updates:javascript_updates
 
       - name: Create Javascript PR
