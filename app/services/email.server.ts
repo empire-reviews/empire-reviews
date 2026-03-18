@@ -23,8 +23,16 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
     const unsubscribeLink = `${appUrl}/api/unsubscribe?email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
 
     try {
+        // Fetch the store owner's email to use as Reply-To
+        const shopSession = await prisma.session.findFirst({
+            where: { shop: shopDomain },
+            select: { email: true }
+        });
+        const replyToEmail = shopSession?.email || "support@empirereviews.com";
+
         const { data, error } = await resend.emails.send({
-            from: `Empire Reviews <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Needs verified domain
+            from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
+            replyTo: replyToEmail, // Replies go straight to the merchant
             to: [toEmail],
             subject: `How was your order from ${shopDomain}?`,
             html: `
@@ -84,8 +92,16 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
             </p>
         `;
 
+        // Fetch the store owner's email to use as Reply-To
+        const shopSession = await prisma.session.findFirst({
+            where: { shop: shopDomain },
+            select: { email: true }
+        });
+        const replyToEmail = shopSession?.email || "support@empirereviews.com";
+
         const { data, error } = await resend.emails.send({
-            from: `Empire Reviews <reviews@${process.env.verified_domain || 'empirereviews.com'}>`,
+            from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
+            replyTo: replyToEmail, // Replies go straight to the merchant
             to: [toEmail],
             subject: subject,
             html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\n/g, '<br/>')}</div>${footer}`

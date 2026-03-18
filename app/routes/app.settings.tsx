@@ -441,8 +441,8 @@ export default function SettingsPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <div style={{ flex: 1, paddingRight: '24px' }}>
-                                            <Text as="h3" variant="headingSm" fontWeight="medium">Send Request After (Days)</Text>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Recommended: 3-5 days after order fulfillment.</p>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Send Request After Delivery (Days)</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Recommended: 3-5 days after the order is delivered.</p>
                                         </div>
                                         <div style={{ flexShrink: 0, width: '120px' }}>
                                             <TextField labelHidden label="Days" type="number" value={String(reviewRequestDelay)} onChange={(val) => setReviewRequestDelay(parseInt(val) || 3)} autoComplete="off" suffix="days" min={1} max={30} align="right" />

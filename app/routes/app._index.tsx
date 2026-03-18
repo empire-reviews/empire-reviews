@@ -30,7 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // so the page renders and App Bridge can initialize.
     console.log("app._index: auth deferred, returning minimal data");
     return json({
-      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, unrepliedCount: 0, urgentCount: 0 },
+      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, unrepliedCount: 0, urgentCount: 0, awaitingDeliveryCount: 0 },
       planName: "FREE",
       phase: "awareness",
       canShowUpgrade: false,
@@ -74,6 +74,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Urgent: Low rating AND unreplied
   const urgentCount = reviews.filter(r => r.rating <= 2 && r.replies.length === 0).length;
   const averageRating = totalReviews === 0 ? 0 : reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews;
+
+  // Calculate Awaiting Delivery (Orders that exist but haven't triggered a review email yet because of delivery settings)
+  const pendingOrders = await prisma.order.count({
+    where: { shop, reviewRequestStatus: "pending" }
+  });
 
   // Get session for phase tracking
   const userSession = await prisma.session.findFirst({
@@ -172,7 +177,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const trend = { value: 0, percentage: 0 }; // You might want to calculate this based on reviewsThisWeek vs. previous week
 
   return json({
-    metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount },
+    metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },
     planName,
     phase,
     canShowUpgrade,
@@ -469,7 +474,12 @@ export default function EmpireDashboard() {
                 {/* Card 3: Action Queue (Completion Bias) */}
                 <div className="stat-card" style={{ borderColor: metrics.unrepliedCount > 0 ? '#fca5a5' : '#e2e8f0' }}>
                   <div>
-                    <div className="stat-label">Action Queue</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div className="stat-label">Action Queue</div>
+                      <div className="trend-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                        📦 {metrics.awaitingDeliveryCount} Awaiting Delivery
+                      </div>
+                    </div>
                     <div className="stat-value" style={{ color: metrics.unrepliedCount > 0 ? '#ef4444' : '#10b981' }}>
                       {metrics.unrepliedCount}
                     </div>

@@ -35,7 +35,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                                 }
                                 email
                                 customer {
-                                    email
+                                    defaultEmailAddress {
+                                        emailAddress
+                                    }
+                                }
+                                fulfillments {
+                                    createdAt
+                                    events(first: 10) {
+                                        nodes {
+                                            status
+                                            happenedAt
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -66,14 +77,36 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const node = edge.node;
             const price = parseFloat(node.totalPriceSet.shopMoney.amount);
             const currency = node.totalPriceSet.shopMoney.currencyCode;
-            const email = node.email || node.customer?.email;
+            const email = node.email || node.customer?.defaultEmailAddress?.emailAddress;
+
+            let fulfilledAt: Date | null = null;
+            let deliveredAt: Date | null = null;
+
+            if (node.fulfillments && node.fulfillments.length > 0) {
+                const firstFulfillment = node.fulfillments[0];
+                if (firstFulfillment.createdAt) {
+                    fulfilledAt = new Date(firstFulfillment.createdAt);
+                }
+
+                // Check fulfillment events for delivery
+                for (const f of node.fulfillments) {
+                    if (f.events?.nodes) {
+                        const deliveredEvent = f.events.nodes.find((e: any) => e.status === 'DELIVERED');
+                        if (deliveredEvent && deliveredEvent.happenedAt) {
+                            deliveredAt = new Date(deliveredEvent.happenedAt);
+                        }
+                    }
+                }
+            }
 
             await prisma.order.upsert({
                 where: { id: node.id },
                 update: {
                     totalPrice: price,
                     currency: currency,
-                    customerEmail: email
+                    customerEmail: email,
+                    ...(fulfilledAt && { fulfilledAt }),
+                    ...(deliveredAt && { deliveredAt }),
                 },
                 create: {
                     id: node.id,
@@ -81,7 +114,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     totalPrice: price,
                     currency: currency,
                     createdAt: new Date(node.createdAt),
-                    customerEmail: email
+                    customerEmail: email,
+                    fulfilledAt,
+                    deliveredAt
                 }
             });
             count++;

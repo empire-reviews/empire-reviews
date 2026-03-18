@@ -57,7 +57,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                     email
                     customer {
                         firstName
-                        email
+                        defaultEmailAddress {
+                            emailAddress
+                        }
                     }
                 }
             }
@@ -120,9 +122,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // 1. Resolve subject & body (AI-generated or manual)
     const templateType = formData.get("templateType") as string;
-    const discount = formData.get("discount") ? parseInt(formData.get("discount") as string) : null;
+    const rawDiscount = formData.get("discount") as string;
+    const discount = rawDiscount ? (isNaN(parseInt(rawDiscount)) ? null : parseInt(rawDiscount)) : null;
+
     let subject = formData.get("subject") as string;
     let body = formData.get("body") as string;
+    const audience = formData.get("audience") as string;
 
     // AI template: generate subject + body using merchant's configured AI provider
     if (templateType === "ai") {
@@ -139,15 +144,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 body = generated.body;
             } catch (err) {
                 console.error("AI Campaign generation failed:", err);
-                // Fall back to defaults if AI fails
                 subject = subject || "We'd love your feedback!";
                 body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
             }
         } else {
-            // No AI configured — use safe defaults
             subject = subject || "We'd love your feedback!";
             body = body || "Hi {{ name }},\n\nThank you for your recent order. We'd love to hear what you think!";
         }
+    }
+
+    if (intent === "test") {
+        const shopSession = await prisma.session.findFirst({
+            where: { shop: session.shop },
+            select: { email: true }
+        });
+        const sessionEmail = shopSession?.email || "test@empirereviews.com";
+        const dummyProduct = "Sample Product";
+        const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
+        
+        const personalizedBody = body
+            .replace(/{{ name }}/g, "Test User")
+            .replace(/{{ store_name }}/g, session.shop)
+            .replace(/{{ product_title }}/g, dummyProduct)
+            .replace(/{{ review_link }}/g, dummyReviewLink);
+
+        await sendCampaignEmail(
+            session.shop,
+            sessionEmail,
+            subject.replace(/{{ store_name }}/g, session.shop),
+            personalizedBody,
+            "test-campaign-" + Date.now()
+        );
+        return json({ success: true, testMode: true });
     }
 
     const campaign = await prisma.campaign.create({
@@ -158,63 +186,104 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             body,
             templateType,
             discount,
-            status: "active",
+            status: "completed", // Starts as completed since it sends synchronously for now
             metrics: {
                 create: { totalSent: 0 }
             }
         }
     });
 
-    // 2. Fetch recent customers (Target Audience)
+    // 2. Fetch Audience
+    let queryStr = "";
+    if (audience === "recent") {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        queryStr = `created_at:>=${thirtyDaysAgo.toISOString().split('T')[0]}`;
+    }
+    
+    // Add product fetch
     const response = await admin.graphql(
         `#graphql
-        query getRecentOrders {
-            orders(first: 5, reverse: true) { # Limit to 5 for demo safety
+        query getTargetOrders($query: String!) {
+            orders(first: 50, reverse: true, query: $query) {
                 nodes {
                     id
                     email
                     customer {
                         firstName
-                        email
+                        defaultEmailAddress {
+                            emailAddress
+                        }
+                    }
+                    lineItems(first: 1) {
+                        nodes {
+                            product {
+                                id
+                                title
+                            }
+                        }
                     }
                 }
             }
-        }`
+        }`,
+        { variables: { query: queryStr } }
     );
     const data = await response.json();
-    const orders = data.data.orders.nodes;
+    const orders = data.data?.orders?.nodes || [];
+
+    // Filter past sends and reviews to avoid spam
+    const pastSends = await prisma.campaignSend.findMany({ where: { campaign: { shop: session.shop } }, select: { customerEmail: true } });
+    const pastReviews = await prisma.review.findMany({ where: { shop: session.shop }, select: { customerEmail: true } });
+    const excludedEmails = new Set([...pastSends.map(s => s.customerEmail), ...pastReviews.map(r => r.customerEmail)]);
 
     // 4. Send Emails & Create Tracking Records
     let sentCount = 0;
+    const appUrl = (process.env.SHOPIFY_APP_URL || `https://${session.shop}`).trim();
+
     for (const order of orders) {
-        const email = order.email || order.customer?.email;
+        const email = order.email || order.customer?.defaultEmailAddress?.emailAddress;
+        if (!email || excludedEmails.has(email)) continue;
+
         const name = order.customer?.firstName || "Customer";
+        
+        // Extract Product details for review link
+        const product = order.lineItems?.nodes?.[0]?.product;
+        const productId = product?.id ? product.id.split('/').pop() : "";
+        const productTitle = product?.title || "your recent purchase";
+        
+        const numericOrderId = order.id.split('/').pop();
+        const reviewLink = `${appUrl}/review/${numericOrderId}?shop=${session.shop}`; 
 
-        if (email) {
-            // Create Send Record
-            const sendRecord = await prisma.campaignSend.create({
-                data: {
-                    campaignId: campaign.id,
-                    customerEmail: email,
-                    customerName: name,
-                    orderId: order.id
-                }
-            });
+        // Create Send Record
+        const sendRecord = await prisma.campaignSend.create({
+            data: {
+                campaignId: campaign.id,
+                customerEmail: email,
+                customerName: name,
+                orderId: order.id
+            }
+        });
 
-            // Send actual email (simulated in service)
-            // Replace variables in body
-            const personalizedBody = body.replace('{{ name }}', name);
+        // Replace variables
+        const personalizedBody = body
+            .replace(/{{ name }}/g, name)
+            .replace(/{{ store_name }}/g, session.shop)
+            .replace(/{{ product_title }}/g, productTitle)
+            .replace(/{{ review_link }}/g, reviewLink);
+            
+        const personalizedSubject = subject
+            .replace(/{{ name }}/g, name)
+            .replace(/{{ store_name }}/g, session.shop);
 
-            await sendCampaignEmail(
-                session.shop,
-                email,
-                subject,
-                personalizedBody,
-                sendRecord.id // Tracking ID
-            );
+        await sendCampaignEmail(
+            session.shop,
+            email,
+            personalizedSubject,
+            personalizedBody,
+            sendRecord.id // Tracking ID
+        );
 
-            sentCount++;
-        }
+        sentCount++;
     }
 
     // 5. Update Metrics
@@ -241,8 +310,10 @@ export default function CampaignsPage() {
 
     // Email Builder State
     const [subject, setSubject] = useState("How did we do? 🌟");
-    const [body, setBody] = useState("Hi {{ name }},\\n\\nWe hope you're loving your new order! \\n\\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.");
-    const [discount, setDiscount] = useState("15");
+    const [body, setBody] = useState("Hi {{ name }},\\n\\nWe hope you're loving your new order! \\n\\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\\n\\n{{ review_link }}");
+    const [discount, setDiscount] = useState("");
+    const [audience, setAudience] = useState("recent");
+    const [testing, setTesting] = useState(false);
     // AI Template State
     const [aiPrompt, setAiPrompt] = useState("");
 
@@ -250,7 +321,7 @@ export default function CampaignsPage() {
     const templates: any = {
         reciprocity: {
             subject: "A customized gift for you 🎁",
-            body: "Hi {{ name }},\\n\\nWe noticed you recently bought from us. As a small token of thanks, we'd love to send you a {{ discount }}% OFF coupon for your next order!\\n\\nJust leave us a quick review to unlock it instantly.",
+            body: "Hi {{ name }},\\n\\nWe noticed you recently bought from us. As a small token of thanks, we'd love to send you a coupon (Code: {{ discount_code }}) for your next order!\\n\\nJust leave us a quick review to unlock it instantly.\\n\\n{{ review_link }}",
             hint: "💡 Reciprocity: Humans feel compelled to return a favor. Give a discount -> Get a review."
         },
         altruism: {
@@ -260,15 +331,15 @@ export default function CampaignsPage() {
         },
         scarcity: {
             subject: "Your review link expires in 24h ⏳",
-            body: "Hi {{ name }},\\n\\nWe're holding a spot in our 'Customer of the Month' draw for you, but entries close tonight.\\n\\nRate your purchase now to be included!",
+            body: "Hi {{ name }},\\n\\nWe're holding a spot in our 'Customer of the Month' draw for you, but entries close tonight.\\n\\nRate your purchase now to be included!\\n\\n{{ review_link }}",
             hint: "💡 Scarcity/Urgency: FOMO (Fear Of Missing Out) drives immediate action."
         }
     };
 
     const handleTemplateChange = (val: string) => {
         setTemplateType(val);
-        setSubject(templates[val].subject.replace('{{ discount }}', discount));
-        setBody(templates[val].body.replace('{{ discount }}', discount));
+        setSubject(templates[val].subject.replace('{{ discount_code }}', discount));
+        setBody(templates[val].body.replace('{{ discount_code }}', discount));
     };
 
     const handleLaunch = () => {
@@ -276,15 +347,29 @@ export default function CampaignsPage() {
             subject,
             body,
             templateType,
-            discount
+            discount,
+            audience
         };
-        if (templateType === "ai") {
-            payload.aiPrompt = aiPrompt;
-        }
+        if (templateType === "ai") payload.aiPrompt = aiPrompt;
         fetcher.submit(payload, { method: "post" });
-
         shopify.toast.show(templateType === "ai" ? "AI Campaign Generating & Launching! 🤖🚀" : "Campaign Launched! 🚀");
-        setSelectedTab(0); // Go back to dashboard
+        setSelectedTab(0);
+    };
+
+    const handleTest = () => {
+        setTesting(true);
+        const payload: Record<string, string> = {
+            intent: "test", subject, body, templateType, discount, audience
+        };
+        fetcher.submit(payload, { method: "post" });
+        shopify.toast.show("Sending test email to your inbox...");
+        setTimeout(() => setTesting(false), 2000);
+    };
+
+    const handleLaunchConfirm = () => {
+        if (confirm("Launch this campaign to your customers now?")) {
+            handleLaunch();
+        }
     };
 
     // Confetti Effect (CSS only)
@@ -698,8 +783,10 @@ export default function CampaignsPage() {
                                                             setRenameModalOpen(true);
                                                         }} />
                                                         <Button variant="plain" tone="critical" onClick={() => {
-                                                            fetcher.submit({ intent: "delete", campaignId: c.id }, { method: "post" });
-                                                        }}>Stop</Button>
+                                                            if(confirm("Are you sure you want to delete this campaign and all its history?")) {
+                                                                fetcher.submit({ intent: "delete", campaignId: c.id }, { method: "post" });
+                                                            }
+                                                        }}>Delete</Button>
                                                     </InlineStack>
                                                 </div>
                                             </div>
@@ -762,18 +849,31 @@ export default function CampaignsPage() {
                             </div>
 
                             <BlockStack gap="400">
-                                <Text as="h3" variant="headingMd" tone="magic">2. Customize Content</Text>
+                                <Text as="h3" variant="headingMd" tone="magic">2. Audience Segmentation</Text>
+                                <Select
+                                    label="Target Audience"
+                                    options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]}
+                                    value={audience}
+                                    onChange={setAudience}
+                                    helpText="We automatically exclude customers who have already reviewed or unsubscribed."
+                                />
+                            </BlockStack>
+                            <br/>
+
+                            <BlockStack gap="400">
+                                <Text as="h3" variant="headingMd" tone="magic">3. Customize Content</Text>
+                                <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
+                                    <strong>Available merge tags:</strong> <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ store_name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ product_title }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ review_link }}"}</code>
+                                </div>
                                 {templateType === 'reciprocity' && (
                                     <TextField
-                                        label="Discount Value"
-                                        type="number"
+                                        label="Discount Code Name (e.g. SAVE15)"
                                         value={discount}
                                         onChange={(v) => {
                                             setDiscount(v);
-                                            setBody(prev => prev.replace(/\d+%/, `${v}%`));
                                         }}
                                         autoComplete="off"
-                                        suffix="%"
+                                        helpText="Make sure to manually create this exact code in your Shopify Admin -> Discounts."
                                     />
                                 )}
                                 {templateType === 'ai' ? (
@@ -794,9 +894,14 @@ export default function CampaignsPage() {
                                 )}
                             </BlockStack>
 
-                            <button className="ignite-btn" onClick={handleLaunch} disabled={fetcher.state === "submitting"}>
-                                {fetcher.state === "submitting" ? "Launching..." : "Launch Campaign 🚀"}
-                            </button>
+                            <InlineStack gap="300" align="end">
+                                <Button variant="secondary" onClick={handleTest} loading={testing}>Send Test Email</Button>
+                                <div style={{flex: 1}}>
+                                    <button className="ignite-btn" style={{marginTop: 0}} onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
+                                        {fetcher.state === "submitting" ? "Launching..." : "Launch Campaign 🚀"}
+                                    </button>
+                                </div>
+                            </InlineStack>
                         </div>
 
                         {/* RIGHT: HOLO-PROJECTOR */}
