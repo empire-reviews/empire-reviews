@@ -23,7 +23,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
 import { callAIForCampaign } from "../services/ai.server";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
     ArrowLeftIcon,
     EmailIcon,
@@ -314,6 +314,18 @@ export default function CampaignsPage() {
     const [testing, setTesting] = useState(false);
     // AI Template State
     const [aiPrompt, setAiPrompt] = useState("");
+
+    // Listen for Fetcher Responses (like Test Email success)
+    useEffect(() => {
+        if (fetcher.data && fetcher.state === "idle") {
+            const data = fetcher.data as any;
+            if (data.testMode && data.success) {
+                shopify.toast.show("✅ Test email delivered to your inbox!");
+            } else if (data.error) {
+                shopify.toast.show("❌ Error: " + data.error);
+            }
+        }
+    }, [fetcher.data, fetcher.state]);
 
     // Psychological Triggers
     const templates: any = {

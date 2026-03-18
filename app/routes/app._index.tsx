@@ -133,6 +133,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // 2. AI Insights: Sentiment Analysis
     const positiveReviews = reviews.filter(r => r.sentiment === 'POSITIVE' || r.rating >= 4).length;
     const sentimentScore = totalReviews > 0 ? (positiveReviews / totalReviews) * 5 : 0;
+    const trend = totalReviews > 0
+    ? Math.round((positiveReviews / totalReviews) * 100)
+    : 0;
+  console.debug("Sentiment Trend:", trend);
 
     let sentimentLabel = "Sentiment Stable";
     if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
@@ -176,6 +180,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // Placeholder for trend, as it's not calculated in the original code
   const trend = { value: 0, percentage: 0 }; // You might want to calculate this based on reviewsThisWeek vs. previous week
+  console.debug("Sentiment Trend:", trend);
 
   return json({
     metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },

@@ -43,6 +43,7 @@ const GROWTH_TIPS = [
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const billing = await hasActivePayment(request); // Re-fetching billing below, just need session here
+    console.debug("Billing info:", billing);
     const shop = session.shop;
 
     // SYNC BILLING STATUS
