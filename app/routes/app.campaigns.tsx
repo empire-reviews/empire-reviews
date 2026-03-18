@@ -163,6 +163,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
         
         const personalizedBody = body
+            .replace(/\\n/g, '\n')
             .replace(/{{ name }}/g, "Test User")
             .replace(/{{ store_name }}/g, session.shop)
             .replace(/{{ product_title }}/g, dummyProduct)
