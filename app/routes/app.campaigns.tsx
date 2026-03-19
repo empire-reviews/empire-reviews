@@ -46,27 +46,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         include: { metrics: true }
     });
 
-    // 2. Fetch audience (Real Shopify Data)
-    const response = await admin.graphql(
+    // 2. Fetch True Audience Size & Live Mock Data
+    const potentialAudience = await prisma.order.count({ where: { shop: session.shop } });
+
+    const orderResponse = await admin.graphql(
         `#graphql
-        query getRecentOrders {
-            orders(first: 50, reverse: true) {
+        query getLatestOrder {
+            orders(first: 1, reverse: true) {
                 nodes {
-                    id
-                    createdAt
-                    email
-                    customer {
-                        firstName
-                        defaultEmailAddress {
-                            emailAddress
-                        }
-                    }
+                    customer { firstName }
+                    lineItems(first: 1) { nodes { product { title } } }
                 }
             }
         }`
     );
-    const data = await response.json();
-    const potentialAudience = data.data.orders.nodes.length;
+    const orderData = await orderResponse.json();
+    const latestOrder = orderData.data?.orders?.nodes?.[0];
+    const mockCustomerName = latestOrder?.customer?.firstName || "Valued Customer";
+    const mockProductTitle = latestOrder?.lineItems?.nodes?.[0]?.product?.title || "Premium Item";
 
     // 3. Calculate Aggregate Stats
     const totalSent = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalSent || 0), 0);
@@ -80,6 +77,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     return json({
         stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience },
+        mockData: { customerName: mockCustomerName, productTitle: mockProductTitle, storeName: session.shop },
         activeCampaigns: dbCampaigns.map((c: any) => ({
             id: c.id,
             name: c.name,
@@ -236,7 +234,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CampaignsPage() {
-    const { stats, activeCampaigns } = useLoaderData<typeof loader>();
+    const { stats, activeCampaigns, mockData } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
 
@@ -612,7 +610,6 @@ export default function CampaignsPage() {
                 /* Email Styling within Holo */
                 .holo-email-body { padding: 24px; color: #334155; line-height: 1.6; font-size: 15px; }
 
-                /* IGNITE BUTTON (Light) */
                 .ignite-btn {
                     width: 100%;
                     background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
@@ -629,7 +626,6 @@ export default function CampaignsPage() {
                     transition: all 0.3s;
                     text-transform: uppercase;
                     letter-spacing: 0.1em;
-                    margin-top: 2rem;
                     position: relative; overflow: hidden;
                 }
                 .ignite-btn:hover {
@@ -637,6 +633,33 @@ export default function CampaignsPage() {
                     box-shadow: 0 20px 30px -10px rgba(124, 58, 237, 0.5);
                 }
                 .ignite-btn:active { transform: scale(0.96); }
+
+                /* 3D TEST BUTTON (Light) */
+                .test-btn {
+                    width: 100%;
+                    background: rgba(255, 255, 255, 0.5);
+                    color: var(--neon-violet);
+                    font-weight: 800;
+                    font-size: 1.2rem;
+                    padding: 1.5rem;
+                    border-radius: 16px;
+                    border: 2px solid rgba(124, 58, 237, 0.3);
+                    cursor: pointer;
+                    backdrop-filter: blur(10px);
+                    box-shadow: 
+                        0 10px 20px -5px rgba(124, 58, 237, 0.1),
+                        inset 0 2px 0 rgba(255, 255, 255, 0.5);
+                    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+                .test-btn:hover {
+                    transform: translateY(-3px);
+                    border-color: rgba(124, 58, 237, 0.6);
+                    background: rgba(255, 255, 255, 0.8);
+                    box-shadow: 0 15px 25px -10px rgba(124, 58, 237, 0.3);
+                }
+                .test-btn:active { transform: scale(0.96); }
 
                 /* LIGHT INPUT OVERRIDES - Important for visibility */
                 .Polaris-TextField__Input {
@@ -855,14 +878,14 @@ export default function CampaignsPage() {
                                 )}
                             </BlockStack>
 
-                            <InlineStack gap="300" align="end">
-                                <Button variant="secondary" onClick={handleTest} loading={testing}>Send Test Email</Button>
-                                <div style={{flex: 1}}>
-                                    <button className="ignite-btn" style={{marginTop: 0}} onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
-                                        {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
-                                    </button>
-                                </div>
-                            </InlineStack>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem' }}>
+                                <button className="test-btn" onClick={handleTest} disabled={testing}>
+                                    {testing ? "Sending..." : "Send Test 📧"}
+                                </button>
+                                <button className="ignite-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
+                                    {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
+                                </button>
+                            </div>
                         </div>
 
                         {/* RIGHT: HOLO-PROJECTOR */}
@@ -879,8 +902,8 @@ export default function CampaignsPage() {
                                         </div>
                                         <Divider />
                                         <div style={{ padding: '10px 0' }}>
-                                            <div style={{ fontWeight: 700, fontSize: '14px' }}>Empire Store</div>
-                                            <div style={{ fontSize: '13px', color: '#333' }}>{subject}</div>
+                                            <div style={{ fontWeight: 700, fontSize: '14px' }}>{mockData.storeName}</div>
+                                            <div style={{ fontSize: '13px', color: '#333' }}>{subject.replace(/{{ store_name }}/g, mockData.storeName).replace(/{{ product_title }}/g, mockData.productTitle)}</div>
                                             <div style={{ fontSize: '12px', color: '#8e8e93' }}>To: You</div>
                                         </div>
                                         <Divider />
@@ -888,9 +911,9 @@ export default function CampaignsPage() {
 
                                     <div className="holo-email-body">
                                         {body
-                                            .replace(/{{ name }}/g, 'Alex')
-                                            .replace(/{{ store_name }}/g, 'Empire Store')
-                                            .replace(/{{ product_title }}/g, 'Premium Item')
+                                            .replace(/{{ name }}/g, mockData.customerName)
+                                            .replace(/{{ store_name }}/g, mockData.storeName)
+                                            .replace(/{{ product_title }}/g, mockData.productTitle)
                                             .replace(/{{ review_link }}/g, '')
                                             .split('\\n').map((line, i) => (
                                                 <p key={i} style={{ marginBottom: line ? '1em' : '0' }}>{line}</p>

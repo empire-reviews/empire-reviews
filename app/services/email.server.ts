@@ -99,13 +99,19 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
         });
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
 
-        const { data, error } = await resend.emails.send({
+        const payload: any = {
             from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
             replyTo: replyToEmail, // Replies go straight to the merchant
             to: [toEmail],
             subject: subject,
-            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\n/g, '<br/>')}</div>${footer}`
-        });
+            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\\n/g, '<br/>')}</div>${footer}`
+        };
+
+        if (trackingId) {
+            payload.tags = [{ name: "sendId", value: trackingId }];
+        }
+
+        const { data, error } = await resend.emails.send(payload);
 
         if (error) {
             console.error("Campaign Resend Error:", error);
