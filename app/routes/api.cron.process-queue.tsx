@@ -156,6 +156,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             }
         }
 
+        const buttonHtml = `<div style="text-align: center; margin-top: 30px;"><a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; display: inline-block;">Write a Review</a></div>`;
+
         const personalizedBody = bodyTemplate
             .replace(/\\\\n/g, '\\n') // Handle escaped newlines from DB
             .replace(/\\n/g, '<br/>')
@@ -163,7 +165,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             .replace(/{{ name }}/g, "Customer")
             .replace(/{{ store_name }}/g, order.shop)
             .replace(/{{ product_title }}/g, resolvedProductTitle)
-            .replace(/{{ review_link }}/g, reviewLink);
+            .replace(/{{ review_link }}/g, buttonHtml);
 
         const personalizedSubject = subjectTemplate
             .replace(/{{ store_name }}/g, order.shop)

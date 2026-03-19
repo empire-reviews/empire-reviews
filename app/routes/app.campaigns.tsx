@@ -1,5 +1,5 @@
 import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
+import { useLoaderData, useFetcher, useNavigate, Link } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -108,6 +108,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: true, deletedId: campaignId });
     }
 
+    if (intent === "activate") {
+        const campaignId = formData.get("campaignId") as string;
+        
+        // Deactivate all others
+        await prisma.campaign.updateMany({
+            where: { shop: session.shop, status: "active" },
+            data: { status: "paused" }
+        });
+
+        // Activate the selected one
+        await prisma.campaign.update({
+            where: { id: campaignId },
+            data: { status: "active" }
+        });
+        return json({ success: true, activatedId: campaignId });
+    }
+
     if (intent === "rename") {
         const campaignId = formData.get("campaignId") as string;
         const newName = formData.get("newName") as string;
@@ -173,13 +190,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
         const dummyProduct = "Sample Product";
         const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
+        const testButtonHtml = `<div style="text-align: center; margin-top: 30px;"><a href="${dummyReviewLink}" style="background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; display: inline-block;">Write a Review</a></div>`;
         
         const personalizedBody = body
-            .replace(/\\n/g, '\n')
+            .replace(/\\\\n/g, '<br/>')
+            .replace(/\\n/g, '<br/>')
+            .replace(/\n/g, '<br/>')
             .replace(/{{ name }}/g, "Test User")
             .replace(/{{ store_name }}/g, session.shop)
             .replace(/{{ product_title }}/g, dummyProduct)
-            .replace(/{{ review_link }}/g, dummyReviewLink);
+            .replace(/{{ review_link }}/g, testButtonHtml);
 
         await sendCampaignEmail(
             session.shop,
@@ -191,6 +211,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: true, testMode: true });
     }
 
+    // Deactivate any currently active campaigns for this shop
+    await prisma.campaign.updateMany({
+        where: { shop: session.shop, status: "active" },
+        data: { status: "paused" }
+    });
+
     const campaign = await prisma.campaign.create({
         data: {
             shop: session.shop,
@@ -199,109 +225,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             body,
             templateType,
             discount,
-            status: "completed", // Starts as completed since it sends synchronously for now
+            status: "active", // Now cleanly acts as the live automation template!
             metrics: {
                 create: { totalSent: 0 }
             }
         }
-    });
-
-    // 2. Fetch Audience
-    let queryStr = "";
-    if (audience === "recent") {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        queryStr = `created_at:>=${thirtyDaysAgo.toISOString().split('T')[0]}`;
-    }
-    
-    // Add product fetch
-    const response = await admin.graphql(
-        `#graphql
-        query getTargetOrders($query: String!) {
-            orders(first: 50, reverse: true, query: $query) {
-                nodes {
-                    id
-                    email
-                    customer {
-                        firstName
-                        defaultEmailAddress {
-                            emailAddress
-                        }
-                    }
-                    lineItems(first: 1) {
-                        nodes {
-                            product {
-                                id
-                                title
-                            }
-                        }
-                    }
-                }
-            }
-        }`,
-        { variables: { query: queryStr } }
-    );
-    const data = await response.json();
-    const orders = data.data?.orders?.nodes || [];
-
-    // Filter past sends and reviews to avoid spam
-    const pastSends = await prisma.campaignSend.findMany({ where: { campaign: { shop: session.shop } }, select: { customerEmail: true } });
-    const pastReviews = await prisma.review.findMany({ where: { shop: session.shop }, select: { customerEmail: true } });
-    const excludedEmails = new Set([...pastSends.map(s => s.customerEmail), ...pastReviews.map(r => r.customerEmail)]);
-
-    // 4. Send Emails & Create Tracking Records
-    let sentCount = 0;
-    const appUrl = (process.env.SHOPIFY_APP_URL || `https://${session.shop}`).trim();
-
-    for (const order of orders) {
-        const email = order.email || order.customer?.defaultEmailAddress?.emailAddress;
-        if (!email || excludedEmails.has(email)) continue;
-
-        const name = order.customer?.firstName || "Customer";
-        
-        // Extract Product details for review link
-        const product = order.lineItems?.nodes?.[0]?.product;
-        const productTitle = product?.title || "your recent purchase";
-        
-        const numericOrderId = order.id.split('/').pop();
-        const reviewLink = `${appUrl}/review/${numericOrderId}?shop=${session.shop}`; 
-
-        // Create Send Record
-        const sendRecord = await prisma.campaignSend.create({
-            data: {
-                campaignId: campaign.id,
-                customerEmail: email,
-                customerName: name,
-                orderId: order.id
-            }
-        });
-
-        // Replace variables
-        const personalizedBody = body
-            .replace(/{{ name }}/g, name)
-            .replace(/{{ store_name }}/g, session.shop)
-            .replace(/{{ product_title }}/g, productTitle)
-            .replace(/{{ review_link }}/g, reviewLink);
-            
-        const personalizedSubject = subject
-            .replace(/{{ name }}/g, name)
-            .replace(/{{ store_name }}/g, session.shop);
-
-        await sendCampaignEmail(
-            session.shop,
-            email,
-            personalizedSubject,
-            personalizedBody,
-            sendRecord.id // Tracking ID
-        );
-
-        sentCount++;
-    }
-
-    // 5. Update Metrics
-    await prisma.campaignMetrics.update({
-        where: { campaignId: campaign.id },
-        data: { totalSent: sentCount }
     });
 
     return json({ success: true, campaignId: campaign.id });
@@ -344,7 +272,7 @@ export default function CampaignsPage() {
     const templates: any = {
         reciprocity: {
             subject: "A customized gift for you 🎁",
-            body: "Hi {{ name }},\\n\\nWe noticed you recently bought from us. As a small token of thanks, we'd love to send you a coupon (Code: {{ discount_code }}) for your next order!\\n\\nJust leave us a quick review to unlock it instantly.\\n\\n{{ review_link }}",
+            body: "Hi {{ name }},\\n\\nWe noticed you recently bought {{ product_title }} from us. As a small token of thanks, we'd love to send you a secret coupon code for your next order!\\n\\nJust leave us a quick review to unlock it instantly.\\n\\n{{ review_link }}",
             hint: "💡 Reciprocity: Humans feel compelled to return a favor. Give a discount -> Get a review."
         },
         altruism: {
@@ -361,8 +289,8 @@ export default function CampaignsPage() {
 
     const handleTemplateChange = (val: string) => {
         setTemplateType(val);
-        setSubject(templates[val].subject.replace('{{ discount_code }}', discount));
-        setBody(templates[val].body.replace('{{ discount_code }}', discount));
+        setSubject(templates[val].subject);
+        setBody(templates[val].body);
     };
 
     const handleLaunch = () => {
@@ -371,18 +299,18 @@ export default function CampaignsPage() {
             body,
             templateType,
             discount,
-            audience
+            // Audience is kept to potentially restrict automation, but defaults rule now
         };
         if (templateType === "ai") payload.aiPrompt = aiPrompt;
         fetcher.submit(payload, { method: "post" });
-        shopify.toast.show(templateType === "ai" ? "AI Campaign Generating & Launching! 🤖🚀" : "Campaign Launched! 🚀");
+        shopify.toast.show(templateType === "ai" ? "AI Automation Activated! 🤖🚀" : "Automation Activated! 🚀");
         setSelectedTab(0);
     };
 
     const handleTest = () => {
         setTesting(true);
         const payload: Record<string, string> = {
-            intent: "test", subject, body, templateType, discount, audience
+            intent: "test", subject, body, templateType, discount
         };
         fetcher.submit(payload, { method: "post" });
         shopify.toast.show("Sending test email to your inbox...");
@@ -390,7 +318,7 @@ export default function CampaignsPage() {
     };
 
     const handleLaunchConfirm = () => {
-        if (confirm("Launch this campaign to your customers now?")) {
+        if (confirm("Set this as your active background sequence for all future orders?")) {
             handleLaunch();
         }
     };
@@ -583,7 +511,8 @@ export default function CampaignsPage() {
                     opacity: 0.6;
                 }
 
-                .tb-name { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-main); font-size: 1.2rem; }
+                .tb-name { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-main); font-size: 1.2rem; display: inline-block; }
+                .tb-name:hover { color: var(--neon-violet); text-decoration: underline; }
                 .tb-meta { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; font-weight: 500; }
                 .tb-stat-val { font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-main); font-size: 1.1rem; }
                 .tb-stat-label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
@@ -784,7 +713,9 @@ export default function CampaignsPage() {
                                         {activeCampaigns.map(c => (
                                             <div key={c.id} className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}>
                                                 <div>
-                                                    <div className="tb-name">{c.name}</div>
+                                                    <Link to={`/app/campaigns/${c.id}`} className="tb-name" style={{ textDecoration: 'none' }}>
+                                                        {c.name}
+                                                    </Link>
                                                     <div className="tb-meta">STATUS: <span style={{ color: c.status === 'active' ? '#34d399' : '#f59e0b' }}>{c.status.toUpperCase()}</span></div>
                                                 </div>
                                                 <div>
@@ -797,6 +728,12 @@ export default function CampaignsPage() {
                                                 </div>
                                                 <div>
                                                     <InlineStack gap="200">
+                                                        {c.status !== "active" && (
+                                                            <Button variant="plain" onClick={() => {
+                                                                fetcher.submit({ intent: "activate", campaignId: c.id }, { method: "post" });
+                                                                shopify.toast.show("Automation engine switched!");
+                                                            }}>Activate Engine</Button>
+                                                        )}
                                                         <Button variant="plain" icon={EditIcon} onClick={() => {
                                                             setRenameId(c.id);
                                                             setRenameValue(c.name);
@@ -918,7 +855,7 @@ export default function CampaignsPage() {
                                 <Button variant="secondary" onClick={handleTest} loading={testing}>Send Test Email</Button>
                                 <div style={{flex: 1}}>
                                     <button className="ignite-btn" style={{marginTop: 0}} onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
-                                        {fetcher.state === "submitting" ? "Launching..." : "Launch Campaign 🚀"}
+                                        {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
                                     </button>
                                 </div>
                             </InlineStack>
@@ -946,9 +883,15 @@ export default function CampaignsPage() {
                                     </div>
 
                                     <div className="holo-email-body">
-                                        {body.replace('{{ name }}', 'Alex').split('\n').map((line, i) => (
-                                            <p key={i} style={{ marginBottom: line ? '1em' : '0' }}>{line}</p>
-                                        ))}
+                                        {body
+                                            .replace(/{{ name }}/g, 'Alex')
+                                            .replace(/{{ store_name }}/g, 'Empire Store')
+                                            .replace(/{{ product_title }}/g, 'Premium Item')
+                                            .replace(/{{ review_link }}/g, '')
+                                            .split('\\n').map((line, i) => (
+                                                <p key={i} style={{ marginBottom: line ? '1em' : '0' }}>{line}</p>
+                                            ))
+                                        }
 
                                         <div style={{ textAlign: 'center', marginTop: '30px' }}>
                                             <div style={{
