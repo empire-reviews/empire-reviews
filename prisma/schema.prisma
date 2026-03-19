@@ -185,6 +185,7 @@ model Order {
 
   @@index([shop])
   @@index([createdAt])
+  @@index([reviewRequestStatus])
 }
 
 // Email Compliance

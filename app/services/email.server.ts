@@ -30,28 +30,39 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
         });
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
 
-        const { data, error } = await resend.emails.send({
-            from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
-            replyTo: replyToEmail, // Replies go straight to the merchant
-            to: [toEmail],
-            subject: `How was your order from ${shopDomain}?`,
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2>Hi ${customerName || 'there'},</h2>
-                    <p>Thank you for buying <strong>${productTitle}</strong>.</p>
-                    <p>We'd love to hear what you think!</p>
-                    <br/>
-                    <a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Write a Review</a>
-                    <br/><br/>
-                    <p style="font-size: 12px; color: #aaa;">
-                        <a href="${unsubscribeLink}">Unsubscribe</a>
-                    </p>
-                </div>
-            `
-        });
+        let data, error;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            const res = await resend.emails.send({
+                from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
+                replyTo: replyToEmail, // Replies go straight to the merchant
+                to: [toEmail],
+                subject: `How was your order from ${shopDomain}?`,
+                html: `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2>Hi ${customerName || 'there'},</h2>
+                        <p>Thank you for buying <strong>${productTitle}</strong>.</p>
+                        <p>We'd love to hear what you think!</p>
+                        <br/>
+                        <a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Write a Review</a>
+                        <br/><br/>
+                        <p style="font-size: 12px; color: #aaa;">
+                            <a href="${unsubscribeLink}">Unsubscribe</a>
+                        </p>
+                    </div>
+                `
+            });
+            data = res.data;
+            error = res.error;
+
+            if (!error || (error as any).statusCode < 500) break; // Don't retry client errors
+            if (attempt < 3) {
+                console.warn(`Resend failed (attempt ${attempt}/3). Retrying...`);
+                await new Promise(r => setTimeout(r, attempt * 1000)); // Exponential backoff
+            }
+        }
 
         if (error) {
-            console.error("Resend Error:", error);
+            console.error("Resend Error after retries:", error);
             return { success: false, error };
         }
 
@@ -111,10 +122,21 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
             payload.tags = [{ name: "sendId", value: trackingId }];
         }
 
-        const { data, error } = await resend.emails.send(payload);
+        let data, error;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            const res = await resend.emails.send(payload);
+            data = res.data;
+            error = res.error;
+
+            if (!error || (error as any).statusCode < 500) break;
+            if (attempt < 3) {
+                console.warn(`Campaign Resend failed (attempt ${attempt}/3). Retrying...`);
+                await new Promise(r => setTimeout(r, attempt * 1000));
+            }
+        }
 
         if (error) {
-            console.error("Campaign Resend Error:", error);
+            console.error("Campaign Resend Error after retries:", error);
             return { success: false, error };
         }
         return { success: true, id: data?.id };

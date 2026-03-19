@@ -292,8 +292,15 @@ export async function callAIForCampaign(
 
     // Parse the JSON output from the AI
     try {
-        // Strip any accidental code fences the AI might add
-        const cleaned = raw.replace(/```json?/gi, "").replace(/```/g, "").trim();
+        let cleaned = raw.replace(/```json?/gi, "").replace(/```/g, "").trim();
+        
+        // Isolate JSON object aggressively in case AI returns conversational filler (e.g. "Here is your JSON:")
+        const jsonStart = cleaned.indexOf("{");
+        const jsonEnd = cleaned.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+            cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+        }
+        
         const parsed = JSON.parse(cleaned);
         if (parsed.subject && parsed.body) {
             return { subject: parsed.subject, body: parsed.body };
