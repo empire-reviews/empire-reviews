@@ -154,11 +154,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "test") {
-        const shopSession = await prisma.session.findFirst({
-            where: { shop: session.shop },
-            select: { email: true }
-        });
-        const sessionEmail = shopSession?.email || "test@empirereviews.com";
+        let sessionEmail = "test@empirereviews.com";
+        try {
+            const emailResponse = await admin.graphql(`
+                #graphql
+                query {
+                    shop {
+                        email
+                    }
+                }
+            `);
+            const shopData = await emailResponse.json();
+            if (shopData.data?.shop?.email) {
+                sessionEmail = shopData.data.shop.email;
+            }
+        } catch (e) {
+            console.error("Failed to fetch shop email from GraphQL", e);
+        }
         const dummyProduct = "Sample Product";
         const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
         
