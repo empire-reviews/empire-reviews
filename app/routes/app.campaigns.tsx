@@ -238,6 +238,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function CampaignsPage() {
     const { stats, activeCampaigns } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
+    const navigate = useNavigate();
 
     const [selectedTab, setSelectedTab] = useState(0);
     const [templateType, setTemplateType] = useState("reciprocity");
@@ -711,11 +712,14 @@ export default function CampaignsPage() {
                                 ) : (
                                     <div className="beam-container">
                                         {activeCampaigns.map(c => (
-                                            <div key={c.id} className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}>
+                                            <div 
+                                                key={c.id} 
+                                                className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => navigate(`/app/campaigns/${c.id}`)}
+                                            >
                                                 <div>
-                                                    <Link to={`/app/campaigns/${c.id}`} className="tb-name" style={{ textDecoration: 'none' }}>
-                                                        {c.name}
-                                                    </Link>
+                                                    <div className="tb-name">{c.name}</div>
                                                     <div className="tb-meta">STATUS: <span style={{ color: c.status === 'active' ? '#34d399' : '#f59e0b' }}>{c.status.toUpperCase()}</span></div>
                                                 </div>
                                                 <div>
@@ -726,7 +730,7 @@ export default function CampaignsPage() {
                                                     <div className="tb-stat-val">{c.openRate}</div>
                                                     <div className="tb-stat-label">OPEN RATE</div>
                                                 </div>
-                                                <div>
+                                                <div onClick={(e) => e.stopPropagation()}>
                                                     <InlineStack gap="200">
                                                         {c.status !== "active" && (
                                                             <Button variant="plain" onClick={() => {
