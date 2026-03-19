@@ -14,7 +14,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     console.log(`Received ${topic} webhook for ${shop}`);
 
+    // Determine Order ID (Standardize on GraphQL ID)
     const orderId = order.admin_graphql_api_id || `gid://shopify/Order/${order.id}`;
+
+    // Extract Primary Product
+    const primaryItem = order.line_items?.[0];
+    const productTitle = primaryItem?.name || primaryItem?.title || undefined;
+    const productId = primaryItem?.product_id ? `gid://shopify/Product/${primaryItem.product_id}` : undefined;
 
     // Try to find fulfillment and delivery dates
     let fulfilledAt: Date | null = null;
@@ -42,6 +48,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 totalPrice: parseFloat(order.total_price),
                 currency: order.currency,
                 customerEmail: order.email || order.customer?.email,
+                ...(productTitle && { productTitle }),
+                ...(productId && { productId }),
                 ...(fulfilledAt && { fulfilledAt }),
                 ...(deliveredAt && { deliveredAt }),
             },

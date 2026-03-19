@@ -20,6 +20,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Webhooks often send integer ID. Convert to string or use admin_graphql_api_id if present.
     const orderId = order.admin_graphql_api_id || `gid://shopify/Order/${order.id}`;
 
+    // Extract Primary Product
+    const primaryItem = order.line_items?.[0];
+    const productTitle = primaryItem?.name || primaryItem?.title || "your recent order";
+    const productId = primaryItem?.product_id ? `gid://shopify/Product/${primaryItem.product_id}` : null;
+
     try {
         // Upsert Order data
         await prisma.order.upsert({
@@ -28,6 +33,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 totalPrice: parseFloat(order.total_price),
                 currency: order.currency,
                 customerEmail: order.email || order.customer?.email,
+                productTitle,
+                productId,
             },
             create: {
                 id: orderId,
@@ -36,6 +43,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 currency: order.currency, // e.g. "USD", "EUR"
                 createdAt: new Date(order.created_at),
                 customerEmail: order.email || order.customer?.email,
+                productTitle,
+                productId,
             }
         });
         console.log(`Processed order ${orderId} for shop ${shop}`);

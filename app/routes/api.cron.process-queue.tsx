@@ -1,6 +1,6 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
-import { sendReviewRequest } from "../services/email.server";
+import { sendCampaignEmail } from "../services/email.server";
 import { unauthenticated } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -122,15 +122,60 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             continue;
         }
 
-        const reviewLink = `https://${order.shop}/account`;
+        // Fetch active psychology template
+        const activeCampaign = await prisma.campaign.findFirst({
+            where: { shop: order.shop, status: "active" }
+        });
 
-        // A. Send Email via Resend
-        const emailResult = await sendReviewRequest(
+        const subjectTemplate = activeCampaign?.subject || "How was your order from {{ store_name }}?";
+        const bodyTemplate = activeCampaign?.body || "Hi {{ name }},\n\nWe hope you're loving your new order!\n\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\n\n{{ review_link }}";
+
+        let reviewLink = `https://${order.shop}/account`;
+        let resolvedProductTitle = order.productTitle || "your recent order";
+
+        // Generate product-specific review link if we know the product
+        if (order.productId) {
+            try {
+                const { admin } = await unauthenticated.admin(order.shop);
+                const response = await admin.graphql(
+                    `#graphql
+                    query getProductHandle($id: ID!) {
+                        product(id: $id) {
+                            handle
+                        }
+                    }`,
+                    { variables: { id: order.productId } }
+                );
+                const pData = await response.json();
+                const handle = pData?.data?.product?.handle;
+                if (handle) {
+                    reviewLink = `https://${order.shop}/products/${handle}#empire-reviews`;
+                }
+            } catch (err) {
+                console.error(`Failed to fetch product handle for ${order.productId}`, err);
+            }
+        }
+
+        const personalizedBody = bodyTemplate
+            .replace(/\\\\n/g, '\\n') // Handle escaped newlines from DB
+            .replace(/\\n/g, '<br/>')
+            .replace(/\n/g, '<br/>')
+            .replace(/{{ name }}/g, "Customer")
+            .replace(/{{ store_name }}/g, order.shop)
+            .replace(/{{ product_title }}/g, resolvedProductTitle)
+            .replace(/{{ review_link }}/g, reviewLink);
+
+        const personalizedSubject = subjectTemplate
+            .replace(/{{ store_name }}/g, order.shop)
+            .replace(/{{ product_title }}/g, resolvedProductTitle);
+
+        // A. Send Email via Resend using Campaign logic
+        const emailResult = await sendCampaignEmail(
+            order.shop,
             order.customerEmail,
-            "Customer",
-            "your recent order",
-            reviewLink,
-            order.shop
+            personalizedSubject,
+            personalizedBody,
+            `cron-${order.id}`
         );
 
         if (emailResult.success) {

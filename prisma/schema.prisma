@@ -176,6 +176,8 @@ model Order {
   fulfilledAt   DateTime? // When order was shipped
   deliveredAt   DateTime? // When order was delivered
   customerEmail String?
+  productTitle  String? // Store primary purchased product name
+  productId     String? // Store primary product ID to fetch handles
 
   // Automation Tracking
   reviewRequestSentAt DateTime?
