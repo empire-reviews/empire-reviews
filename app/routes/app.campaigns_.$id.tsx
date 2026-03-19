@@ -47,11 +47,13 @@ export default function CampaignDetailsPage() {
             title={`Mission Control: ${campaign.name}`}
         >
             <style>{`
+                .Polaris-Page { max-width: 1600px !important; }
                 .holographic-void {
                     background: radial-gradient(circle at top right, #1e1b4b 0%, #0f172a 50%, #000000 100%);
                     color: white;
                     border-radius: 16px;
-                    padding: 2rem;
+                    padding: 3rem;
+                    min-height: 80vh;
                     box-shadow: inset 0 0 100px rgba(124, 58, 237, 0.1);
                 }
                 .prism-card {
@@ -59,21 +61,22 @@ export default function CampaignDetailsPage() {
                     backdrop-filter: blur(16px);
                     border: 1px solid rgba(255, 255, 255, 0.05);
                     border-radius: 16px;
-                    padding: 1.5rem;
+                    padding: 2rem;
                     box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
                     transition: transform 0.3s ease;
                 }
                 .prism-card:hover { border-color: rgba(139, 92, 246, 0.3); }
                 
                 .metric-value { 
-                    font-size: 3rem; 
+                    font-size: 3.5rem; 
                     font-weight: 800; 
-                    font-family: 'Outfit', sans-serif; 
+                    font-family: system-ui, -apple-system, sans-serif; 
                     background: linear-gradient(to right, #fff, #a78bfa); 
                     -webkit-background-clip: text; 
                     -webkit-text-fill-color: transparent; 
-                    line-height: 1.2;
-                    padding: 0.1em 0; 
+                    line-height: 1.1;
+                    padding-bottom: 5px;
+                    display: inline-block;
                 }
                 .metric-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 600; margin-top: 0.5rem; }
                 

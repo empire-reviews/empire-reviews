@@ -130,11 +130,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const subjectTemplate = activeCampaign?.subject || "How was your order from {{ store_name }}?";
         const bodyTemplate = activeCampaign?.body || "Hi {{ name }},\n\nWe hope you're loving your new order!\n\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\n\n{{ review_link }}";
 
-        let reviewLink = `https://${order.shop}/account`;
-        let resolvedProductTitle = order.productTitle || "your recent order";
+        let reviewLink = activeCampaign ? `https://${order.shop}/account?campaignId=${activeCampaign.id}` : `https://${order.shop}/account`;
+        let resolvedProductTitle = (order as any).productTitle || "your recent order";
 
         // Generate product-specific review link if we know the product
-        if (order.productId) {
+        if ((order as any).productId) {
             try {
                 const { admin } = await unauthenticated.admin(order.shop);
                 const response = await admin.graphql(
@@ -149,10 +149,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 const pData = await response.json();
                 const handle = pData?.data?.product?.handle;
                 if (handle) {
-                    reviewLink = `https://${order.shop}/products/${handle}#empire-reviews`;
+                    reviewLink = activeCampaign 
+                        ? `https://${order.shop}/products/${handle}?campaignId=${activeCampaign.id}#empire-reviews`
+                        : `https://${order.shop}/products/${handle}#empire-reviews`;
                 }
             } catch (err) {
-                console.error(`Failed to fetch product handle for ${order.productId}`, err);
+                console.error(`Failed to fetch product handle for ${(order as any).productId}`, err);
             }
         }
 

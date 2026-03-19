@@ -147,6 +147,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
         }
 
+        // 🎯 CAMPAIGN CONVERSION TRACKING (via HTTP Referer)
+        const referer = request.headers.get("Referer");
+        if (referer) {
+            try {
+                const refererUrl = new URL(referer);
+                const campaignId = refererUrl.searchParams.get("campaignId");
+                
+                if (campaignId) {
+                    await prisma.campaignMetrics.updateMany({
+                        where: { campaignId },
+                        data: { totalReviews: { increment: 1 } }
+                    });
+                    console.log(`✅ Conversion tracked to Campaign: ${campaignId}`);
+                }
+            } catch (trackError) {
+                console.error("⚠️ Failed to track campaign conversion:", trackError);
+            }
+        }
+
         return json({ success: true, review }, {
             headers: {
                 "Access-Control-Allow-Origin": "*",
