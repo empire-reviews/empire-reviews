@@ -144,7 +144,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                             handle
                         }
                     }`,
-                    { variables: { id: order.productId } }
+                    { variables: { id: (order as any).productId } }
                 );
                 const pData = await response.json();
                 const handle = pData?.data?.product?.handle;
