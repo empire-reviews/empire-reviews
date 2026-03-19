@@ -42,6 +42,7 @@ export default function CampaignDetailsPage() {
 
     return (
         <Page 
+            fullWidth
             backAction={{ content: 'Back to Missions', onAction: () => navigate('/app/campaigns') }}
             title={`Mission Control: ${campaign.name}`}
         >
@@ -64,7 +65,16 @@ export default function CampaignDetailsPage() {
                 }
                 .prism-card:hover { border-color: rgba(139, 92, 246, 0.3); }
                 
-                .metric-value { font-size: 2.5rem; font-weight: 800; font-family: 'Outfit', sans-serif; background: linear-gradient(to right, #fff, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                .metric-value { 
+                    font-size: 3rem; 
+                    font-weight: 800; 
+                    font-family: 'Outfit', sans-serif; 
+                    background: linear-gradient(to right, #fff, #a78bfa); 
+                    -webkit-background-clip: text; 
+                    -webkit-text-fill-color: transparent; 
+                    line-height: 1.2;
+                    padding: 0.1em 0; 
+                }
                 .metric-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 600; margin-top: 0.5rem; }
                 
                 .glow-table { width: 100%; border-collapse: separate; border-spacing: 0; }
