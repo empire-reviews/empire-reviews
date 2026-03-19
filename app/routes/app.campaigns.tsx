@@ -32,12 +32,15 @@ import {
     ClockIcon,
     CheckIcon,
     ChartVerticalIcon,
-    EditIcon
+    EditIcon,
+    LockIcon
 } from "@shopify/polaris-icons";
+import { hasActivePayment } from "../billing.server";
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { admin, session } = await authenticate.admin(request);
+    const isPro = await hasActivePayment(request);
 
     // 1. Fetch campaigns from DB
     const dbCampaigns = await prisma.campaign.findMany({
@@ -84,7 +87,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             status: c.status,
             sent: c.metrics?.totalSent || 0,
             openRate: c.metrics?.openRate ? `${c.metrics.openRate.toFixed(1)}%` : "0%"
-        }))
+        })),
+        isPro
     });
 };
 
@@ -146,6 +150,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // AI template: generate subject + body using merchant's configured AI provider
     if (templateType === "ai") {
+        const isPro = await hasActivePayment(request);
+        if (!isPro) {
+            return json({ error: "AI Features require Empire Pro." }, { status: 403 });
+        }
+
         const aiPrompt = formData.get("aiPrompt") as string;
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
 
@@ -234,7 +243,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CampaignsPage() {
-    const { stats, activeCampaigns, mockData } = useLoaderData<typeof loader>();
+    const { stats, activeCampaigns, mockData, isPro } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
 
@@ -675,6 +684,61 @@ export default function CampaignsPage() {
                     border-color: #7c3aed !important;
                     box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
                 }
+
+                /* --- PRO LOCK OVERLAY --- */
+                .locked-container {
+                    position: relative;
+                }
+                .is-locked {
+                    filter: blur(8px);
+                    pointer-events: none;
+                    user-select: none;
+                    opacity: 0.6;
+                }
+                .pro-overlay {
+                    position: absolute;
+                    inset: 0;
+                    z-index: 100;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 24px;
+                }
+                .pro-upsell-card {
+                    background: white;
+                    padding: 2.5rem;
+                    border-radius: 20px;
+                    text-align: center;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    border: 1px solid #e2e8f0;
+                    max-width: 320px;
+                    transform-style: preserve-3d;
+                    transition: transform 0.3s;
+                }
+                .pro-upsell-card:hover {
+                    transform: translateY(-5px) rotateX(2deg);
+                }
+                .pro-btn-3d {
+                    margin-top: 1.5rem;
+                    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+                    color: white;
+                    padding: 1rem 2rem;
+                    border-radius: 12px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+                    transition: all 0.3s;
+                    display: inline-block;
+                    text-decoration: none;
+                }
+                .pro-btn-3d:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4);
+                }
             `}</style>
 
             <Page fullWidth>
@@ -832,59 +896,78 @@ export default function CampaignsPage() {
                                 </Text>
                             </div>
 
-                            <BlockStack gap="400">
-                                <Text as="h3" variant="headingMd" tone="magic">2. Audience Segmentation</Text>
-                                <Select
-                                    label="Target Audience"
-                                    options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]}
-                                    value={audience}
-                                    onChange={setAudience}
-                                    helpText="We automatically exclude customers who have already reviewed or unsubscribed."
-                                />
-                            </BlockStack>
-                            <br/>
+                            <div className="locked-container">
+                                {templateType === 'ai' && !isPro && (
+                                    <div className="pro-overlay">
+                                        <div className="pro-upsell-card">
+                                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+                                            <Text as="h2" variant="headingLg" fontWeight="bold">Unlock AI Power</Text>
+                                            <p style={{ color: '#64748b', marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                                                Empire Pro members can use AI to instantly write high-converting review requests.
+                                            </p>
+                                            <Link to="/app/plans" className="pro-btn-3d">
+                                                Upgrade to Pro
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
 
-                            <BlockStack gap="400">
-                                <Text as="h3" variant="headingMd" tone="magic">3. Customize Content</Text>
-                                <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
-                                    <strong>Available merge tags:</strong> <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ store_name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ product_title }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ review_link }}"}</code>
+                                <div className={templateType === 'ai' && !isPro ? 'is-locked' : ''}>
+                                    <BlockStack gap="400">
+                                        <Text as="h3" variant="headingMd" tone="magic">2. Audience Segmentation</Text>
+                                        <Select
+                                            label="Target Audience"
+                                            options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]}
+                                            value={audience}
+                                            onChange={setAudience}
+                                            helpText="We automatically exclude customers who have already reviewed or unsubscribed."
+                                        />
+                                    </BlockStack>
+                                    <br/>
+
+                                    <BlockStack gap="400">
+                                        <Text as="h3" variant="headingMd" tone="magic">3. Customize Content</Text>
+                                        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
+                                            <strong>Available merge tags:</strong> <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ store_name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ product_title }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ review_link }}"}</code>
+                                        </div>
+                                        {templateType === 'reciprocity' && (
+                                            <TextField
+                                                label="Discount Code Name (e.g. SAVE15)"
+                                                value={discount}
+                                                onChange={(v) => {
+                                                    setDiscount(v);
+                                                }}
+                                                autoComplete="off"
+                                                helpText="Make sure to manually create this exact code in your Shopify Admin -> Discounts."
+                                            />
+                                        )}
+                                        {templateType === 'ai' ? (
+                                            <TextField
+                                                label="What should the AI write? (Your prompt)"
+                                                value={aiPrompt}
+                                                onChange={setAiPrompt}
+                                                multiline={4}
+                                                autoComplete="off"
+                                                placeholder="e.g. Write a friendly review request email for a skincare brand. Mention we care about honest feedback and offer a 10% discount on next order."
+                                                helpText="Your AI provider configured in Settings will generate the subject line and email body."
+                                            />
+                                        ) : (
+                                            <>
+                                                <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off" />
+                                                <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off" />
+                                            </>
+                                        )}
+                                    </BlockStack>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem' }}>
+                                        <button className="test-btn" onClick={handleTest} disabled={testing}>
+                                            {testing ? "Sending..." : "Send Test 📧"}
+                                        </button>
+                                        <button className="ignite-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
+                                            {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
+                                        </button>
+                                    </div>
                                 </div>
-                                {templateType === 'reciprocity' && (
-                                    <TextField
-                                        label="Discount Code Name (e.g. SAVE15)"
-                                        value={discount}
-                                        onChange={(v) => {
-                                            setDiscount(v);
-                                        }}
-                                        autoComplete="off"
-                                        helpText="Make sure to manually create this exact code in your Shopify Admin -> Discounts."
-                                    />
-                                )}
-                                {templateType === 'ai' ? (
-                                    <TextField
-                                        label="What should the AI write? (Your prompt)"
-                                        value={aiPrompt}
-                                        onChange={setAiPrompt}
-                                        multiline={4}
-                                        autoComplete="off"
-                                        placeholder="e.g. Write a friendly review request email for a skincare brand. Mention we care about honest feedback and offer a 10% discount on next order."
-                                        helpText="Your AI provider configured in Settings will generate the subject line and email body."
-                                    />
-                                ) : (
-                                    <>
-                                        <TextField label="Subject Line" value={subject} onChange={setSubject} autoComplete="off" />
-                                        <TextField label="Email Body" value={body} onChange={setBody} multiline={6} autoComplete="off" />
-                                    </>
-                                )}
-                            </BlockStack>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem' }}>
-                                <button className="test-btn" onClick={handleTest} disabled={testing}>
-                                    {testing ? "Sending..." : "Send Test 📧"}
-                                </button>
-                                <button className="ignite-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
-                                    {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
-                                </button>
                             </div>
                         </div>
 
