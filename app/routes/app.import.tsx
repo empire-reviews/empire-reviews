@@ -642,6 +642,82 @@ export default function ImportPage() {
                             </div>
                         </div>
 
+                        {/* RIGHT COLUMN: CSV FORMAT GUIDE */}
+                        <div className="tilt-card" style={{
+                            background: 'white',
+                            borderRadius: '40px',
+                            padding: '3rem',
+                            boxShadow: '0 40px 80px -15px rgba(0,0,0,0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.1)',
+                            position: 'sticky',
+                            top: '2rem'
+                        }}>
+                            <BlockStack gap="500">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ fontSize: '1.8rem' }}>📋</div>
+                                    <BlockStack gap="100">
+                                        <Text as="h2" variant="headingMd" fontWeight="bold">CSV Column Reference</Text>
+                                        <Text as="p" tone="subdued" variant="bodySm">Accepted column names for each field</Text>
+                                    </BlockStack>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[
+                                        { field: '⭐ Rating',       required: true,  type: 'Number (1–5)',         accepts: ['rating', 'stars', 'star'],                                    color: '#fbbf24', bg: '#fffbeb' },
+                                        { field: '💬 Review Body',  required: true,  type: 'Text (long)',          accepts: ['body', 'content', 'review', 'text', 'comment', 'reviewbody'], color: '#10b981', bg: '#ecfdf5' },
+                                        { field: '👤 Customer Name',required: false, type: 'Text',                accepts: ['name', 'author', 'customer', 'reviewer', 'customername'],      color: '#6366f1', bg: '#eef2ff' },
+                                        { field: '📧 Email',        required: false, type: 'Email address',       accepts: ['email', 'customeremail', 'revieweremail'],                     color: '#3b82f6', bg: '#eff6ff' },
+                                        { field: '🏷️ Review Title', required: false, type: 'Text (short)',        accepts: ['title', 'headline', 'reviewtitle'],                            color: '#8b5cf6', bg: '#f5f3ff' },
+                                        { field: '📅 Date',         required: false, type: 'Date / Timestamp',    accepts: ['date', 'createdat', 'reviewdate', 'timestamp'],                color: '#64748b', bg: '#f8fafc' },
+                                        { field: '🔗 Product',      required: false, type: 'Handle or URL',       accepts: ['handle', 'product_handle', 'product_url', 'productlink'],     color: '#f59e0b', bg: '#fffbeb' },
+                                        { field: '🖼️ Images',       required: false, type: 'Comma-separated URLs',accepts: ['picture_urls', 'images', 'photos', 'media'],                  color: '#06b6d4', bg: '#ecfeff' },
+                                        { field: '💬 Owner Reply',  required: false, type: 'Text',                accepts: ['reply', 'response', 'ownerreply'],                             color: '#10b981', bg: '#ecfdf5' },
+                                    ].map((row, i) => (
+                                        <div key={i} className="blueprint-row" style={{
+                                            background: row.bg,
+                                            borderRadius: '12px',
+                                            padding: '10px 14px',
+                                            border: `1px solid ${row.color}22`
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Text as="p" variant="bodySm" fontWeight="bold">{row.field}</Text>
+                                                    {row.required && (
+                                                        <span style={{ fontSize: '0.6rem', background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>REQ</span>
+                                                    )}
+                                                </div>
+                                                <Text as="p" variant="bodyXs" tone="subdued">{row.type}</Text>
+                                            </div>
+                                            <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                {row.accepts.map((a, j) => (
+                                                    <code key={j} style={{
+                                                        fontSize: '0.7rem',
+                                                        background: 'white',
+                                                        border: `1px solid ${row.color}44`,
+                                                        color: row.color,
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        fontFamily: 'monospace'
+                                                    }}>{a}</code>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{
+                                    background: '#f0fdf4',
+                                    border: '1px solid #10b981',
+                                    borderRadius: '12px',
+                                    padding: '12px 14px',
+                                    fontSize: '0.8rem',
+                                    color: '#065f46',
+                                    lineHeight: '1.6'
+                                }}>
+                                    💡 <strong>Tip:</strong> Column names are auto-detected. Exports from <strong>Judge.me, Loox, Yotpo</strong> and <strong>Okendo</strong> work without any changes.
+                                </div>
+                            </BlockStack>
+                        </div>
                     </div>
                 )}
 
