@@ -550,13 +550,13 @@ export default function ImportPage() {
                 {step === 1 && (
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'minmax(400px, 1.3fr) 1fr',
+                        gridTemplateColumns: 'minmax(400px, 1fr) 1.5fr',
                         gap: '3rem',
                         alignItems: 'stretch',
                         perspective: '2000px'
                     }}>
                         {/* LEFT COLUMN: ACTION & TRUST */}
-                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
                             {/* MODULE 1: THE PORTAL (UPLOAD) */}
                             <div className="tilt-card" style={{
                                 background: 'white',
@@ -649,19 +649,20 @@ export default function ImportPage() {
                             padding: '3rem',
                             boxShadow: '0 40px 80px -15px rgba(0,0,0,0.1)',
                             border: '1px solid rgba(16, 185, 129, 0.1)',
-                            position: 'sticky',
-                            top: '2rem'
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between'
                         }}>
-                            <BlockStack gap="500">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ fontSize: '1.8rem' }}>📋</div>
-                                    <BlockStack gap="100">
-                                        <Text as="h2" variant="headingMd" fontWeight="bold">CSV Column Reference</Text>
-                                        <Text as="p" tone="subdued" variant="bodySm">Accepted column names for each field</Text>
-                                    </BlockStack>
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
+                                <div style={{ fontSize: '1.8rem' }}>📋</div>
+                                <BlockStack gap="100">
+                                    <Text as="h2" variant="headingMd" fontWeight="bold">CSV Column Reference</Text>
+                                    <Text as="p" tone="subdued" variant="bodySm">Accepted column names for each field</Text>
+                                </BlockStack>
+                            </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                                     {[
                                         { field: '⭐ Rating',       required: true,  type: 'Number (1–5)',         accepts: ['rating', 'stars', 'star'],                                    color: '#fbbf24', bg: '#fffbeb' },
                                         { field: '💬 Review Body',  required: true,  type: 'Text (long)',          accepts: ['body', 'content', 'review', 'text', 'comment', 'reviewbody'], color: '#10b981', bg: '#ecfdf5' },
@@ -716,7 +717,6 @@ export default function ImportPage() {
                                 }}>
                                     💡 <strong>Tip:</strong> Column names are auto-detected. Exports from <strong>Judge.me, Loox, Yotpo</strong> and <strong>Okendo</strong> work without any changes.
                                 </div>
-                            </BlockStack>
                         </div>
                     </div>
                 )}
