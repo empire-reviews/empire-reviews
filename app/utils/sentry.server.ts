@@ -14,11 +14,6 @@ export function initSentry() {
         return;
     }
 
-    if (process.env.NODE_ENV !== "production") {
-        console.log("⚠️ Sentry disabled in development mode");
-        return;
-    }
-
     try {
         Sentry.init({
             dsn: dsn,
@@ -47,6 +42,10 @@ export function initSentry() {
 
                 return event;
             },
+
+            integrations: [
+                new Sentry.Integrations.Prisma({ client: require("../db.server").default }),
+            ],
         });
 
         sentryInitialized = true;
