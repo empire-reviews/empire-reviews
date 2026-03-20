@@ -47,3 +47,27 @@ export function validateEnvironment() {
         console.log('✅ Environment variables validated');
     }
 }
+
+/**
+ * Sanitize environment variables by trimming whitespace.
+ * Prevents subtle bugs from copy-pasted values with trailing spaces.
+ */
+export function sanitizeEnvironment() {
+    const varsToSanitize = [
+        'SHOPIFY_API_KEY',
+        'SHOPIFY_API_SECRET',
+        'SHOPIFY_APP_URL',
+        'DATABASE_URL',
+        'RESEND_API_KEY',
+        'CRON_SECRET',
+        'UNSUBSCRIBE_SECRET',
+        'SENTRY_DSN',
+        'verified_domain',
+    ];
+
+    varsToSanitize.forEach(varName => {
+        if (process.env[varName]) {
+            process.env[varName] = process.env[varName]!.trim();
+        }
+    });
+}

@@ -7,10 +7,11 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
-import { validateEnvironment } from "./utils/env.server";
+import { validateEnvironment, sanitizeEnvironment } from "./utils/env.server";
 import { initSentry, Sentry } from "./utils/sentry.server";
 
-// Validate all required env vars at startup — fail fast in production
+// Sanitize env vars (trim whitespace) then validate — fail fast in production
+sanitizeEnvironment();
 validateEnvironment();
 
 // Initialize Sentry error tracking
