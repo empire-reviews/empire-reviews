@@ -8,54 +8,57 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
 
     if (sendId) {
         try {
-            const send = await prisma.campaignSend.findUnique({ where: { id: sendId } });
+            // Use a transaction to prevent race conditions on concurrent clicks
+            await prisma.$transaction(async (tx) => {
+                const send = await tx.campaignSend.findUnique({ where: { id: sendId } });
 
-            if (send) {
-                const updates: any = {};
-                const metricUpdates: any = {
-                    totalClicked: { increment: 1 }
-                };
+                if (send) {
+                    const updates: any = {};
+                    const metricIncrements: any = {
+                        totalClicked: { increment: 1 }
+                    };
 
-                // 1. Always track the click
-                if (!send.clickedAt) {
-                    updates.clickedAt = new Date();
-                }
+                    // 1. Always track the click
+                    if (!send.clickedAt) {
+                        updates.clickedAt = new Date();
+                    }
 
-                // 2. INFER OPEN: If they clicked, they must have opened it
-                // This fixes cases where pixels are blocked
-                if (!send.openedAt) {
-                    updates.openedAt = new Date();
-                    metricUpdates.totalOpened = { increment: 1 };
-                }
+                    // 2. INFER OPEN: If they clicked, they must have opened it
+                    if (!send.openedAt) {
+                        updates.openedAt = new Date();
+                        metricIncrements.totalOpened = { increment: 1 };
+                    }
 
-                if (Object.keys(updates).length > 0) {
-                    await prisma.campaignSend.update({
-                        where: { id: sendId },
-                        data: updates
-                    });
-
-                    // Update aggregate metrics
-                    await prisma.campaignMetrics.update({
-                        where: { campaignId: send.campaignId },
-                        data: metricUpdates
-                    });
-
-                    // Recalculate rates
-                    const metrics = await prisma.campaignMetrics.findUnique({ where: { campaignId: send.campaignId } });
-                    if (metrics) {
-                        const newClickRate = metrics.totalSent > 0 ? (metrics.totalClicked / metrics.totalSent) * 100 : 0;
-                        const newOpenRate = metrics.totalSent > 0 ? (metrics.totalOpened / metrics.totalSent) * 100 : 0;
-
-                        await prisma.campaignMetrics.update({
-                            where: { id: metrics.id },
-                            data: {
-                                clickRate: newClickRate,
-                                openRate: newOpenRate
-                            }
+                    if (Object.keys(updates).length > 0) {
+                        await tx.campaignSend.update({
+                            where: { id: sendId },
+                            data: updates
                         });
+
+                        // Fetch current metrics for rate recalculation
+                        const metrics = await tx.campaignMetrics.findUnique({
+                            where: { campaignId: send.campaignId }
+                        });
+
+                        if (metrics) {
+                            const newTotalClicked = metrics.totalClicked + 1;
+                            const newTotalOpened = metricIncrements.totalOpened
+                                ? metrics.totalOpened + 1
+                                : metrics.totalOpened;
+                            const totalSent = metrics.totalSent || 1;
+
+                            await tx.campaignMetrics.update({
+                                where: { campaignId: send.campaignId },
+                                data: {
+                                    ...metricIncrements,
+                                    clickRate: (newTotalClicked / totalSent) * 100,
+                                    openRate: (newTotalOpened / totalSent) * 100
+                                }
+                            });
+                        }
                     }
                 }
-            }
+            });
         } catch (error) {
             console.error("Failed to track click:", error);
         }

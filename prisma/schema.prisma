@@ -136,6 +136,9 @@ model CampaignSend {
 
   @@index([campaignId])
   @@index([customerEmail])
+  @@index([sentAt])    // For time-series analytics
+  @@index([openedAt])
+  @@index([clickedAt])
 }
 
 model CampaignMetrics {
@@ -186,6 +189,10 @@ model Order {
   @@index([shop])
   @@index([createdAt])
   @@index([reviewRequestStatus])
+  @@index([shop, reviewRequestStatus]) // Composite index for cron job queries
+  @@index([customerEmail])             // For unsubscribe checks
+  @@index([fulfilledAt])
+  @@index([deliveredAt])
 }
 
 // Email Compliance

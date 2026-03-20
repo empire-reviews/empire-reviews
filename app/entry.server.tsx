@@ -7,6 +7,10 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { validateEnvironment } from "./utils/env.server";
+
+// Validate all required env vars at startup — fail fast in production
+validateEnvironment();
 
 export const streamTimeout = 5000;
 

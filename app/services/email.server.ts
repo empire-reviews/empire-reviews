@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import prisma from '../db.server';
+import { generateUnsubscribeToken } from '../utils/crypto.server';
 
 export const sendReviewRequest = async (toEmail: string, customerName: string, productTitle: string, reviewLink: string, shopDomain: string) => {
     // 1. Check if user is unsubscribed
@@ -19,8 +20,15 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
     }
 
     const resend = new Resend(apiKey);
-    const appUrl = (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim();
-    const unsubscribeLink = `${appUrl}/api/unsubscribe?email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
+    const appUrl = process.env.SHOPIFY_APP_URL;
+    if (!appUrl) {
+        console.error("Missing SHOPIFY_APP_URL");
+        return { success: false, error: "Configuration Error" };
+    }
+
+    // Signed unsubscribe link to prevent URL tampering
+    const token = generateUnsubscribeToken(toEmail, shopDomain);
+    const unsubscribeLink = `${appUrl.trim()}/api/unsubscribe?token=${token}&email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
 
     try {
         // Fetch the store owner's email to use as Reply-To
@@ -30,11 +38,14 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
         });
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
 
+        // CAN-SPAM compliant footer with physical address
+        const footer = buildComplianceFooter(shopDomain, unsubscribeLink);
+
         let data, error;
         for (let attempt = 1; attempt <= 3; attempt++) {
             const res = await resend.emails.send({
-                from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
-                replyTo: replyToEmail, // Replies go straight to the merchant
+                from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`,
+                replyTo: replyToEmail,
                 to: [toEmail],
                 subject: `How was your order from ${shopDomain}?`,
                 html: `
@@ -44,12 +55,13 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
                         <p>We'd love to hear what you think!</p>
                         <br/>
                         <a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Write a Review</a>
-                        <br/><br/>
-                        <p style="font-size: 12px; color: #aaa;">
-                            <a href="${unsubscribeLink}">Unsubscribe</a>
-                        </p>
+                        ${footer}
                     </div>
-                `
+                `,
+                headers: {
+                    'List-Unsubscribe': `<${unsubscribeLink}>`,
+                    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+                }
             });
             data = res.data;
             error = res.error;
@@ -87,21 +99,16 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
     if (!apiKey) return { success: false, error: "Configuration Error" };
 
     const resend = new Resend(apiKey);
-    const appUrl = (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim();
-    const unsubscribeLink = `${appUrl}/api/unsubscribe?email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
+    const appUrl = process.env.SHOPIFY_APP_URL;
+    if (!appUrl) return { success: false, error: "Configuration Error" };
+
+    // Signed unsubscribe link to prevent URL tampering
+    const token = generateUnsubscribeToken(toEmail, shopDomain);
+    const unsubscribeLink = `${appUrl.trim()}/api/unsubscribe?token=${token}&email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
 
     try {
-        // Convert newlines to breaks for simple text bodies if needed, 
-        // but usually we pass HTML or perform simple formatting.
-        // For compliance, always include unsubscribe link.
-        const footer = `
-            <br/><br/>
-            <hr style="border: 0; border-top: 1px solid #eee;" />
-            <p style="font-size: 11px; color: #aaa; text-align: center;">
-                Sent by ${shopDomain} via Empire Reviews.<br/>
-                <a href="${unsubscribeLink}">Unsubscribe</a>
-            </p>
-        `;
+        // CAN-SPAM compliant footer with physical address
+        const footer = buildComplianceFooter(shopDomain, unsubscribeLink);
 
         // Fetch the store owner's email to use as Reply-To
         const shopSession = await prisma.session.findFirst({
@@ -111,11 +118,15 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
 
         const payload: any = {
-            from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`, // Dynamically uses Store Name
-            replyTo: replyToEmail, // Replies go straight to the merchant
+            from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`,
+            replyTo: replyToEmail,
             to: [toEmail],
             subject: subject,
-            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\\n/g, '<br/>')}</div>${footer}`
+            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\\n/g, '<br/>')}</div>${footer}`,
+            headers: {
+                'List-Unsubscribe': `<${unsubscribeLink}>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+            }
         };
 
         if (trackingId) {
@@ -146,3 +157,27 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
         return { success: false, error: e };
     }
 };
+
+/**
+ * Build a CAN-SPAM compliant email footer.
+ * Includes shop identity, physical address reference, and unsubscribe link.
+ */
+function buildComplianceFooter(shopDomain: string, unsubscribeLink: string): string {
+    return `
+        <br/><br/>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 11px; color: #888; line-height: 1.6;">
+            <tr>
+                <td align="center">
+                    <p style="margin: 0 0 8px 0;">Sent by <strong>${shopDomain}</strong> via Empire Reviews</p>
+                    <p style="margin: 0 0 8px 0;">Address on file with merchant</p>
+                    <p style="margin: 0;">
+                        <a href="${unsubscribeLink}" style="color: #888; text-decoration: underline;">
+                            Unsubscribe from future emails
+                        </a>
+                    </p>
+                </td>
+            </tr>
+        </table>
+    `;
+}
