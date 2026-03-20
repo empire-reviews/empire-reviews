@@ -552,11 +552,11 @@ export default function ImportPage() {
                         display: 'grid',
                         gridTemplateColumns: 'minmax(400px, 1.3fr) 1fr',
                         gap: '3rem',
-                        alignItems: 'start',
+                        alignItems: 'stretch',
                         perspective: '2000px'
                     }}>
                         {/* LEFT COLUMN: ACTION & TRUST */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
                             {/* MODULE 1: THE PORTAL (UPLOAD) */}
                             <div className="tilt-card" style={{
                                 background: 'white',
