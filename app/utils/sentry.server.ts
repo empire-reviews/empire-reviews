@@ -42,10 +42,6 @@ export function initSentry() {
 
                 return event;
             },
-
-            integrations: [
-                new Sentry.Integrations.Prisma({ client: require("../db.server").default }),
-            ],
         });
 
         sentryInitialized = true;
