@@ -3,6 +3,7 @@ import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
 import { unauthenticated } from "../shopify.server";
 import { sendWithRateLimit } from "../utils/rate-limiter.server";
+import { Sentry } from "../utils/sentry.server";
 
 // Named constants — no magic numbers
 const CRON_CONFIG = {
@@ -193,6 +194,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                     );
                 } catch (shopifyError) {
                     console.error("Failed to update Shopify Order timeline:", shopifyError);
+
+                    Sentry.captureException(shopifyError, {
+                        tags: {
+                            operation: 'shopify_timeline_update',
+                            shop: order.shop,
+                        },
+                        extra: {
+                            orderId: order.id,
+                        }
+                    });
                 }
 
                 return { orderId: order.id, status: "sent" };

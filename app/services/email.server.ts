@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import prisma from '../db.server';
 import { generateUnsubscribeToken } from '../utils/crypto.server';
+import { Sentry } from '../utils/sentry.server';
 
 export const sendReviewRequest = async (toEmail: string, customerName: string, productTitle: string, reviewLink: string, shopDomain: string) => {
     // 1. Check if user is unsubscribed
@@ -81,6 +82,19 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
         return { success: true, id: data?.id };
     } catch (e) {
         console.error("Email Send Exception:", e);
+
+        Sentry.captureException(e, {
+            tags: {
+                operation: 'review_request_send',
+                shop: shopDomain,
+            },
+            extra: {
+                toEmail,
+                customerName,
+                productTitle,
+            }
+        });
+
         return { success: false, error: e };
     }
 };
@@ -154,6 +168,19 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
 
     } catch (e) {
         console.error("Campaign Send Exception:", e);
+
+        Sentry.captureException(e, {
+            tags: {
+                operation: 'campaign_email_send',
+                shop: shopDomain,
+            },
+            extra: {
+                toEmail,
+                subject,
+                trackingId,
+            }
+        });
+
         return { success: false, error: e };
     }
 };

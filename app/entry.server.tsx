@@ -8,9 +8,13 @@ import {
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
 import { validateEnvironment } from "./utils/env.server";
+import { initSentry, Sentry } from "./utils/sentry.server";
 
 // Validate all required env vars at startup — fail fast in production
 validateEnvironment();
+
+// Initialize Sentry error tracking
+initSentry();
 
 export const streamTimeout = 5000;
 
@@ -52,6 +56,9 @@ export default async function handleRequest(
         onError(error) {
           responseStatusCode = 500;
           console.error(error);
+
+          // Send error to Sentry
+          Sentry.captureException(error);
         },
       }
     );
