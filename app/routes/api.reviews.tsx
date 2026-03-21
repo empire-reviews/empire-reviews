@@ -229,7 +229,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             });
             const total = allReviews.length;
             const average = total === 0 ? 0 : allReviews.reduce((acc, r) => acc + r.rating, 0) / total;
-            stats = { total, average };
+            const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            allReviews.forEach((r: any) => { if (Math.round(r.rating) >= 1 && Math.round(r.rating) <= 5) distribution[Math.round(r.rating) as keyof typeof distribution]++; });
+            stats = { total, average, distribution };
         } else if (!productId && shop) {
             // Global Stats (for Trust Badge) - filter by shop to prevent data leaks
             const allReviews = await prisma.review.findMany({
@@ -238,7 +240,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             });
             const total = allReviews.length;
             const average = total === 0 ? 0 : allReviews.reduce((acc, r) => acc + r.rating, 0) / total;
-            stats = { total, average };
+            const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            allReviews.forEach((r: any) => { if (Math.round(r.rating) >= 1 && Math.round(r.rating) <= 5) distribution[Math.round(r.rating) as keyof typeof distribution]++; });
+            stats = { total, average, distribution };
         }
 
         return json(
