@@ -36,6 +36,8 @@
 <div 
   class="empire-carousel-container" 
   data-block-id="{{ block.id }}"
+  data-shop="{{ shop.permanent_domain }}"
+  data-app-url="{{ shop.metafields.empire.app_url | default: 'https://empire-reviews.vercel.app' }}"
   data-mobile-cols="{{ block.settings.mobile_columns }}"
   data-desktop-cols="{{ block.settings.desktop_columns }}"
   data-gap="{{ block.settings.gap }}"

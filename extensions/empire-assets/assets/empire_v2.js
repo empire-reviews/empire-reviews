@@ -7,7 +7,18 @@
     if (window.empireV2Initialized) return;
     window.empireV2Initialized = true;
 
-    const API_BASE = '/apps/empire-reviews/api/reviews';
+    // Helper to build fully-qualified cross-origin API URLs bypassing the App Proxy
+    function getApiUrl(container, params = '') {
+        const appUrl = (container.dataset.appUrl || window.EMPIRE_APP_URL || 'https://empire-reviews.vercel.app').replace(/\/$/, '');
+        const shop = container.dataset.shop || (window.Shopify && window.Shopify.shop) || '';
+        let url = `${appUrl}/api/reviews${params ? (params.startsWith('?') ? params : `?${params}`) : ''}`;
+        
+        // Ensure shop is always included in the query for multi-tenant routing
+        if (shop && !url.includes('shop=')) {
+            url += `${url.includes('?') ? '&' : '?'}shop=${encodeURIComponent(shop)}`;
+        }
+        return url;
+    }
 
     // === Carousel Widget ===
     async function initCarousel() {
@@ -27,11 +38,13 @@
                 const gap     = parseInt(container.dataset.gap || '20');
                 const showVer = container.dataset.verified !== 'false';
 
-                const res = await fetch(`${API_BASE}?minRating=4&limit=12`);
+                const apiUrl = getApiUrl(container, '?minRating=4&limit=12');
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('API returning error');
                 const { reviews } = await res.json();
 
                 if (!reviews || !reviews.length) {
-                    track.innerHTML = '<p style="opacity:0.5;text-align:center;">No reviews yet.</p>';
+                    track.innerHTML = '<p style="opacity:0.5;text-align:center;width:100%;">No reviews yet.</p>';
                     return;
                 }
 
@@ -46,7 +59,7 @@
                     const name  = r.customerName || 'Anonymous';
                     const date  = new Date(r.createdAt || Date.now()).toLocaleDateString();
                     const bodyText = r.body ? (r.body.length > 150 ? r.body.substring(0, 150) + '…' : r.body) : '';
-                    const verified = (showVer && r.verified) ? '<span class="empire-verified-badge">✓ Verified</span>' : '';
+                    const verified = (showVer && r.verified) ? '<span class="empire-verified-badge" style="color:#16a34a;font-size:0.75em;font-weight:600;">✓ Verified</span>' : '';
 
                     return `
                         <div class="empire-carousel-card" style="
@@ -68,6 +81,8 @@
                 }).join('');
             } catch (e) {
                 console.error('Carousel load failed:', e);
+                const track = container.querySelector('.empire-carousel-track');
+                if (track) track.innerHTML = '<p style="opacity:0.5;text-align:center;width:100%;">Unable to load reviews.</p>';
             }
         });
     }
@@ -118,7 +133,8 @@
 
         // Fetch and show live rating on button
         if (rating) {
-            fetch(`${API_BASE}?shop=${window.Shopify?.shop || ''}&limit=1`)
+            const apiUrl = getApiUrl(config, '?limit=1');
+            fetch(apiUrl)
                 .then(r => r.json())
                 .then(data => {
                     if (data.stats && data.stats.total > 0) {
@@ -171,7 +187,9 @@
                 const overlay = container.dataset.overlay || '#000000';
                 const opacity = (parseInt(container.dataset.opacity || '20') / 100);
 
-                const res = await fetch(`${API_BASE}?mediaOnly=true&limit=24`);
+                const apiUrl = getApiUrl(container, '?mediaOnly=true&limit=24');
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('API returning error');
                 const { reviews } = await res.json();
 
                 const mediaItems = reviews
@@ -223,11 +241,13 @@
                 }
             } catch (e) {
                 console.error('Media grid load failed:', e);
+                const grid = container.querySelector('.empire-media-grid');
+                if (grid) grid.innerHTML = '<p style="opacity:0.5;text-align:center;grid-column:1/-1;">Unable to load photos.</p>';
             }
         });
     }
 
-    // === Review Widget (lazy-load full version) ===
+    // === Review Widget ===
     async function initReviewWidgets() {
         const containers = document.querySelectorAll('.empire-reviews-widget');
         if (!containers.length) return;
@@ -238,49 +258,20 @@
             if (inner) inner.innerHTML = '<div class="empire-loading">Loading reviews…</div>';
         });
 
-        // Lazy-load full widget module if URL is provided
-        const firstWidget = document.querySelector('.empire-reviews-widget');
-        const fullJsUrl = firstWidget?.dataset.fullJs;
-
-        if (fullJsUrl) {
-            if (window.Empire && window.Empire.renderFullWidget) {
-                const innerContainers = document.querySelectorAll('.empire-reviews-container');
-                window.Empire.renderFullWidget(innerContainers, API_BASE);
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = fullJsUrl;
-            script.async = true;
-
-            script.onload = () => {
-                const innerContainers = document.querySelectorAll('.empire-reviews-container');
-                if (window.Empire && window.Empire.renderFullWidget) {
-                    window.Empire.renderFullWidget(innerContainers, API_BASE);
-                } else {
-                    console.warn("Empire full module loaded but renderFullWidget missing, using basic renderer.");
-                    renderBasicReviews(document.querySelectorAll('.empire-reviews-container'));
-                }
-            };
-
-            script.onerror = () => {
-                console.warn("Empire full module failed to load, using basic renderer.");
-                renderBasicReviews(document.querySelectorAll('.empire-reviews-container'));
-            };
-
-            document.head.appendChild(script);
-        } else {
-            renderBasicReviews(document.querySelectorAll('.empire-reviews-container'));
-        }
+        // Use strict basic rendering as full JS module isn't strictly necessary with our advanced basic engine
+        renderBasicReviews(document.querySelectorAll('.empire-reviews-container'));
     }
 
     async function renderBasicReviews(containers) {
         containers.forEach(async (container) => {
+            const widget = container.closest('.empire-reviews-widget');
             try {
-                const productId = container.closest('.empire-reviews-widget')?.dataset.productId;
+                const productId = widget?.dataset.productId;
                 if (!productId) { container.innerHTML = '<p>No product detected.</p>'; return; }
 
-                const res = await fetch(`${API_BASE}?productId=${productId}`);
+                const apiUrl = getApiUrl(widget, `?productId=${productId}`);
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('API returning error');
                 const { reviews, stats } = await res.json();
 
                 if (!reviews || !reviews.length) {
@@ -290,8 +281,8 @@
 
                 const avg   = stats ? stats.average.toFixed(1) : '0';
                 const total = stats ? stats.total : reviews.length;
-                const starColor = getComputedStyle(container.closest('.empire-reviews-widget')).getPropertyValue('--empire-star-color').trim() || '#fbbf24';
-                const verifiedColor = getComputedStyle(container.closest('.empire-reviews-widget')).getPropertyValue('--empire-verified-color').trim() || '#16a34a';
+                const starColor = getComputedStyle(widget).getPropertyValue('--empire-star-color').trim() || '#fbbf24';
+                const verifiedColor = getComputedStyle(widget).getPropertyValue('--empire-verified-color').trim() || '#16a34a';
 
                 container.innerHTML = `
                     <div class="empire-basic-summary" style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid #e5e7eb;">
@@ -334,6 +325,7 @@
                     </div>
                 `;
             } catch (e) {
+                console.error("Review load failed", e);
                 container.innerHTML = '<p style="opacity:0.5;">Unable to load reviews.</p>';
             }
         });
@@ -346,10 +338,9 @@
 
         containers.forEach(async (container) => {
             try {
-                const shop = container.dataset.shop;
-                if (!shop) return;
-
-                const res = await fetch(`${API_BASE}?shop=${shop}`);
+                const apiUrl = getApiUrl(container, '');
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('API returning error');
                 const { stats } = await res.json();
 
                 if (stats && stats.total > 0) {
@@ -380,7 +371,9 @@
                 const textSize  = parseInt(container.dataset.textSize  || '14');
                 const textColor = container.dataset.textColor || '#6b7280';
 
-                const res = await fetch(`${API_BASE}?productId=${productId}&limit=1`);
+                const apiUrl = getApiUrl(container, `?productId=${productId}&limit=1`);
+                const res = await fetch(apiUrl);
+                if (!res.ok) throw new Error('API returning error');
                 const { stats } = await res.json();
                 const { average, total: count } = stats || { average: 0, total: 0 };
 
@@ -390,11 +383,9 @@
                 const hasHalf   = average % 1 >= 0.3;
                 const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
 
-                // Get star color from the existing SVGs rendered by Liquid
                 const existingSvg = container.querySelector('svg');
                 const starColor = existingSvg ? existingSvg.getAttribute('fill') : '#fbbf24';
 
-                // Replace the loading placeholder stars with accurate ones
                 const loadingStars = container.querySelector('.empire-stars-loading');
                 if (loadingStars) {
                     let starsHtml = '';
@@ -406,7 +397,6 @@
                     loadingStars.innerHTML = starsHtml;
                 }
 
-                // Update or inject count text
                 const existingCount = container.querySelector('.empire-rating-count');
                 if (showCount && count > 0) {
                     const text = countText.replace('{n}', count);

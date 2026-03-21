@@ -35,6 +35,8 @@
 <!-- The trigger button is injected via app embed, but we configure it here -->
 <div 
   id="empire-floating-tab-config"
+  data-shop="{{ shop.permanent_domain }}"
+  data-app-url="{{ shop.metafields.empire.app_url | default: 'https://empire-reviews.vercel.app' }}"
   data-position="{{ block.settings.position }}"
   data-offset="{{ block.settings.offset }}"
   data-label="{{ block.settings.label }}"

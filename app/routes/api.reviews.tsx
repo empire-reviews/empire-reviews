@@ -192,9 +192,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
         const where: any = {}; // Build dynamic query
 
-        // Filter by Product (Optional now, to allow store-wide widgets)
         if (productId) {
             where.productId = `gid://shopify/Product/${productId}`;
+        }
+        
+        if (shop) {
+            where.shop = shop;
         }
 
         // Filter by Rating (e.g. Carousel wants 5-stars)

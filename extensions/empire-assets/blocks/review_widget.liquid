@@ -32,6 +32,8 @@
 
 <div class="empire-reviews-widget" 
      data-product-id="{{ product.id }}"
+     data-shop="{{ shop.permanent_domain }}"
+     data-app-url="{{ shop.metafields.empire.app_url | default: 'https://empire-reviews.vercel.app' }}"
      data-full-js="{{ 'empire_reviews_full.js' | asset_url }}"
      style="
         --empire-sidebar-bg: {{ block.settings.sidebar_bg }};
