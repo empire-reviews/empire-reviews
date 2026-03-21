@@ -3,29 +3,31 @@
   "name": "Review Summary Bar",
   "target": "section",
   "stylesheet": "empire.css",
+  "javascript": "empire_summary_bar.js",
   "settings": [
     { "type": "header", "content": "Layout" },
     { "type": "select", "id": "layout", "label": "Layout Style", "options": [
         { "value": "horizontal", "label": "Horizontal (Compact)" },
-        { "value": "vertical", "label": "Vertical (Full Breakdown)" }
+        { "value": "vertical",   "label": "Vertical (Full Breakdown)" }
     ], "default": "vertical" },
     { "type": "select", "id": "alignment", "label": "Alignment", "options": [
         { "value": "flex-start", "label": "Left" },
-        { "value": "center", "label": "Center" },
-        { "value": "flex-end", "label": "Right" }
+        { "value": "center",     "label": "Center" },
+        { "value": "flex-end",   "label": "Right" }
     ], "default": "flex-start" },
 
     { "type": "header", "content": "Colors" },
-    { "type": "color", "id": "star_color",   "label": "Star Color",    "default": "#fbbf24" },
-    { "type": "color", "id": "bar_color",    "label": "Bar Fill Color","default": "#fbbf24" },
-    { "type": "color", "id": "text_color",   "label": "Text Color",    "default": "#111111" },
-    { "type": "color", "id": "bg_color",     "label": "Background",    "default": "#ffffff" },
-    { "type": "range", "id": "font_size", "min": 12, "max": 22, "step": 1, "unit": "px", "label": "Font Size", "default": 14 },
+    { "type": "color", "id": "star_color", "label": "Star Color",      "default": "#fbbf24" },
+    { "type": "color", "id": "bar_color",  "label": "Bar Fill Color",  "default": "#fbbf24" },
+    { "type": "color", "id": "text_color", "label": "Text Color",      "default": "#111111" },
+    { "type": "color", "id": "bg_color",   "label": "Background",      "default": "#ffffff" },
+    { "type": "range", "id": "font_size",  "min": 12, "max": 22, "step": 1, "unit": "px", "label": "Font Size", "default": 14 },
 
     { "type": "header", "content": "Content" },
-    { "type": "checkbox", "id": "show_breakdown", "label": "Show Rating Breakdown Bars", "default": true },
-    { "type": "checkbox", "id": "show_verified", "label": "Show 'Verified Buyers' Badge", "default": true },
-    { "type": "text",     "id": "empty_text", "label": "No Reviews Text", "default": "Be the first to review this product" }
+    { "type": "checkbox", "id": "show_breakdown", "label": "Show Rating Breakdown Bars",  "default": true  },
+    { "type": "checkbox", "id": "show_verified",  "label": "Show 'Verified Buyers' Badge","default": true  },
+    { "type": "text",     "id": "empty_text",     "label": "No Reviews Text",
+      "default": "Be the first to review this product" }
   ]
 }
 {% endschema %}
@@ -39,195 +41,50 @@
      data-show-verified="{{ block.settings.show_verified }}"
      data-empty-text="{{ block.settings.empty_text }}"
      style="
-       --esb-star:   {{ block.settings.star_color }};
-       --esb-bar:    {{ block.settings.bar_color }};
-       --esb-text:   {{ block.settings.text_color }};
-       --esb-bg:     {{ block.settings.bg_color }};
-       --esb-fs:     {{ block.settings.font_size }}px;
-       --esb-align:  {{ block.settings.alignment }};
-       display: flex;
-       align-items: {{ block.settings.alignment }};
+       --esb-star:  {{ block.settings.star_color }};
+       --esb-bar:   {{ block.settings.bar_color }};
+       --esb-text:  {{ block.settings.text_color }};
+       --esb-bg:    {{ block.settings.bg_color }};
+       --esb-fs:    {{ block.settings.font_size }}px;
+       --esb-align: {{ block.settings.alignment }};
+       font-family: inherit;
+       color: {{ block.settings.text_color }};
+       font-size: {{ block.settings.font_size }}px;
+       background: {{ block.settings.bg_color }};
+       padding: 12px 0;
+       width: 100%;
      "
 >
-  <div class="esb-loading">Loading reviews…</div>
+  <div class="esb-loading" style="opacity:0.4;font-size:0.85em;">Loading reviews…</div>
 </div>
 
 <style>
-  .empire-summary-bar {
-    font-family: inherit;
-    color: var(--esb-text);
-    font-size: var(--esb-fs);
-    background: var(--esb-bg);
-    padding: 12px 0;
-    width: 100%;
-  }
   .esb-loading { opacity: 0.4; font-size: 0.85em; }
 
-  /* ── Horizontal compact layout ────────────────── */
   .esb-horizontal {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: var(--esb-align);
-    width: 100%;
+    display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    justify-content: var(--esb-align); width: 100%;
   }
-  .esb-score-big {
-    font-size: 2.2em;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--esb-text);
-  }
-  .esb-stars-row {
-    display: inline-flex;
-    gap: 2px;
-    align-items: center;
-    color: var(--esb-star);
-    line-height: 0;
-  }
-  .esb-stars-row svg { width: 1.2em; height: 1.2em; }
+  .esb-score-big { font-size: 2.2em; font-weight: 800; line-height: 1; color: var(--esb-text); }
+  .esb-stars-row { display: inline-flex; gap: 2px; align-items: center; color: var(--esb-star); line-height: 0; }
   .esb-count-text { opacity: 0.6; font-size: 0.9em; }
 
-  /* ── Vertical full layout ─────────────────────── */
   .esb-vertical {
-    display: flex;
-    gap: 28px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    justify-content: var(--esb-align);
-    width: 100%;
+    display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap;
+    justify-content: var(--esb-align); width: 100%;
   }
-  .esb-left {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    min-width: 80px;
-  }
+  .esb-left { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 80px; }
   .esb-right { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 5px; }
 
-  /* Breakdown bars */
-  .esb-bar-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85em;
-  }
+  .esb-bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.85em; }
   .esb-bar-label { min-width: 14px; text-align: right; opacity: 0.7; }
-  .esb-bar-track {
-    flex: 1;
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 99px;
-    overflow: hidden;
-  }
-  .esb-bar-fill {
-    height: 100%;
-    background: var(--esb-bar);
-    border-radius: 99px;
-    transition: width 0.6s ease;
-  }
+  .esb-bar-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+  .esb-bar-fill  { height: 100%; background: var(--esb-bar); border-radius: 99px; transition: width 0.6s ease; }
   .esb-bar-count { min-width: 24px; opacity: 0.55; }
 
-  /* Verified badge */
   .esb-verified {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-    background: #dcfce7;
-    color: #166534;
-    border-radius: 99px;
-    padding: 2px 10px;
-    font-size: 0.78em;
-    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;
+    background: #dcfce7; color: #166534; border-radius: 99px;
+    padding: 2px 10px; font-size: 0.78em; font-weight: 600;
   }
 </style>
-
-<script>
-(function() {
-  function renderStars(avg, color) {
-    let html = '';
-    for (let i = 1; i <= 5; i++) {
-      const fill = i <= Math.round(avg) ? color : '#e5e7eb';
-      html += `<svg viewBox="0 0 24 24" fill="${fill}"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
-    }
-    return html;
-  }
-
-  function initSummaryBar(el) {
-    const productId = el.dataset.productId;
-    const shop      = el.dataset.shop;
-    const layout    = el.dataset.layout || 'vertical';
-    const showBars  = el.dataset.showBreakdown !== 'false';
-    const showVerif = el.dataset.showVerified  !== 'false';
-    const emptyText = el.dataset.emptyText || 'Be the first to review this product';
-    const starColor = getComputedStyle(el).getPropertyValue('--esb-star').trim() || '#fbbf24';
-
-    // Try to resolve the app URL
-    const appUrl = (el.dataset.appUrl || '').trim() ||
-                   (window.EMPIRE_APP_URL || '') ||
-                   'https://empire-reviews.vercel.app';
-
-    const apiUrl = `${appUrl}/api/reviews?productId=${productId}&shop=${encodeURIComponent(shop)}&limit=250`;
-
-    fetch(apiUrl)
-      .then(r => r.json())
-      .then(data => {
-        const stats   = data.stats || {};
-        const reviews = data.reviews || [];
-
-        if (!stats.total || stats.total === 0) {
-          el.innerHTML = `<span style="opacity:0.5;font-size:0.9em;">${emptyText}</span>`;
-          return;
-        }
-
-        const avg   = parseFloat(stats.average.toFixed(1));
-        const total = stats.total;
-
-        // Count per star
-        const dist = [5,4,3,2,1].map(star => ({
-          star,
-          count: reviews.filter(r => r.rating === star).length
-        }));
-
-        if (layout === 'horizontal') {
-          el.innerHTML = `
-            <div class="esb-horizontal">
-              <span class="esb-score-big">${avg}</span>
-              <div>
-                <div class="esb-stars-row">${renderStars(avg, starColor)}</div>
-                <div class="esb-count-text">${total} review${total !== 1 ? 's' : ''}</div>
-              </div>
-              ${showVerif ? `<span class="esb-verified">✓ Verified Buyers</span>` : ''}
-            </div>`;
-        } else {
-          const barsHtml = showBars ? dist.map(d => `
-            <div class="esb-bar-row">
-              <span class="esb-bar-label">${d.star}</span>
-              <div class="esb-bar-track">
-                <div class="esb-bar-fill" style="width:${total > 0 ? Math.round((d.count/total)*100) : 0}%"></div>
-              </div>
-              <span class="esb-bar-count">${d.count}</span>
-            </div>`).join('') : '';
-
-          el.innerHTML = `
-            <div class="esb-vertical">
-              <div class="esb-left">
-                <span class="esb-score-big">${avg}</span>
-                <div class="esb-stars-row">${renderStars(avg, starColor)}</div>
-                <span class="esb-count-text">${total} review${total !== 1 ? 's' : ''}</span>
-                ${showVerif ? `<span class="esb-verified">✓ Verified</span>` : ''}
-              </div>
-              ${showBars ? `<div class="esb-right">${barsHtml}</div>` : ''}
-            </div>`;
-        }
-      })
-      .catch(() => {
-        el.innerHTML = `<span style="opacity:0.4;font-size:0.85em;">Could not load review summary.</span>`;
-      });
-  }
-
-  document.querySelectorAll('.empire-summary-bar').forEach(initSummaryBar);
-})();
-</script>
