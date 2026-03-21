@@ -44,7 +44,16 @@
                 const { reviews } = await res.json();
 
                 if (!reviews || !reviews.length) {
-                    track.innerHTML = '<p style="opacity:0.5;text-align:center;width:100%;">No reviews yet.</p>';
+                    track.innerHTML = `
+                        <div style="text-align:center;width:100%;padding:40px 20px;grid-column:1/-1;">
+                            <p style="opacity:0.6;font-size:1.1em;margin-bottom:15px;">No reviews yet. Be the first to share your experience!</p>
+                            <button onclick="if(window.empireOpenReviewForm) { window.empireOpenReviewForm(); } else { alert('Please add the Leave a Review Form block to the page first.'); }" 
+                                    style="background:var(--empire-btn-bg,#111);color:var(--empire-btn-text,#fff);padding:10px 24px;border-radius:8px;font-weight:600;font-size:0.95em;cursor:pointer;border:none;box-shadow:0 4px 6px rgba(0,0,0,0.1);transition:transform 0.2s;"
+                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                Write a Review
+                            </button>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -197,7 +206,16 @@
                     .flatMap(r => r.media.map(m => ({ url: m.url, type: m.type || 'image', review: r })));
 
                 if (!mediaItems.length) {
-                    grid.innerHTML = '<p style="opacity:0.5;text-align:center;grid-column:1/-1;">No photos yet.</p>';
+                    grid.innerHTML = `
+                        <div style="text-align:center;width:100%;padding:40px 20px;grid-column:1/-1;">
+                            <p style="opacity:0.6;font-size:1.1em;margin-bottom:15px;">No customer photos yet.</p>
+                            <button onclick="if(window.empireOpenReviewForm) { window.empireOpenReviewForm(); } else { alert('Please add the Leave a Review Form block to the page first.'); }" 
+                                    style="background:var(--empire-btn-bg,#111);color:var(--empire-btn-text,#fff);padding:10px 24px;border-radius:8px;font-weight:600;font-size:0.95em;cursor:pointer;border:none;box-shadow:0 4px 6px rgba(0,0,0,0.1);transition:transform 0.2s;"
+                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                Upload a Photo Review
+                            </button>
+                        </div>
+                    `;
                     return;
                 }
 
@@ -275,7 +293,18 @@
                 const { reviews, stats } = await res.json();
 
                 if (!reviews || !reviews.length) {
-                    container.innerHTML = '<p style="opacity:0.5;text-align:center;padding:2rem 0;">No reviews yet. Be the first!</p>';
+                    container.innerHTML = `
+                        <div style="text-align:center;width:100%;padding:60px 20px;background:var(--empire-feed-bg, #f9fafb);border-radius:12px;margin-top:20px;">
+                            <div style="font-size:3rem;margin-bottom:15px;">✨</div>
+                            <h3 style="font-size:1.5rem;font-weight:700;margin-bottom:10px;">No reviews yet</h3>
+                            <p style="opacity:0.6;font-size:1.1em;margin-bottom:25px;max-width:400px;margin-left:auto;margin-right:auto;">Be the first to share your experience with this product!</p>
+                            <button onclick="if(window.empireOpenReviewForm) { window.empireOpenReviewForm(); } else { alert('Please add the Leave a Review Form block to the page first.'); }" 
+                                    style="background:var(--empire-btn-bg,#111);color:var(--empire-btn-text,#fff);padding:14px 32px;border-radius:8px;font-weight:600;font-size:1.05em;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:transform 0.2s;"
+                                    onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                Write the First Review
+                            </button>
+                        </div>
+                    `;
                     return;
                 }
 
