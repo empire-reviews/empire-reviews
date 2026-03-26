@@ -1,5 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
+import { Form } from "@remix-run/react";
+import { useState } from "react";
 
 // With managed installation + token exchange (unstable_newEmbeddedAuthStrategy),
 // users should NEVER see a login page. They install and open the app entirely
@@ -30,47 +32,62 @@ export const action = async ({ request }: LoaderFunctionArgs) => {
   }
   return redirect("/app");
 };
-import { Form } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Text, Button, TextField } from "@shopify/polaris";
-import { useState } from "react";
 
 export default function Login() {
   const [shop, setShop] = useState("");
 
   return (
-    <Page>
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h1" variant="headingLg">
-                Empire Reviews Core
-              </Text>
-              <Text as="p">
-                This app is an embedded Shopify app. You should open it directly from your <b>Shopify Admin Apps dashboard</b>.
-              </Text>
-              <Text as="p" tone="subdued">
-                If you want to install or log in manually, enter your <code>.myshopify.com</code> domain below:
-              </Text>
-              <Form method="post">
-                <BlockStack gap="300">
-                  <TextField
-                    label="Shopify Store Domain"
-                    name="shop"
-                    value={shop}
-                    onChange={setShop}
-                    placeholder="your-store.myshopify.com"
-                    autoComplete="off"
-                  />
-                  <Button submit variant="primary">
-                    Install / Log In
-                  </Button>
-                </BlockStack>
-              </Form>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+    <div style={{
+      display: 'flex', justifyContent: 'center', alignItems: 'center', 
+      minHeight: '100vh', backgroundColor: '#f1f5f9', fontFamily: 'system-ui, sans-serif'
+    }}>
+      <div style={{
+        backgroundColor: 'white', padding: '2rem', borderRadius: '8px', 
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', maxWidth: '400px', width: '100%'
+      }}>
+        <h1 style={{ margin: '0 0 1rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 600 }}>
+          Empire Reviews Core
+        </h1>
+        
+        <div style={{ marginBottom: '1.5rem', color: '#475569', lineHeight: 1.5 }}>
+          <p style={{ marginBottom: '1rem' }}>
+            This is an embedded Shopify app. You should open it directly from your <b>Shopify Admin Apps dashboard</b>.
+          </p>
+          <p style={{ fontSize: '0.875rem' }}>
+            To install or log in manually, enter your <code>.myshopify.com</code> domain below:
+          </p>
+        </div>
+
+        <Form method="post" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#1e293b', fontSize: '0.875rem', fontWeight: 500 }}>
+              Shopify Store Domain
+            </label>
+            <input
+              type="text"
+              name="shop"
+              value={shop}
+              onChange={(e) => setShop(e.target.value)}
+              placeholder="your-store.myshopify.com"
+              autoComplete="off"
+              style={{
+                width: '100%', padding: '0.5rem', border: '1px solid #cbd5e1', 
+                borderRadius: '4px', fontSize: '1rem', boxSizing: 'border-box'
+              }}
+            />
+          </div>
+          <button 
+            type="submit"
+            style={{
+              backgroundColor: '#2563eb', color: 'white', border: 'none', 
+              padding: '0.75rem', borderRadius: '4px', fontSize: '1rem', 
+              fontWeight: 500, cursor: 'pointer', outline: 'none'
+            }}
+          >
+            Install / Log In
+          </button>
+        </Form>
+      </div>
+    </div>
   );
 }
