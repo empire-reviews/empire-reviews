@@ -1,0 +1,830 @@
+/* ==========================================================================
+   Empire Reviews — Premium Storefront Widgets CSS
+   Zero Dependencies. Strict Scoping. High Conversion.
+   ========================================================================== */
+
+/* --- Default Variables Fallbacks --- */
+.empire-reviews-widget,
+.empire-star-rating {
+    --empire-primary: #f59e0b;
+    --empire-bg: #ffffff;
+    --empire-radius: 16px;
+    --empire-text: #334155;
+    --empire-text-light: #64748b;
+    --empire-star-gradient: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    --empire-border: rgba(0, 0, 0, 0.06);
+    --empire-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.empire-reviews-widget *,
+.empire-star-rating * {
+    box-sizing: inherit;
+}
+
+/* ==========================================================================
+   1. Star Rating Block (Product Page Badge)
+   ========================================================================== */
+.empire-star-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.empire-star-rating:hover {
+    opacity: 0.8;
+}
+
+.empire-stars-wrap {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.empire-rating-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--empire-text-light);
+    margin-left: 4px;
+}
+
+/* ==========================================================================
+   2. Main Review List Widget
+   ========================================================================== */
+.empire-reviews-widget {
+    margin: 3rem 0;
+    width: 100%;
+    color: var(--empire-text);
+}
+
+.empire-widget-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 1rem 0;
+    color: var(--empire-text);
+    letter-spacing: -0.02em;
+}
+
+/* --- Split Layout Container --- */
+.empire-split-layout {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    align-items: flex-start;
+    margin: 3rem 0;
+    width: 100%;
+}
+.empire-summary-col {
+    flex: 0 0 30%;
+    max-width: 30%;
+}
+.empire-reviews-col {
+    flex: 0 0 calc(70% - 40px);
+    max-width: calc(70% - 40px);
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 12px;
+    scrollbar-width: thin;
+}
+
+.empire-mobile-reviews-toggle {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .empire-split-layout {
+        flex-direction: column;
+        gap: 24px;
+        height: auto;
+    }
+    .empire-summary-col,
+    .empire-reviews-col {
+        flex: 1 1 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+    .empire-reviews-col {
+        max-height: none;
+        overflow-y: visible;
+        padding-right: 0;
+    }
+    .empire-reviews-col.empire-mobile-hidden {
+        display: none !important;
+    }
+    .empire-mobile-reviews-toggle {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        text-align: center;
+        background: #f1f5f9;
+        border: none;
+        border-radius: 12px;
+        font-weight: 800;
+        color: #3b82f6;
+        margin-top: 1.5rem;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background 0.2s, transform 0.2s;
+    }
+    .empire-mobile-reviews-toggle:active {
+        background: #e2e8f0;
+        transform: scale(0.98);
+    }
+}
+
+/* --- Left Column: Summary --- */
+.empire-summary-col {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: var(--empire-radius);
+    padding: 2.5rem;
+    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.empire-write-review-btn {
+    margin-top: auto;
+    width: 100%;
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-radius: 12px;
+    padding: 1rem;
+    font-weight: 600;
+}
+
+.empire-summary-stats {
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.empire-summary-score {
+    font-size: 4.5rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--empire-heading);
+    margin-bottom: 0.25rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.03em;
+}
+
+/* --- Distribution Progress Bars --- */
+.empire-distribution-container {
+    margin-bottom: 2rem;
+}
+
+.empire-dist-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.empire-dist-label {
+    min-width: 35px;
+    font-weight: 600;
+    color: var(--empire-text);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.empire-dist-count {
+    min-width: 20px;
+    text-align: right;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Right Column: Reviews List --- */
+.empire-reviews-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 100%;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 12px; /* Prevent scrollbar from overlapping */
+    scrollbar-width: thin;
+}
+
+/* Custom Scrollbar for Right Column */
+.empire-reviews-col::-webkit-scrollbar {
+    width: 6px;
+}
+.empire-reviews-col::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.empire-reviews-col::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.empire-reviews-col::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.empire-reviews-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Spinner for loading more */
+.empire-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: var(--empire-primary);
+    border-radius: 50%;
+    animation: empire-spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes empire-spin { 
+    to { transform: rotate(360deg); } 
+}
+
+.empire-load-more-trigger {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--empire-text-light);
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+/* Review Card - Glassmorphism & Micro-interactions */
+.empire-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    color: #475569;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.7), 0 4px 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.15rem;
+}
+
+.empire-review-card {
+    background: var(--empire-bg);
+    border-radius: var(--empire-radius);
+    padding: 24px 24px 24px 32px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.empire-review-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: var(--empire-primary);
+}
+
+.empire-review-card:hover {
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+}
+
+.empire-card-header {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.empire-card-header-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.empire-header-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.empire-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.empire-reviewer-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Psychology: Verified Buyer Badge - High Contrast Trust Signal */
+.empire-verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #047857;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.25));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 4px 10px;
+    border-radius: 100px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.empire-verified-badge svg {
+    width: 12px;
+    height: 12px;
+}
+
+.empire-review-date {
+    font-size: 0.8rem;
+    color: var(--empire-text-light);
+}
+
+.empire-review-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--empire-heading);
+    margin: 1.25rem 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.empire-review-body {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--empire-text);
+    margin: 0;
+}
+
+/* Owner Reply */
+.empire-owner-reply {
+    margin-top: auto;
+    background: rgba(0, 0, 0, 0.03);
+    border-left: 3px solid var(--empire-primary);
+    padding: 1rem;
+    border-radius: 0 var(--empire-radius) var(--empire-radius) 0;
+    font-size: 0.9rem;
+    color: var(--empire-text);
+}
+.empire-owner-reply strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--empire-primary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Review Images */
+.empire-review-images {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.empire-review-image {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--empire-border);
+    cursor: zoom-in;
+    transition: opacity 0.2s;
+}
+.empire-review-image:hover {
+    opacity: 0.8;
+}
+
+/* Empty State */
+.empire-empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(0,0,0,0.02);
+    border-radius: var(--empire-radius);
+    border: 1px dashed var(--empire-border);
+    color: var(--empire-text-light);
+}
+.empire-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* ==========================================================================
+   3. Skeleton Loaders (Perceived Performance)
+   ========================================================================== */
+.empire-skeleton-card {
+    min-height: 200px;
+    background: var(--empire-bg);
+}
+
+.empire-pulse-bar {
+    height: 16px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: empire-shimmer 1.5s infinite linear;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.empire-pulse-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: empire-shimmer 1.5s infinite linear;
+}
+
+@keyframes empire-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Skeleton layouts inside the card */
+.empire-skeleton-card::before {
+    content: '';
+    display: block;
+    width: 40%;
+    height: 20px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+.empire-skeleton-card::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 60px;
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .empire-reviews-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   4. Header Layout: Title + Write Review Button
+   ========================================================================== */
+.empire-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 1rem;
+}
+
+/* 3D Write-a-Review Button (Von Restorff effect: stands out) */
+.empire-write-review-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.2),
+        0 1px 0 rgba(255, 255, 255, 0.1) inset,
+        0 -3px 0 rgba(0, 0, 0, 0.25) inset;
+    position: relative;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.empire-write-review-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: white;
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow:
+        0 12px 30px rgba(59, 130, 246, 0.35),
+        0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+.empire-write-review-btn:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   5. Modal Overlay
+   ========================================================================== */
+.empire-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.empire-modal-overlay.open {
+    display: flex;
+    animation: empire-fadein 0.25s ease-out;
+}
+
+@keyframes empire-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.empire-modal {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    max-width: 520px;
+    width: 100%;
+    box-shadow:
+        0 30px 80px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    text-align: center;
+    animation: empire-slidein 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes empire-slidein {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.empire-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0, 0, 0, 0.06);
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    color: #64748b;
+}
+.empire-modal-close:hover {
+    background: rgba(0, 0, 0, 0.12);
+    color: #1e293b;
+}
+
+.empire-modal-icon {
+    font-size: 3.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.empire-modal-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+    color: #1e293b;
+    letter-spacing: -0.02em;
+}
+
+.empire-modal-sub {
+    color: #64748b;
+    font-size: 1.15rem;
+    margin: 0 0 1.5rem;
+}
+
+/* ==========================================================================
+   6. Interactive Star Picker
+   ========================================================================== */
+.empire-star-picker {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+}
+
+.empire-pick-star {
+    background: none;
+    border: none;
+    font-size: 3.5rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    transition: color 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    line-height: 1;
+    padding: 0 2px;
+}
+
+.empire-pick-star.hover-active,
+.empire-pick-star.active {
+    color: #f59e0b;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+    transform: scale(1.25);
+}
+
+.empire-star-label {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+    min-height: 1.4em;
+    transition: color 0.2s;
+}
+
+/* ==========================================================================
+   7. Review Form Fields (scroll-in on star select)
+   ========================================================================== */
+.empire-review-fields {
+    display: none; /* shown via JS */
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.empire-review-fields.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.empire-input {
+    width: 100%;
+    padding: 16px 20px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+.empire-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    background: #fff;
+}
+
+.empire-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Submit button - starts disabled/grey and becomes 3D blue when star selected */
+.empire-submit-btn {
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 14px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    cursor: not-allowed;
+    background: #e2e8f0;
+    color: #94a3b8;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: none;
+    margin-top: 4px;
+}
+
+.empire-submit-btn.empire-btn-ready {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4), 0 -3px 0 rgba(0,0,0,0.2) inset;
+}
+
+.empire-submit-btn.empire-btn-ready:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.45);
+}
+
+.empire-submit-btn.empire-btn-ready:active {
+    transform: translateY(1px);
+    box-shadow: 0 3px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* ==========================================================================
+   8. Modal Success State
+   ========================================================================== */
+.empire-modal-success {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 1rem 0;
+    animation: empire-fadein 0.4s ease-out;
+}
+
+.empire-modal-success h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+.empire-modal-success p {
+    color: #64748b;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Owner Reply Accordion */
+.empire-owner-reply-accordion {
+    margin-top: 1rem;
+    padding: 1rem 1.5rem;
+    background: #fffbeb;
+    border-radius: 99px;
+    border-left: 4px solid #f59e0b;
+    border-right: 1px solid #fef3c7;
+    border-top: 1px solid #fef3c7;
+    border-bottom: 1px solid #fef3c7;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.2s ease;
+}
+.empire-owner-reply-accordion:hover {
+    background: #fef3c7;
+}
+.empire-owner-reply-accordion summary {
+    font-weight: 700;
+    color: #f59e0b;
+    outline: none;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.empire-owner-reply-accordion summary::-webkit-details-marker {
+    display: none;
+}
+.empire-owner-reply-accordion summary::after {
+    content: '+';
+    font-size: 1.5rem;
+    color: #f59e0b;
+    font-weight: 400;
+}
+.empire-owner-reply-accordion[open] summary::after {
+    content: '-';
+}
+.empire-owner-reply-content {
+    margin-top: 1rem;
+    color: #334155;
+    line-height: 1.6;
+    padding-top: 1rem;
+    border-top: 1px solid #fde68a;
+}
+
+/* Micro-animations */
+.empire-animate-in {
+    animation: empire-fade-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes empire-fade-slide-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

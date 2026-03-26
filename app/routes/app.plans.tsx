@@ -33,8 +33,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const intent = formData.get("intent");
 
     if (intent === "referral") {
-        const code = formData.get("code") as string;
-        if (code === "saundryam@1121") {
+        const code = (formData.get("code") as string || "").trim();
+        // VIP codes stored in env — never in source code
+        const validCodes = (process.env.VALID_VIP_CODES || "")
+            .split(",")
+            .map((c) => c.trim())
+            .filter(Boolean);
+
+        if (validCodes.length > 0 && validCodes.includes(code)) {
             await prisma.settings.update({
                 where: { shop: session.shop },
                 data: { plan: "EMPIRE_PRO" }
@@ -95,7 +101,7 @@ export default function PlansPage() {
                     color: #f1f5f9;
                     min-height: 100vh;
                     display: grid;
-                    grid-template-columns: 42% 58%;
+                    grid-template-columns: 35% 65%;
                     position: relative;
                     overflow: hidden;
                 }
@@ -116,7 +122,7 @@ export default function PlansPage() {
 
                 /* LEFT PANEL: The Pitch & Specs */
                 .mastery-deck {
-                    padding: 4rem 5rem;
+                    padding: 4rem;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
@@ -128,7 +134,7 @@ export default function PlansPage() {
 
                 .mastery-title {
                     font-family: 'Outfit', sans-serif;
-                    font-size: 3.5rem;
+                    font-size: 3rem;
                     font-weight: 800;
                     letter-spacing: -0.04em;
                     line-height: 1;
@@ -145,6 +151,40 @@ export default function PlansPage() {
                     max-width: 400px;
                     line-height: 1.6;
                     margin-bottom: 3.5rem;
+                }
+
+                /* 3D Back Button */
+                .zenith-back-btn {
+                    position: absolute;
+                    top: 2rem;
+                    left: 2rem;
+                    z-index: 50;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background: #1e293b;
+                    color: #f1f5f9;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    font-family: 'Outfit', sans-serif;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    text-decoration: none;
+                    box-shadow: 0 4px 0 #0f172a, 0 8px 15px rgba(0,0,0,0.4);
+                    transition: all 0.1s;
+                    cursor: pointer;
+                }
+
+                .zenith-back-btn:hover {
+                    transform: translateY(2px);
+                    box-shadow: 0 2px 0 #0f172a, 0 4px 10px rgba(0,0,0,0.4);
+                    background: #27354f;
+                }
+
+                .zenith-back-btn:active {
+                    transform: translateY(4px);
+                    box-shadow: 0 0 0 #0f172a, 0 2px 5px rgba(0,0,0,0.4);
                 }
 
                 /* Technical Spec Table */
@@ -188,10 +228,10 @@ export default function PlansPage() {
 
                 /* RIGHT PANEL: The Slabs */
                 .zenith-slabs {
-                    padding: 4rem;
+                    padding: 4rem 2rem;
                     display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2rem;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 1.25rem;
                     align-content: center;
                     position: relative;
                     z-index: 10;
@@ -202,7 +242,7 @@ export default function PlansPage() {
                     backdrop-filter: blur(20px);
                     border: 1px solid rgba(255, 255, 255, 0.08);
                     border-radius: 24px;
-                    padding: 2.5rem;
+                    padding: 2rem;
                     display: flex;
                     flex-direction: column;
                     transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
@@ -356,7 +396,7 @@ export default function PlansPage() {
                 @media (max-width: 1200px) {
                     .zenith-vault { grid-template-columns: 1fr; }
                     .mastery-deck { padding: 4rem 2rem; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-                    .zenith-slabs { padding: 4rem 2rem; }
+                    .zenith-slabs { padding: 4rem 2rem; grid-template-columns: 1fr; }
                 }
 
                 /* ═══ VIP Access Modal ═══ */
@@ -542,6 +582,10 @@ export default function PlansPage() {
             `}</style>
 
             <div className="zenith-vault">
+                <a href="/app" className="zenith-back-btn">
+                    ← Back to Dashboard
+                </a>
+
                 <div className="mastery-deck">
                     <h1 className="mastery-title">Unlock The Zenith Of Social Proof.</h1>
                     <p className="mastery-subtitle">
@@ -550,11 +594,11 @@ export default function PlansPage() {
 
                     <div className="spec-table">
                         <SpecRow label="Review Volume" starter="50" pro="UNLIMITED" isProVal />
-                        <SpecRow label="Photo & Video" starter="TEXT" pro="4K MOTION" isProVal />
-                        <SpecRow label="AI Intelligence" starter="BASIC" pro="REAL-TIME" isProVal />
-                        <SpecRow label="Direct Google Feed" starter="NO" pro="YES" isProVal />
-                        <SpecRow label="Klaviyo Dynamics" starter="NO" pro="YES" isProVal />
-                        <SpecRow label="Growth Concierge" starter="EMAIL" pro="VIP 24/7" isProVal />
+                        <SpecRow label="AI Auto-Replies" starter="NO" pro="YES" isProVal />
+                        <SpecRow label="Google Shopping Feed" starter="NO" pro="YES" isProVal />
+                        <SpecRow label="Email Campaigns" starter="NO" pro="YES" isProVal />
+                        <SpecRow label="Storefront Widgets" starter="BASIC" pro="ALL WIDGETS" isProVal />
+                        <SpecRow label="Priority Support" starter="EMAIL" pro="PRIORITY" isProVal />
                     </div>
 
                     <div style={{ marginTop: '4rem', opacity: 0.2 }}>
@@ -569,7 +613,7 @@ export default function PlansPage() {
                     {/* STARTER */}
                     <div className="zenith-slab">
                         <div className="slab-header">
-                            <div className="slab-name">Starter Plan</div>
+                            <div className="slab-name">Starter</div>
                             <div className="slab-desc">Essential tools for emerging brands.</div>
                         </div>
 
@@ -579,9 +623,9 @@ export default function PlansPage() {
                         </div>
 
                         <div className="slab-features">
-                            <FeatureItem text="50 Verified Reviews" />
-                            <FeatureItem text="Classic Review Widget" />
-                            <FeatureItem text="Manual Import Suite" />
+                            <FeatureItem text="50 Reviews" />
+                            <FeatureItem text="Storefront Widget" />
+                            <FeatureItem text="CSV Import" />
                             <FeatureItem text="Standard Analytics" />
                         </div>
 
@@ -593,7 +637,7 @@ export default function PlansPage() {
                         </button>
                     </div>
 
-                    {/* PRO */}
+                    {/* PRO — The money maker */}
                     <div className="zenith-slab slab-pro">
                         <div className="slab-header">
                             <div className="slab-name">
@@ -609,11 +653,11 @@ export default function PlansPage() {
                         </div>
 
                         <div className="slab-features">
-                            <FeatureItem text="Unlimited Everything" active />
-                            <FeatureItem text="Photo & Video Reviews" active />
+                            <FeatureItem text="Unlimited Reviews" active />
+                            <FeatureItem text="All Storefront Widgets" active />
                             <FeatureItem text="AI Sentiment Engine" active />
-                            <FeatureItem text="Google Shopping Sync" active />
-                            <FeatureItem text="Automated Flow Suite" active />
+                            <FeatureItem text="Google Shopping Feed" active />
+                            <FeatureItem text="Email Campaigns" active />
                         </div>
 
                         <button
@@ -634,6 +678,34 @@ export default function PlansPage() {
                                 </span>
                             </button>
                         </div>
+                    </div>
+
+                    {/* BUSINESS — Decoy tier for anchoring */}
+                    <div className="zenith-slab" style={{ opacity: 0.65 }}>
+                        <div className="slab-header">
+                            <div className="slab-name">
+                                Business
+                                <Badge tone="info">Coming Soon</Badge>
+                            </div>
+                            <div className="slab-desc">For high-volume enterprise stores.</div>
+                        </div>
+
+                        <div className="slab-price">
+                            <div className="price-val">$29.99<span className="price-curr">/ mo</span></div>
+                            <div className="trial-badge" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>INVITE ONLY</div>
+                        </div>
+
+                        <div className="slab-features">
+                            <FeatureItem text="Everything in Pro" active />
+                            <FeatureItem text="White-Label Emails" />
+                            <FeatureItem text="Klaviyo Sync" />
+                            <FeatureItem text="Dedicated Support" />
+                            <FeatureItem text="Custom Webhooks" />
+                        </div>
+
+                        <button className="zenith-btn btn-starter btn-disabled" disabled>
+                            Join Waitlist
+                        </button>
                     </div>
                 </div>
             </div>

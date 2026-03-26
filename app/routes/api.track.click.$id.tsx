@@ -4,15 +4,27 @@ import prisma from "../db.server";
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     const sendId = params.id;
     const url = new URL(request.url);
-    const targetUrl = url.searchParams.get("target") || "/";
+    let targetUrl = url.searchParams.get("target") || "/";
 
     if (sendId) {
         try {
             // Use a transaction to prevent race conditions on concurrent clicks
             await prisma.$transaction(async (tx) => {
-                const send = await tx.campaignSend.findUnique({ where: { id: sendId } });
+                const send = await tx.campaignSend.findUnique({ 
+                    where: { id: sendId },
+                    include: { campaign: { select: { shop: true } } }
+                });
 
                 if (send) {
+                    // Open Redirect Protection: Only allow relative, shopify, or the merchant's domain
+                    try {
+                        const parsedTarget = new URL(targetUrl, "http://dummy.com");
+                        if (parsedTarget.hostname !== "dummy.com" && 
+                            !parsedTarget.hostname.endsWith(".myshopify.com") && 
+                            !parsedTarget.hostname.includes(send.campaign.shop)) {
+                            targetUrl = `https://${send.campaign.shop}`;
+                        }
+                    } catch (e) { targetUrl = "/"; }
                     const updates: any = {};
                     const metricIncrements: any = {
                         totalClicked: { increment: 1 }

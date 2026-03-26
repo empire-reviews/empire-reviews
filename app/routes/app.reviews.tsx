@@ -22,6 +22,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon } from "@shopify/polaris-icons";
+import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { hasActivePayment } from "../billing.server";
 
@@ -29,12 +30,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const isPro = await hasActivePayment(request);
     const reviews = await prisma.review.findMany({
+        where: { shop: session.shop },
         orderBy: { createdAt: "desc" },
         include: { replies: true }
     });
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
     const aiConfigured = !!(settings?.aiProvider && settings?.aiApiKey);
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, aiApiKey: settings?.aiApiKey || null });
+    const pendingCount = reviews.filter(r => r.status === 'pending').length;
+    const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -45,6 +49,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "save_reply") {
         const reviewId = formData.get("reviewId") as string;
         const body = formData.get("body") as string;
+        
+        const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
+        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+
         const existingReply = await prisma.reply.findFirst({ where: { reviewId } });
 
         if (existingReply) {
@@ -100,7 +108,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         let repliedCount = 0;
 
         for (const reviewId of reviewIds) {
-            const review = await prisma.review.findUnique({ where: { id: reviewId }, include: { replies: true } });
+            const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop }, include: { replies: true } });
             if (!review || review.replies.length > 0) continue; // Skip already replied
 
             try {
@@ -117,13 +125,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (intent === "delete_review") {
         const reviewId = formData.get("reviewId") as string;
+        
+        const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
+        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+
         await prisma.review.delete({ where: { id: reviewId } });
         return json({ success: true, message: "Review deleted permanently" });
     }
 
+    if (intent === "approve_review") {
+        const reviewId = formData.get("reviewId") as string;
+        const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
+        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+        await prisma.review.update({ where: { id: reviewId }, data: { status: "approved" } });
+        return json({ success: true, message: "Review approved" });
+    }
+
+    if (intent === "bulk_approve_reviews") {
+        const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
+        await prisma.review.updateMany({
+            where: { id: { in: reviewIds }, shop: session.shop },
+            data: { status: "approved" }
+        });
+        return json({ success: true, message: `${reviewIds.length} reviews approved` });
+    }
+
     if (intent === "bulk_delete_reviews") {
         const reviewIds = JSON.parse(formData.get("reviewIds") as string);
-        await prisma.review.deleteMany({ where: { id: { in: reviewIds } } });
+        await prisma.review.deleteMany({ where: { id: { in: reviewIds }, shop: session.shop } });
         return json({ success: true, message: "Reviews deleted permanently" });
     }
     return json({ success: false });
@@ -138,7 +167,7 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
     const aiFetcher = useFetcher();
@@ -162,9 +191,18 @@ export default function ReviewsPage() {
     // Confetti State
     const [showConfetti, setShowConfetti] = useState(false);
 
+    // Search State
+    const [queryValue, setQueryValue] = useState("");
+    const filteredReviews = queryValue
+        ? reviews.filter(r => 
+            (r.customerName || "").toLowerCase().includes(queryValue.toLowerCase()) ||
+            (r.body || "").toLowerCase().includes(queryValue.toLowerCase())
+          )
+        : reviews;
+
     // Table Setup
     const resourceName = { singular: "review", plural: "reviews" };
-    const { selectedResources, allResourcesSelected, handleSelectionChange } = useIndexResourceState(reviews);
+    const { selectedResources, allResourcesSelected, handleSelectionChange } = useIndexResourceState(filteredReviews);
 
     // Modal State
     const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -190,6 +228,13 @@ export default function ReviewsPage() {
         setActiveModal(null);
         setSelectedReview(null);
         setTextInput("");
+    };
+
+    const handleApproveReview = (reviewId: string) => {
+        fetcher.submit(
+            { intent: "approve_review", reviewId },
+            { method: "post" }
+        );
     };
 
     const handleSave = () => {
@@ -284,7 +329,7 @@ export default function ReviewsPage() {
         shopify.toast.show(`${ids.length} reviews deleted`);
     };
 
-    const rowMarkup = reviews.map((review, index) => {
+    const rowMarkup = filteredReviews.map((review, index) => {
         const { id, rating, body, createdAt, replies, customerName, verified } = review;
         const isReplied = replies && replies.length > 0;
         const age = daysAgo(createdAt);
@@ -351,12 +396,18 @@ export default function ReviewsPage() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                     {isReplied ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {review.status === 'pending' && (
+                                <Button size="micro" tone="success" onClick={() => handleApproveReview(id)}>✓ Approve</Button>
+                            )}
                             <Button size="micro" onClick={() => handleOpenModal(review)} variant="tertiary">Edit Reply</Button>
                             <Button size="micro" tone="critical" onClick={() => handleDeleteClick(review)} icon={DeleteIcon} />
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {review.status === 'pending' && (
+                                <Button size="micro" tone="success" onClick={() => handleApproveReview(id)}>✓ Approve</Button>
+                            )}
                             <Button size="micro" onClick={() => handleOpenModal(review)} variant="primary" tone="success">Reply</Button>
                             <Button size="micro" tone="critical" onClick={() => handleDeleteClick(review)} icon={DeleteIcon} />
                         </div>
@@ -410,11 +461,11 @@ export default function ReviewsPage() {
 
             <Page fullWidth>
                 <BlockStack gap="600">
+                    <BackButton />
                     {/* CUSTOM HEADER */}
                     <div className="reviews-header">
                         <BlockStack gap="400">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
                                 <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>War Room 🛡️</h1>
                                 {streak >= 3 && (
                                     <div style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -448,6 +499,41 @@ export default function ReviewsPage() {
                         )}
                     </div>
 
+                    {/* PENDING REVIEW ALERT BANNER */}
+                    {pendingCount > 0 && publishMode === 'none' && (
+                        <div style={{
+                            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                            border: '1px solid #f59e0b',
+                            borderRadius: '12px',
+                            padding: '14px 20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '1.2rem' }}>⏳</span>
+                                <div>
+                                    <strong style={{ color: '#92400e' }}>{pendingCount} review{pendingCount !== 1 ? 's' : ''} waiting for your approval</strong>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#78350f' }}>They're hidden from your storefront until you approve them. Click ✓ Approve on each row below, or go to <strong>Settings → Publishing Mode</strong> to auto-publish.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const pendingIds = reviews.filter(r => r.status === 'pending').map(r => r.id);
+                                    fetcher.submit({ intent: 'bulk_approve_reviews', reviewIds: JSON.stringify(pendingIds) }, { method: 'post' });
+                                }}
+                                style={{
+                                    background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px',
+                                    padding: '8px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                                    fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
+                                }}
+                            >
+                                ✓ Approve All
+                            </button>
+                        </div>
+                    )}
+
                     <Layout>
                         <Layout.Section>
                             <Card padding="0">
@@ -457,9 +543,13 @@ export default function ReviewsPage() {
                                         <TextField
                                             label="Search"
                                             labelHidden
+                                            value={queryValue}
+                                            onChange={setQueryValue}
                                             autoComplete="off"
                                             placeholder="Search reviews..."
                                             prefix={<SearchIcon style={{ width: 16, color: '#94a3b8' }} />}
+                                            clearButton
+                                            onClearButtonClick={() => setQueryValue("")}
                                         />
                                     </div>
                                     <Button icon={FilterIcon}>Filter</Button>
@@ -467,10 +557,16 @@ export default function ReviewsPage() {
 
                                 <IndexTable
                                     resourceName={resourceName}
-                                    itemCount={reviews.length}
+                                    itemCount={filteredReviews.length}
                                     selectedItemsCount={allResourcesSelected ? "All" : selectedResources.length}
                                     onSelectionChange={handleSelectionChange}
                                     promotedBulkActions={[
+                                        {
+                                            content: '✓ Approve Selected',
+                                            onAction: () => {
+                                                fetcher.submit({ intent: 'bulk_approve_reviews', reviewIds: JSON.stringify(selectedResources) }, { method: 'post' });
+                                            },
+                                        },
                                         {
                                             content: '🤖 Bulk Reply with AI',
                                             onAction: handleBulkAiReply,

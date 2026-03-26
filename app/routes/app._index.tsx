@@ -17,26 +17,8 @@ import { CONVERSION_CONFIG } from "../config/conversion";
 import { generateInsights, type AIProvider } from "../services/ai.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  let session;
-  try {
-    const auth = await authenticate.admin(request);
-    session = auth.session;
-  } catch (error) {
-    // Auth can fail on Remix client-side revalidation requests
-    // where shop/host/embedded params are absent and App Bridge
-    // hasn't intercepted the request yet. Return minimal data
-    // so the page renders and App Bridge can initialize.
-    console.log("app._index: auth deferred, returning minimal data");
-    return json({
-      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, unrepliedCount: 0, urgentCount: 0, awaitingDeliveryCount: 0 },
-      planName: "FREE",
-      phase: "awareness",
-      canShowUpgrade: false,
-      features: {},
-      impact: null,
-      insights: null,
-    });
-  }
+  const auth = await authenticate.admin(request);
+  const session = auth.session;
   const { shop } = session;
 
   // Preserve Shopify params so the redirected request can authenticate
@@ -62,31 +44,38 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const isPro = await hasActivePayment(request);
   const planName = isPro ? "EMPIRE_PRO" : "FREE";
 
-  const reviews = await prisma.review.findMany({ select: { createdAt: true, rating: true, replies: true, sentiment: true, body: true } });
-
-  const totalReviews = reviews.length;
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const reviewsThisWeek = reviews.filter(r => new Date(r.createdAt) > sevenDaysAgo).length;
-  const unrepliedCount = reviews.filter(r => r.replies.length === 0).length;
-  // Urgent: Low rating AND unreplied
-  const urgentCount = reviews.filter(r => r.rating <= 2 && r.replies.length === 0).length;
-  const averageRating = totalReviews === 0 ? 0 : reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews;
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  // Calculate Awaiting Delivery (Orders that exist but haven't triggered a review email yet because of delivery settings)
-  const pendingOrders = await prisma.order.count({
-    where: { shop, reviewRequestStatus: "pending" }
-  });
+  // 🚀 PERFORMANCE: Use aggregate queries instead of loading all reviews
+  const [
+    totalReviews,
+    ratingAgg,
+    reviewsThisWeek,
+    reviewsLastWeek,
+    unrepliedCount,
+    urgentCount,
+    pendingOrders,
+    userSession,
+  ] = await Promise.all([
+    prisma.review.count({ where: { shop } }),
+    prisma.review.aggregate({ _avg: { rating: true }, where: { shop } }),
+    prisma.review.count({ where: { shop, createdAt: { gte: sevenDaysAgo } } }),
+    prisma.review.count({ where: { shop, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+    prisma.review.count({ where: { shop, replies: { none: {} } } }),
+    prisma.review.count({ where: { shop, rating: { lte: 2 }, replies: { none: {} } } }),
+    prisma.order.count({ where: { shop, reviewRequestStatus: "pending" } }),
+    prisma.session.findFirst({
+      where: { shop: session.shop },
+      select: { appInstalledAt: true, lastUpgradePrompt: true, upgradePromptCount: true },
+    }),
+  ]);
 
-  // Get session for phase tracking
-  const userSession = await prisma.session.findFirst({
-    where: { shop: session.shop },
-    select: {
-      appInstalledAt: true,
-      lastUpgradePrompt: true,
-      upgradePromptCount: true,
-    },
-  });
+  const averageRating = ratingAgg._avg.rating ?? 0;
+  const reviewTrend = reviewsLastWeek === 0
+    ? (reviewsThisWeek > 0 ? 100 : 0)
+    : Math.round(((reviewsThisWeek - reviewsLastWeek) / reviewsLastWeek) * 100);
 
   // Calculate conversion phase
   const phase = userSession ? getConversionPhase(userSession.appInstalledAt) : "DELIGHT";
@@ -101,39 +90,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     page: "dashboard",
   });
 
-
   // 🧠 REAL INTELLIGENCE (PRO)
   let impact = { formatted: "$0.00", currency: "USD" };
-  let insights = { label: " gathering data...", score: 0 };
+  let insights: { score: number; label: string; aiSummary: string | null } | null = null;
 
   if (planName === "EMPIRE_PRO") {
-    // 1. Business Impact: Real Order Revenue
-    const orderAgg = await prisma.order.aggregate({
-      _sum: { totalPrice: true },
-      where: { shop: session.shop }
-    });
+    // 1. Business Impact: Real Order Revenue (already aggregate, keep as is)
+    const [orderAgg, latestOrder] = await Promise.all([
+      prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } }),
+      prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } }),
+    ]);
     const totalRevenue = orderAgg._sum.totalPrice || 0;
-
-    // Get Currency
-    const latestOrder = await prisma.order.findFirst({
-      where: { shop: session.shop },
-      orderBy: { createdAt: 'desc' },
-      select: { currency: true }
-    });
     const currency = latestOrder?.currency || "USD";
-
     impact = {
-      formatted: new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(totalRevenue),
-      currency
+      formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
+      currency,
     };
 
-    // 2. AI Insights: Sentiment Analysis
-    const positiveReviews = reviews.filter(r => r.sentiment === 'POSITIVE' || r.rating >= 4).length;
-    const sentimentScore = totalReviews > 0 ? (positiveReviews / totalReviews) * 5 : 0;
-    const trend = totalReviews > 0
-    ? Math.round((positiveReviews / totalReviews) * 100)
-    : 0;
-  console.debug("Sentiment Trend:", trend);
+    // 2. AI Insights — serve from cache, generate in background only if stale
+    const positiveCount = await prisma.review.count({
+      where: { shop, OR: [{ sentiment: "POSITIVE" }, { rating: { gte: 4 } }] }
+    });
+    const sentimentScore = totalReviews > 0 ? (positiveCount / totalReviews) * 5 : 0;
 
     let sentimentLabel = "Sentiment Stable";
     if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
@@ -141,54 +119,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
     else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
 
-    let insights: { score: number; label: string; aiSummary: string | null } = {
-      score: sentimentScore,
-      label: sentimentLabel,
-      aiSummary: null,
-    };
+    insights = { score: sentimentScore, label: sentimentLabel, aiSummary: settings?.aiInsightsSummary || null };
 
-    // Try real AI insights if configured
+    // AI Insight Dashboard Card — strict READ-ONLY cache.
+    // Generation happens exclusively on the Insights page via button click to protect BYOK tokens.
     if (settings?.aiProvider && settings?.aiApiKey) {
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const needsRefresh = !settings.aiInsightsUpdatedAt || new Date(settings.aiInsightsUpdatedAt) < oneHourAgo;
-
-      if (needsRefresh && totalReviews > 0) {
-        try {
-          const recentReviews = reviews.slice(0, 20).map(r => ({ body: r.body ?? null, rating: r.rating }));
-          const aiResult = await generateInsights(
-            { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" },
-            recentReviews
-          );
-          insights.aiSummary = aiResult.summary;
-          // Cache the result
-          await prisma.settings.update({
-            where: { shop: session.shop },
-            data: { aiInsightsSummary: aiResult.summary, aiInsightsUpdatedAt: new Date() },
-          });
-        } catch (err) {
-          console.error("AI insights generation failed:", err);
-          insights.aiSummary = settings.aiInsightsSummary || null;
-        }
-      } else {
-        if (insights) insights.aiSummary = settings.aiInsightsSummary || null;
-      }
+      insights.aiSummary = settings.aiInsightsSummary || null;
     }
   }
 
-  // Placeholder for trend, as it's not calculated in the original code
-
   return json({
-    metrics: { totalReviews, averageRating, reviewsThisWeek, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },
+    metrics: { totalReviews, averageRating, reviewsThisWeek, reviewTrend, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },
     planName,
     phase,
     canShowUpgrade,
     features: CONVERSION_CONFIG.FEATURES,
     impact,
-    insights: insights as { score: number; label: string; aiSummary: string | null } | null,
+    insights,
     settings,
   });
 
 };
+
 
 export default function EmpireDashboard() {
   const { metrics, planName, impact, insights } = useLoaderData<typeof loader>();
@@ -443,7 +395,10 @@ export default function EmpireDashboard() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="stat-label">Growth Velocity</div>
-                      <div className="trend-badge"><ArrowUpIcon style={{ width: 14 }} /> +12%</div>
+                      <div className="trend-badge" style={{ background: metrics.reviewTrend >= 0 ? '#dcfce7' : '#fee2e2', color: metrics.reviewTrend >= 0 ? '#166534' : '#991b1b' }}>
+                        {metrics.reviewTrend >= 0 ? <ArrowUpIcon style={{ width: 14 }} /> : null}
+                        {metrics.reviewTrend >= 0 ? '+' : ''}{metrics.reviewTrend}%
+                      </div>
                     </div>
                     <div className="stat-value">+{metrics.reviewsThisWeek}</div>
                     <p style={{ color: '#64748b', fontSize: '0.9rem' }}>New reviews this week</p>
@@ -506,6 +461,139 @@ export default function EmpireDashboard() {
             <Layout.Section>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
 
+                {/* CAMPAIGNS CARD */}
+                <div
+                  onClick={() => navigate("/app/campaigns")}
+                  style={{
+                    background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    color: 'white',
+                    height: '100%',
+                    cursor: 'pointer',
+                    minHeight: '90px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>🚀</span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Email Campaigns</h3>
+                    </div>
+                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Generate more reviews</p>
+                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Launch Campaign →</div>
+                  </BlockStack>
+                </div>
+
+                {/* IMPORT CARD */}
+                <div
+                  onClick={() => navigate("/app/import")}
+                  style={{
+                    background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    color: 'white',
+                    height: '100%',
+                    cursor: 'pointer',
+                    minHeight: '90px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>📥</span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Import Reviews</h3>
+                    </div>
+                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Migrate from CSV</p>
+                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Upload CSV →</div>
+                  </BlockStack>
+                </div>
+
+                {/* CONFIGURATION CARD */}
+                <div
+                  onClick={() => navigate("/app/settings")}
+                  style={{
+                    background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    color: 'white',
+                    height: '100%',
+                    cursor: 'pointer',
+                    minHeight: '90px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>⚙️</span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Configuration</h3>
+                    </div>
+                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Widget & Email settings</p>
+                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Manage</div>
+                  </BlockStack>
+                </div>
+
+                {/* AI INSIGHTS CARD */}
+                <div
+                  onClick={() => navigate("/app/insights")}
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    color: 'white',
+                    height: '100%',
+                    cursor: 'pointer',
+                    minHeight: '90px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {planName !== "EMPIRE_PRO" && <div className="pro-badge-floating">PRO</div>}
+                  <BlockStack gap="200">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>🤖</span>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>AI Insights</h3>
+                    </div>
+
+                    {planName === "EMPIRE_PRO" ? (
+                      <div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                          {insights?.label || "Insights"}
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <div key={s} style={{
+                              width: '20px', height: '6px',
+                              background: s <= Math.round(insights?.score || 0) ? 'white' : 'rgba(255,255,255,0.3)',
+                              borderRadius: '4px'
+                            }}></div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>
+                          ✅ Sentiment is stable.
+                        </p>
+                        <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600 }}>
+                          Click to view report
+                        </div>
+                      </>
+                    )}
+                  </BlockStack>
+                </div>
+
                 {/* BUSINESS IMPACT CARD */}
                 <div
                   onClick={() => navigate("/app/impact")}
@@ -516,7 +604,7 @@ export default function EmpireDashboard() {
                     color: 'white',
                     height: '100%',
                     cursor: 'pointer',
-                    minHeight: '120px',
+                    minHeight: '90px',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
@@ -554,144 +642,6 @@ export default function EmpireDashboard() {
                         </div>
                       </>
                     )}
-                  </BlockStack>
-                </div>
-
-                {/* AI INSIGHTS CARD */}
-                <div
-                  onClick={() => navigate("/app/insights")}
-                  style={{
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    color: 'white',
-                    height: '100%',
-                    cursor: 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {planName !== "EMPIRE_PRO" && <div className="pro-badge-floating">PRO</div>}
-                  <BlockStack gap="200">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>🤖</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>AI Insights</h3>
-                    </div>
-
-                    {planName === "EMPIRE_PRO" ? (
-                      <div>
-                        <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                          {insights?.label || "Insights"}
-                        </div>
-                        {insights?.aiSummary && (
-                          <div style={{ fontSize: '0.8rem', opacity: 0.9, marginTop: '6px', lineHeight: '1.4' }}>
-                            {insights?.aiSummary}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
-                          {[1, 2, 3, 4, 5].map(s => (
-                            <div key={s} style={{
-                              width: '20px', height: '6px',
-                              background: s <= Math.round(insights?.score || 0) ? 'white' : 'rgba(255,255,255,0.3)',
-                              borderRadius: '4px'
-                            }}></div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>
-                          ✅ Sentiment is stable.
-                        </p>
-                        <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600 }}>
-                          Click to view report
-                        </div>
-                      </>
-                    )}
-                  </BlockStack>
-                </div>
-
-                {/* CONFIGURATION CARD */}
-                <div
-                  onClick={() => navigate("/app/settings")}
-                  style={{
-                    background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    color: 'white',
-                    height: '100%',
-                    cursor: 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <BlockStack gap="200">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>⚙️</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Configuration</h3>
-                    </div>
-                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Widget & Email settings</p>
-                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Manage</div>
-                  </BlockStack>
-                </div>
-
-                {/* IMPORT CARD */}
-                <div
-                  onClick={() => navigate("/app/import")}
-                  style={{
-                    background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    color: 'white',
-                    height: '100%',
-                    cursor: 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <BlockStack gap="200">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>📥</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Import Reviews</h3>
-                    </div>
-                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Migrate from CSV</p>
-                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Upload CSV →</div>
-                  </BlockStack>
-                </div>
-
-                {/* CAMPAIGNS CARD */}
-                <div
-                  onClick={() => navigate("/app/campaigns")}
-                  style={{
-                    background: 'linear-gradient(135deg, #0369a1 0%, #0284c7 100%)',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    color: 'white',
-                    height: '100%',
-                    cursor: 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <BlockStack gap="200">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>🚀</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Email Campaigns</h3>
-                    </div>
-                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Generate more reviews</p>
-                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Launch Campaign →</div>
                   </BlockStack>
                 </div>
 

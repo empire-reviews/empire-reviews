@@ -41,6 +41,7 @@ import {
     EditIcon,
     LockIcon
 } from "@shopify/polaris-icons";
+import { BackButton } from "../components/BackButton";
 import { hasActivePayment } from "../billing.server";
 
 
@@ -321,6 +322,7 @@ export default function CampaignsPage() {
     return (
         <div className="holographic-void">
             <Page fullWidth>
+                <BackButton />
                 <div className="holo-header">
                     <h1 className="holo-title">Email Campaigns</h1>
                     <p className="holo-subtitle">Automated review requests designed to convert.</p>

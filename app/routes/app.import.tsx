@@ -18,6 +18,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
 import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
+import { BackButton } from "../components/BackButton";
 
 // Helper to parse CSV robustly (handles quotes, empty fields, and newlines within quotes)
 function parseCSV(text: string) {
@@ -395,6 +396,7 @@ export default function ImportPage() {
 
     return (
         <div className="empire-import">
+            <BackButton />
             <style>{`
                 @keyframes pulse-glow {
                     0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }

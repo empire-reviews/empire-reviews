@@ -11,6 +11,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { LockIcon } from "@shopify/polaris-icons";
 import { hasActivePayment } from "../billing.server";
+import { BackButton } from "../components/BackButton";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     await authenticate.admin(request);
@@ -204,9 +205,7 @@ export default function ImpactPage() {
 
     return (
         <Page>
-            <ui-title-bar title="Business Impact 📊">
-                <button onClick={() => navigate("/app")}>Back</button>
-            </ui-title-bar>
+            <BackButton />
             <Layout>
                 <Layout.Section>
                     <Card>

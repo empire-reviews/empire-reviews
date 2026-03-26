@@ -1,5 +1,6 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { Webhook } from "svix";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     if (request.method !== "POST") {
@@ -7,7 +8,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     try {
-        const payload = await request.json();
+        const rawBody = await request.text();
+        const signature = request.headers.get("svix-signature");
+        const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+
+        // Signature Verification (Bypass only if no secret is set in local dev)
+        if (webhookSecret) {
+            if (!signature) {
+                return json({ error: "Missing signature" }, { status: 400 });
+            }
+            try {
+                const wh = new Webhook(webhookSecret);
+                const headers = Object.fromEntries(request.headers);
+                wh.verify(rawBody, headers);
+            } catch (err: any) {
+                console.error("Resend Webhook Signature failed:", err.message);
+                return json({ error: "Invalid signature" }, { status: 400 });
+            }
+        } else {
+            console.warn("⚠️ [DEV WARNING] RESEND_WEBHOOK_SECRET not set. Skipping signature verification.");
+        }
+
+        const payload = JSON.parse(rawBody);
         const type = payload.type;
         const data = payload.data;
 
@@ -29,11 +51,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         if (type === "email.opened") {
-            if (!sendRecord.opened) {
+            if (!sendRecord.openedAt) {
                 await prisma.$transaction([
                     prisma.campaignSend.update({
                         where: { id: sendId },
-                        data: { opened: true, openedAt: new Date() }
+                        data: { openedAt: new Date() }
                     }),
                     prisma.campaignMetrics.updateMany({
                         where: { campaignId: sendRecord.campaignId },
@@ -42,11 +64,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 ]);
             }
         } else if (type === "email.clicked") {
-            if (!sendRecord.clicked) {
+            if (!sendRecord.clickedAt) {
                 await prisma.$transaction([
                     prisma.campaignSend.update({
                         where: { id: sendId },
-                        data: { clicked: true, clickedAt: new Date() }
+                        data: { clickedAt: new Date() }
                     }),
                     prisma.campaignMetrics.updateMany({
                         where: { campaignId: sendRecord.campaignId },

@@ -1,6 +1,7 @@
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
 import { analyzeBasicSentiment } from "../services/sentiment.server";
+import { checkRateLimit } from "../utils/rateLimit.server";
 
 // 🛡️ CORS HELPER — restrict to Shopify storefronts
 function getAllowedOrigin(request: Request): string {
@@ -43,25 +44,59 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders(request) });
     }
 
+    // 🛡️ DATABASE-BACKED RATE LIMITING (persists across Vercel cold starts)
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+
+    if (ip !== "unknown") {
+        const rateCheck = await checkRateLimit(ip, 10, 60 * 60 * 1000); // 10 requests per hour
+
+        if (!rateCheck.allowed) {
+            const retryAfter = Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000);
+            return json(
+                { error: "Rate limit exceeded. Try again later." },
+                {
+                    status: 429,
+                    headers: {
+                        ...corsHeaders(request),
+                        "Retry-After": String(retryAfter),
+                        "X-RateLimit-Limit": "10",
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": rateCheck.resetAt.toISOString(),
+                    }
+                }
+            );
+        }
+    }
+
     try {
         const formData = await request.formData();
-        const productId = formData.get("productId") as string;
+        let productId = formData.get("productId") as string;
+        // Ensure we don't double-prefix the gid
+        if (productId && productId.includes("gid://shopify/Product/")) {
+            productId = productId.replace("gid://shopify/Product/", "");
+        }
         const rating = parseInt(formData.get("rating") as string);
         const body = formData.get("body") as string;
-        const customerName = formData.get("author") as string || "Anonymous";
+        let customerName = formData.get("author") as string || "Anonymous";
         const customerEmail = formData.get("email") as string;
         const title = formData.get("title") as string;
-        const mediaUrls = formData.get("media_urls") as string; // Expecting comma-separated URLs
+        const mediaUrls = formData.get("media_urls") as string;
 
-        // Get shop from form data (storefront widget must include this)
-        // Also check App Proxy header as fallback
         const shop = (formData.get("shop") as string)
             || request.headers.get("x-shopify-shop-domain")
             || new URL(request.url).searchParams.get("shop");
 
         if (!productId || !rating || !shop) {
-            return json({ error: "Missing required fields (productId, rating, shop)" }, { status: 400, headers: { "Access-Control-Allow-Origin": "*" } });
+            return json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders(request) });
         }
+
+        // Input Validation (Issue 13)
+        if (isNaN(rating) || rating < 1 || rating > 5) return json({ error: "Invalid rating" }, { status: 400, headers: corsHeaders(request) });
+        if (body && body.length > 2000) return json({ error: "Review body exceeds maximum length of 2000 characters." }, { status: 400, headers: corsHeaders(request) });
+        if (customerName.length > 100) customerName = customerName.substring(0, 100);
+
+        // Basic HTML Sanitization
+        customerName = customerName.replace(/[<>&]/g, "");
 
         // 🧠 EMPIRE INTELLIGENCE LAYER
         const sentiment = analyzeBasicSentiment(body || "");
@@ -69,8 +104,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // Fetch Settings for Auto-Publish Rules
         const settings = await prisma.settings.findFirst({ where: { shop } });
 
-        // 🚨 DEV MODE: Auto-approve everything so you can see it
-        let status = "approved";
+        // Evaluate Auto-Publish Rule (3 modes: none | five_star | all)
+        const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? "five_star" : "none");
+        let status = "pending";
+        if (publishMode === "all") {
+            status = "approved";
+        } else if (publishMode === "five_star" && rating === 5) {
+            status = "approved";
+        }
 
         // Handle Media Creation
         const mediaCreate = [];
@@ -110,38 +151,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             // In a multi-tenant app, we'd pass the shop via query param or header.
 
             try {
-                // Find session for this shop to get an Access Token (Offline)
-                // Note: We need to import 'shopify' correctly.
-                const shopify = (await import("../shopify.server")).default;
-                // @ts-ignore: Session storage type mismatch
-                const sessionId = shopify.sessionStorage.getOfflineId(shop);
-                const session = await shopify.sessionStorage.loadSession(sessionId);
+                const { unauthenticated } = await import("../shopify.server");
+                const { admin } = await unauthenticated.admin(shop);
 
-                if (session) {
-                    // @ts-ignore: Client type mismatch
-                    const client = new shopify.clients.Graphql({ session });
-                    await client.request(
-                        `mutation flowTriggerReceive($handle: String!, $payload: JSON!, $surreal: Boolean) {
-                            flowTriggerReceive(handle: $handle, payload: $payload, surreal: $surreal) {
-                                userErrors { field message }
-                            }
-                        }`,
-                        {
-                            variables: {
-                                handle: "empire-review-trigger",
-                                payload: {
-                                    rating,
-                                    reviewBody: body,
-                                    customerEmail,
-                                    customerName,
-                                    reviewTitle: "Review from Storefront"
-                                },
-                                surreal: true // Use 'surreal' to fire immediately in dev
+                await admin.graphql(
+                    `#graphql
+                    mutation flowTriggerReceive($handle: String!, $payload: JSON!) {
+                        flowTriggerReceive(handle: $handle, payload: $payload) {
+                            userErrors { field message }
+                        }
+                    }`,
+                    {
+                        variables: {
+                            handle: "empire-review-trigger",
+                            payload: {
+                                rating,
+                                reviewBody: body,
+                                customerEmail,
+                                customerName,
+                                reviewTitle: "Review from Storefront"
                             }
                         }
-                    );
-                    console.log("✅ Flow Trigger Fired: review_created");
-                }
+                    }
+                );
+                console.log("✅ Flow Trigger Fired: review_created");
             } catch (flowError) {
                 console.error("⚠️ Failed to fire Flow trigger:", flowError);
             }
@@ -153,7 +186,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             try {
                 const refererUrl = new URL(referer);
                 const campaignId = refererUrl.searchParams.get("campaignId");
-                
+
                 if (campaignId) {
                     await prisma.campaignMetrics.updateMany({
                         where: { campaignId },
@@ -186,7 +219,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const productId = url.searchParams.get("productId");
     const shop = url.searchParams.get("shop");
     const minRating = url.searchParams.get("minRating") ? parseInt(url.searchParams.get("minRating")!) : undefined;
-    const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : 50;
+    const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : 20; // smaller default limit for infinite scroll
+    const page = url.searchParams.get("page") ? parseInt(url.searchParams.get("page")!) : 1;
+    const skip = (page - 1) * limit;
     const mediaOnly = url.searchParams.get("mediaOnly") === "true";
 
     try {
@@ -195,7 +230,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         if (productId) {
             where.productId = `gid://shopify/Product/${productId}`;
         }
-        
+
         if (shop) {
             where.shop = shop;
         }
@@ -217,6 +252,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             where,
             orderBy: { createdAt: "desc" },
             take: limit,
+            skip: skip,
             include: { media: true, replies: true }
         });
 
@@ -224,7 +260,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         let stats = null;
         if (productId) {
             const allReviews = await prisma.review.findMany({
-                where: { productId: `gid://shopify/Product/${productId}` },
+                where: {
+                    productId: `gid://shopify/Product/${productId}`,
+                    status: "approved"
+                },
                 select: { rating: true }
             });
             const total = allReviews.length;
@@ -235,7 +274,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         } else if (!productId && shop) {
             // Global Stats (for Trust Badge) - filter by shop to prevent data leaks
             const allReviews = await prisma.review.findMany({
-                where: { shop },
+                where: {
+                    shop,
+                    status: "approved"
+                },
                 select: { rating: true }
             });
             const total = allReviews.length;
@@ -245,8 +287,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             stats = { total, average, distribution };
         }
 
+        // Return pagination metadata alongside data
+        const hasMore = reviews.length === limit;
         return json(
-            { reviews, stats },
+            { reviews, stats, pagination: { page, hasMore } },
             {
                 headers: corsHeaders(request),
             }

@@ -9,8 +9,9 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Session {
@@ -83,10 +84,14 @@ model Settings {
   id                     String  @id @default(uuid())
   shop                   String  @unique
   autoPublish            Boolean @default(false)
+  publishMode            String  @default("none") // none | five_star | all
   emailAlerts            Boolean @default(true)
   themeColor             String  @default("#000000")
   accentColor            String  @default("#3b82f6")
   bgColor                String  @default("#ffffff")
+  widgetBgColor          String  @default("#ffffff")
+  starColor              String  @default("#fbbf24")
+  borderRadius           String  @default("8px")
   enableFlow             Boolean @default(false)
   enableKlaviyo          Boolean @default(false)
   klaviyoApiKey          String?
@@ -104,6 +109,7 @@ model Settings {
   resendApiKey       String?
   reviewRequestDelay Int     @default(3) // Days after order to send email
   senderEmail        String  @default("reviews@empirereviews.com")
+  physicalAddress    String? // CAN-SPAM required mailing address
 }
 
 model Campaign {
@@ -205,4 +211,18 @@ model Unsubscriber {
   @@unique([email, shop])
   @@index([email])
   @@index([shop])
+}
+
+// Rate Limiting (Database-Backed)
+model RateLimit {
+  id        String   @id @default(uuid())
+  key       String   // IP address or identifier
+  window    String   // Time window identifier (e.g. "2026-03-24T22:00")
+  count     Int      @default(1)
+  expiresAt DateTime // Auto-cleanup: when this record can be deleted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, window])
+  @@index([expiresAt])
 }

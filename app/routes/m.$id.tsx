@@ -14,27 +14,15 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         return redirect("/");
     }
 
-    const apiKey = process.env.SHOPIFY_API_KEY || "05be213c4c2c36c447c9d2532cbd900f";
+    const apiKey = process.env.SHOPIFY_API_KEY;
+    if (!apiKey || !/^[a-z0-9.-]+\.myshopify\.com$/.test(shop)) {
+        console.warn("[ManageRedirect] Invalid shop format or missing API key.");
+        return redirect("/");
+    }
+
     const targetUrl = `https://${shop}/admin/apps/${apiKey}/app/campaigns?highlight=${id}`;
 
-    console.log(`[ManageRedirect] Breaking out to: ${targetUrl}`);
+    console.log(`[ManageRedirect] Redirecting to: ${targetUrl}`);
 
-    const html = `
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <script>
-                    // Force top-level navigation to Shopify Admin
-                    window.top.location.href = "${targetUrl}";
-                </script>
-            </head>
-            <body>
-                Redirecting to Campaign Manager...
-            </body>
-        </html>
-    `;
-
-    return new Response(html, {
-        headers: { "Content-Type": "text/html" }
-    });
+    return redirect(targetUrl);
 };

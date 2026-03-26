@@ -1,0 +1,127 @@
+<div class="empire-reviews-widget" 
+     id="empire-reviews-widget-{{ block.id }}"
+     data-product-id="{{ product.id }}"
+     data-shop-domain="{{ shop.permanent_domain }}"
+     style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-radius: {{ block.settings.border_radius }}px; --empire-text: {{ block.settings.text_color }}; --empire-heading: {{ block.settings.heading_color }};">
+    <div class="empire-split-layout">
+        <!-- LEFT COLUMN: Summary & Distribution -->
+        <div class="empire-summary-col">
+            <div class="empire-summary-skeleton">
+                <div class="empire-pulse-bar" style="width: 120px; height: 48px; margin-bottom: 8px;"></div>
+                <div class="empire-pulse-bar" style="width: 180px; height: 20px;"></div>
+            </div>
+
+            <!-- Distribution Progress Bars Container -->
+            <div class="empire-distribution-container" id="empire-distribution-{{ block.id }}">
+                <!-- Rendered by JS -->
+                <div class="empire-pulse-bar" style="height: 120px; margin-top: 20px;"></div>
+            </div>
+
+            <!-- 3D Write a Review Button -->
+            <button class="empire-write-review-btn" onclick="EmpireWidgets.openReviewModal(this)" 
+                    data-product-id="{{ product.id }}"
+                    data-shop-domain="{{ shop.permanent_domain }}">
+                ✍️ Write a Review
+            </button>
+        </div>
+
+        <!-- RIGHT COLUMN: Infinite Scroll Reviews -->
+        <div class="empire-reviews-col">
+            <div class="empire-reviews-grid empire-loading">
+                <div class="empire-review-card empire-skeleton-card"></div>
+                <div class="empire-review-card empire-skeleton-card"></div>
+                <div class="empire-review-card empire-skeleton-card"></div>
+            </div>
+            <!-- Load More Trigger for Infinite Scroll -->
+            <div class="empire-load-more-trigger" id="empire-load-more-{{ block.id }}"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Submission Modal (renders once, shared across all widgets) -->
+<div class="empire-modal-overlay" id="empire-modal-overlay" onclick="EmpireWidgets.closeModal(event)">
+    <div class="empire-modal">
+        <button class="empire-modal-close" onclick="EmpireWidgets.closeModal()">✕</button>
+        <div class="empire-modal-icon">⭐</div>
+        <h3 class="empire-modal-title">Share Your Experience</h3>
+        <p class="empire-modal-sub">How would you rate this product?</p>
+        
+        <!-- Interactive Star Picker -->
+        <div class="empire-star-picker" id="empire-star-picker">
+            <button class="empire-pick-star" data-value="1" onclick="EmpireWidgets.selectStar(1)">★</button>
+            <button class="empire-pick-star" data-value="2" onclick="EmpireWidgets.selectStar(2)">★</button>
+            <button class="empire-pick-star" data-value="3" onclick="EmpireWidgets.selectStar(3)">★</button>
+            <button class="empire-pick-star" data-value="4" onclick="EmpireWidgets.selectStar(4)">★</button>
+            <button class="empire-pick-star" data-value="5" onclick="EmpireWidgets.selectStar(5)">★</button>
+        </div>
+        <div class="empire-star-label" id="empire-star-label">Tap a star to rate</div>
+
+        <!-- Optional Review Fields (shown after star select) -->
+        <div class="empire-review-fields" id="empire-review-fields">
+            <input type="text" class="empire-input" id="empire-input-name" placeholder="Your name (optional)" maxlength="80" />
+            <textarea class="empire-input empire-textarea" id="empire-input-body" placeholder="Tell us what you think... (optional)" maxlength="1000" rows="4"></textarea>
+            <button class="empire-submit-btn" id="empire-submit-btn" onclick="EmpireWidgets.submitReview()">
+                <span class="empire-submit-label">Submit Review</span>
+            </button>
+        </div>
+
+        <!-- Success State -->
+        <div class="empire-modal-success" id="empire-modal-success">
+            <div style="font-size: 3rem;">🎉</div>
+            <h3>Thank you!</h3>
+            <p>Your review has been received and is pending approval.</p>
+        </div>
+    </div>
+</div>
+
+{% schema %}
+{
+  "name": "Review Widget",
+  "target": "section",
+  "stylesheet": "empire-widgets.css",
+  "javascript": "empire-widgets.js",
+  "templates": ["product"],
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "What Our Customers Say"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading Color",
+      "default": "#1e293b"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#475569"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Star / Accent Color",
+      "default": "#f59e0b"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Card Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Card Border Radius",
+      "default": 16
+    }
+  ]
+}
+{% endschema %}

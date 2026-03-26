@@ -34,9 +34,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Check for "Empire Pro" Plan
     // If user is FREE (default), this feature is locked.
     // They must have 'EMPIRE_PRO' in their Settings (synced via app.settings.tsx)
-    // if (settings?.plan !== "EMPIRE_PRO") {
-    //     return new Response("Feature requires Empire Pro plan", { status: 403 });
-    // }
+    if (settings?.plan !== "EMPIRE_PRO") {
+        return new Response("Feature requires Empire Pro plan", { status: 403 });
+    }
 
     if (!settings?.enableGoogle) {
         return new Response("Feed disabled by store owner", { status: 403 });

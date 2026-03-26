@@ -18,6 +18,7 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
+import { BackButton } from "../components/BackButton";
 import { hasActivePayment } from "../billing.server";
 import { generateInsights } from "../services/ai.server";
 import type { AIProvider } from "../services/ai.server";
@@ -345,12 +346,12 @@ export default function InsightsPage() {
 
       <Page fullWidth>
         <BlockStack gap="600">
+          <BackButton />
           {/* HERO */}
           <div className="insight-hero">
             <BlockStack gap="400">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Button icon={ArrowLeftIcon} onClick={() => navigate("/app")} variant="plain" />
                   <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>AI Sentiment Analysis 🧠</h1>
                 </div>
                 {/* SYNC BUTTON */}
@@ -421,14 +422,35 @@ export default function InsightsPage() {
                           />
                         </div>
 
-                        <Button
-                          submit
-                          variant="primary"
-                          loading={isGenerating}
+                        <button
+                          type="submit"
                           disabled={!hasAiConfig || isGenerating}
+                          style={{
+                            background: isGenerating ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)',
+                            color: 'white',
+                            padding: '14px 32px',
+                            border: 'none',
+                            borderRadius: '14px',
+                            fontSize: '1.05rem',
+                            fontWeight: 800,
+                            cursor: !hasAiConfig || isGenerating ? 'not-allowed' : 'pointer',
+                            boxShadow: isGenerating ? 'none' : '0 8px 25px rgba(139, 92, 246, 0.4)',
+                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            animation: !isGenerating && hasAiConfig ? 'pulse-generate 2s infinite' : 'none',
+                          }}
                         >
-                          ✨ Generate New Insights
-                        </Button>
+                          {isGenerating ? '⏳ Analyzing...' : '✨ Generate New Insights'}
+                        </button>
+                        <style>{`
+                          @keyframes pulse-generate {
+                            0% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+                            50% { box-shadow: 0 8px 35px rgba(217, 70, 239, 0.6); }
+                            100% { box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4); }
+                          }
+                        `}</style>
                         <Text as="p" tone="subdued" variant="bodySm">
                           ⚠️ Generating insights uses your connected API key and may incur charges from your provider.
                         </Text>

@@ -1,0 +1,49 @@
+<div class="empire-star-rating" 
+     data-product-id="{{ product.id }}"
+     data-shop-domain="{{ shop.domain }}"
+     style="--star-color: {{ block.settings.star_color }}; --text-color: {{ block.settings.text_color }}; justify-content: {{ block.settings.alignment }};">
+    
+    <div class="empire-stars-skeleton">
+        <span class="empire-skeleton-star">★</span>
+        <span class="empire-skeleton-star">★</span>
+        <span class="empire-skeleton-star">★</span>
+        <span class="empire-skeleton-star">★</span>
+        <span class="empire-skeleton-star">★</span>
+    </div>
+    <span class="empire-rating-text-skeleton"></span>
+</div>
+
+{% schema %}
+{
+  "name": "Empire Star Rating",
+  "target": "section",
+  "stylesheet": "empire-widgets.css",
+  "javascript": "empire-widgets.js",
+  "templates": ["product"],
+  "settings": [
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star Color",
+      "default": "#f59e0b"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#475569"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        { "value": "flex-start", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Right" }
+      ],
+      "default": "flex-start"
+    }
+  ]
+}
+{% endschema %}

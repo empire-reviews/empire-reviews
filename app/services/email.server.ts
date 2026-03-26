@@ -32,15 +32,20 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
     const unsubscribeLink = `${appUrl.trim()}/api/unsubscribe?token=${token}&email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
 
     try {
-        // Fetch the store owner's email to use as Reply-To
+        // Fetch the store owner's email and physical address
+        const shopSettings = await prisma.settings.findFirst({
+            where: { shop: shopDomain },
+            select: { email: true, physicalAddress: true } as any
+        });
         const shopSession = await prisma.session.findFirst({
             where: { shop: shopDomain },
             select: { email: true }
         });
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
+        const physicalAddress = (shopSettings as any)?.physicalAddress;
 
-        // CAN-SPAM compliant footer with physical address
-        const footer = buildComplianceFooter(shopDomain, unsubscribeLink);
+        // CAN-SPAM compliant footer with actual physical address
+        const footer = buildComplianceFooter(shopDomain, unsubscribeLink, physicalAddress);
 
         let data, error;
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -121,8 +126,15 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
     const unsubscribeLink = `${appUrl.trim()}/api/unsubscribe?token=${token}&email=${encodeURIComponent(toEmail)}&shop=${encodeURIComponent(shopDomain)}`;
 
     try {
-        // CAN-SPAM compliant footer with physical address
-        const footer = buildComplianceFooter(shopDomain, unsubscribeLink);
+        // Fetch physical address for CAN-SPAM compliance
+        const shopSettings = await prisma.settings.findFirst({
+            where: { shop: shopDomain },
+            select: { physicalAddress: true } as any
+        });
+        const physicalAddress = (shopSettings as any)?.physicalAddress;
+
+        // CAN-SPAM compliant footer with actual physical address
+        const footer = buildComplianceFooter(shopDomain, unsubscribeLink, physicalAddress);
 
         // Fetch the store owner's email to use as Reply-To
         const shopSession = await prisma.session.findFirst({
@@ -187,9 +199,13 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
 
 /**
  * Build a CAN-SPAM compliant email footer.
- * Includes shop identity, physical address reference, and unsubscribe link.
+ * Includes shop identity, physical address, and unsubscribe link.
  */
-function buildComplianceFooter(shopDomain: string, unsubscribeLink: string): string {
+function buildComplianceFooter(shopDomain: string, unsubscribeLink: string, physicalAddress?: string | null): string {
+    const addressLine = physicalAddress
+        ? `<p style="margin: 0 0 8px 0;">${physicalAddress}</p>`
+        : `<p style="margin: 0 0 8px 0; color: #f59e0b;">⚠️ Please add your business address in Settings &gt; Automation to comply with CAN-SPAM.</p>`;
+
     return `
         <br/><br/>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
@@ -197,7 +213,7 @@ function buildComplianceFooter(shopDomain: string, unsubscribeLink: string): str
             <tr>
                 <td align="center">
                     <p style="margin: 0 0 8px 0;">Sent by <strong>${shopDomain}</strong> via Empire Reviews</p>
-                    <p style="margin: 0 0 8px 0;">Address on file with merchant</p>
+                    ${addressLine}
                     <p style="margin: 0;">
                         <a href="${unsubscribeLink}" style="color: #888; text-decoration: underline;">
                             Unsubscribe from future emails
@@ -208,3 +224,4 @@ function buildComplianceFooter(shopDomain: string, unsubscribeLink: string): str
         </table>
     `;
 }
+

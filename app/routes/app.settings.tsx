@@ -22,6 +22,7 @@ import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { testAIConnection, type AIProvider } from "../services/ai.server";
 import { ThemeIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
+import { BackButton } from "../components/BackButton";
 
 const GROWTH_TIPS = [
     "Stores with photo reviews see a 26% higher conversion rate.",
@@ -70,8 +71,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const intent = formData.get("intent");
 
     if (intent === "reset") {
-        await prisma.review.deleteMany({});
-        await prisma.reply.deleteMany({});
+        await prisma.review.deleteMany({ where: { shop } });
+        await prisma.reply.deleteMany({ where: { review: { shop } } });
         return json({ success: true, message: "App data reset" });
     }
 
@@ -89,9 +90,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: result.success, aiTestResult: result.message });
     }
 
-    const autoPublish = formData.get("autoPublish") === "true";
+    const publishMode = formData.get("publishMode") as string || "none"; // none | five_star | all
+    const autoPublish = publishMode !== "none"; // backwards compat — true if any auto-publish is active
     const emailAlerts = formData.get("emailAlerts") === "true";
     const themeColor = formData.get("themeColor") as string;
+    const widgetBgColor = formData.get("widgetBgColor") as string || "#ffffff";
+    const starColor = formData.get("starColor") as string || "#fbbf24";
+    const borderRadius = formData.get("borderRadius") as string || "8px";
+    const physicalAddress = (formData.get("physicalAddress") as string) || null;
 
     // AI Configuration
     let aiProvider = formData.get("aiProvider") as string || null;
@@ -117,16 +123,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shop },
         data: {
             autoPublish,
+            publishMode,
             emailAlerts,
             themeColor,
+            widgetBgColor,
+            starColor,
+            borderRadius,
             aiProvider,
             aiApiKey,
             enableFlow,
             enableKlaviyo,
             klaviyoApiKey,
             enableGoogle,
-            reviewRequestDelay
-        },
+            reviewRequestDelay,
+            physicalAddress,
+        } as any,
     });
 
     return json({ success: true, settings });
@@ -138,22 +149,23 @@ export default function SettingsPage() {
     const navigate = useNavigate();
 
     // Optimistic UI state
-    const [autoPublish, setAutoPublish] = useState(settings.autoPublish);
+    const [publishMode, setPublishMode] = useState((settings as any).publishMode || (settings.autoPublish ? "five_star" : "none"));
     const [emailAlerts, setEmailAlerts] = useState(settings.emailAlerts);
     const [themeColor, setThemeColor] = useState(settings.themeColor);
     const [resetModalActive, setResetModalActive] = useState(false);
     const [billingModalActive, setBillingModalActive] = useState(false);
     const [reviewRequestDelay, setReviewRequestDelay] = useState(settings.reviewRequestDelay || 3);
-    const [widgetBgColor, setWidgetBgColor] = useState("#ffffff");
-    const [starColor, setStarColor] = useState("#fbbf24");
-    const [borderRadius, setBorderRadius] = useState("8px");
+    const [widgetBgColor, setWidgetBgColor] = useState((settings as any).widgetBgColor || "#ffffff");
+    const [starColor, setStarColor] = useState((settings as any).starColor || "#fbbf24");
+    const [borderRadius, setBorderRadius] = useState((settings as any).borderRadius || "8px");
+    const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
 
     const [isDirty, setIsDirty] = useState(false);
 
     // Watch for changes to trigger Save Bar
     useEffect(() => {
         setIsDirty(true);
-    }, [autoPublish, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
+    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -186,16 +198,20 @@ export default function SettingsPage() {
     const handleSave = () => {
         fetcher.submit(
             {
-                autoPublish: String(autoPublish),
+                publishMode,
                 emailAlerts: String(emailAlerts),
                 themeColor,
+                widgetBgColor,
+                starColor,
+                borderRadius,
                 aiProvider,
                 aiApiKey,
                 enableFlow: String(flowEnabled),
                 enableKlaviyo: String(klaviyoEnabled),
                 klaviyoApiKey: klaviyoKey,
                 enableGoogle: String(googleShoppingEnabled),
-                reviewRequestDelay: String(reviewRequestDelay)
+                reviewRequestDelay: String(reviewRequestDelay),
+                physicalAddress,
             },
             { method: "post" }
         );
@@ -231,10 +247,10 @@ export default function SettingsPage() {
         <Page
             title="Settings"
             subtitle="Manage your Empire Reviews configuration"
-            backAction={{ content: 'Dashboard', onAction: () => navigate("/app") }}
             primaryAction={isDirty ? { content: 'Save settings', onAction: handleSave } : undefined}
             fullWidth
         >
+            <BackButton />
             <style>{`
                 .stat-card {
                     background: white;
@@ -407,13 +423,27 @@ export default function SettingsPage() {
                                 </div>
                                 <div style={{ padding: '0 20px 20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                                         <div style={{ flex: 1, paddingRight: '24px' }}>
-                                            <Text as="h3" variant="headingSm" fontWeight="medium">Auto-publish 5-star reviews</Text>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Skip moderation for top-rated reviews.</p>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Review Publishing Mode</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>
+                                                {publishMode === 'none' && '✋ All new reviews go to pending — approve each one manually in War Room.'}
+                                                {publishMode === 'five_star' && '⭐ Only 5-star reviews auto-approve. Lower ratings go to pending.'}
+                                                {publishMode === 'all' && '🚀 All new reviews are instantly live on your storefront.'}
+                                            </p>
                                         </div>
-                                        <div style={{ flexShrink: 0 }}>
-                                            <Checkbox labelHidden label="Auto-publish" checked={autoPublish} onChange={setAutoPublish} />
+                                        <div style={{ flexShrink: 0, width: '240px' }}>
+                                            <Select
+                                                labelHidden
+                                                label="Publishing Mode"
+                                                value={publishMode}
+                                                onChange={setPublishMode}
+                                                options={[
+                                                    { label: '✋ Manual Approval', value: 'none' },
+                                                    { label: '⭐ Auto-publish 5-star only', value: 'five_star' },
+                                                    { label: '🚀 Auto-publish all reviews', value: 'all' },
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
@@ -446,6 +476,27 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             </Card>
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Text as="h3" variant="headingMd" fontWeight="bold">Business Address</Text>
+                                        {!physicalAddress && <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.04em' }}>⚠️ REQUIRED FOR CAN-SPAM</span>}
+                                    </div>
+                                    <Text as="p" variant="bodyMd" tone="subdued">Your business mailing address. Displayed in every email footer as required by CAN-SPAM law.</Text>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <TextField
+                                        label="Mailing Address"
+                                        labelHidden
+                                        value={physicalAddress}
+                                        onChange={setPhysicalAddress}
+                                        autoComplete="off"
+                                        placeholder="e.g. 123 Main St, Suite 100, New York, NY 10001, USA"
+                                        helpText="Required by US CAN-SPAM Act. Will appear in the footer of all review request emails."
+                                    />
+                                </div>
+                            </Card>
                         </BlockStack>
                     )}
 
@@ -468,19 +519,7 @@ export default function SettingsPage() {
                                             <Checkbox labelHidden label="Shopify Flow" checked={flowEnabled} onChange={setFlowEnabled} />
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                        <div style={{ flex: 1, paddingRight: '24px' }}>
-                                            <Text as="h3" variant="headingSm" fontWeight="medium">Klaviyo Sync</Text>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '4px 0 12px' }}>Push reviewers to VIP lists.</p>
-                                            {klaviyoEnabled && (
-                                                <TextField labelHidden label="API Key" value={klaviyoKey} onChange={setKlaviyoKey} autoComplete="off" type="password" placeholder="pk_..." />
-                                            )}
-                                        </div>
-                                        <div style={{ flexShrink: 0 }}>
-                                            <Checkbox labelHidden label="Klaviyo Sync" checked={klaviyoEnabled} onChange={setKlaviyoEnabled} />
-                                        </div>
-                                    </div>
+                                    {/* Klaviyo integration removed temporarily (Phantom Feature) */}
                                     <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
                                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                                         <div style={{ flex: 1, paddingRight: '24px' }}>

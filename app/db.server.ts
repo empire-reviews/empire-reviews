@@ -6,20 +6,21 @@ declare global {
   var prismaGlobal: PrismaClient;
 }
 
-if (process.env.NODE_ENV !== "production") {
-  if (!global.prismaGlobal) {
-    global.prismaGlobal = new PrismaClient();
-  }
-}
+let prisma: PrismaClient;
 
-const prisma =
-  global.prismaGlobal ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: (process.env.DATABASE_URL || "").trim(),
-      },
-    },
+const URL = (process.env.DATABASE_URL || "").trim();
+
+if (process.env.NODE_ENV === "production") {
+  prisma = new PrismaClient({
+    datasources: { db: { url: URL } },
   });
+} else {
+  if (!global.prismaGlobal) {
+    global.prismaGlobal = new PrismaClient({
+      datasources: { db: { url: URL } },
+    });
+  }
+  prisma = global.prismaGlobal;
+}
 
 export default prisma;

@@ -44,11 +44,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             create: { email, shop }
         });
 
+        const safeShop = shop.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c] as string));
+
         return new Response(
             `<html>
                 <body style="font-family: sans-serif; text-align: center; padding: 50px;">
                     <h2>✅ Unsubscribed Successfully</h2>
-                    <p>You will no longer receive emails from ${shop}.</p>
+                    <p>You will no longer receive emails from ${safeShop}.</p>
                     <p>You can close this window.</p>
                 </body>
             </html>`,
