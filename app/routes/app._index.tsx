@@ -17,130 +17,144 @@ import { CONVERSION_CONFIG } from "../config/conversion";
 import { generateInsights, type AIProvider } from "../services/ai.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const auth = await authenticate.admin(request);
-  const session = auth.session;
-  const { shop } = session;
+  try {
+    const auth = await authenticate.admin(request);
+    const session = auth.session;
+    const { shop } = session;
 
-  // Preserve Shopify params so the redirected request can authenticate
-  const url = new URL(request.url);
-  const shopifyParams = new URLSearchParams();
-  for (const key of ["shop", "host", "embedded", "locale", "session", "timestamp", "hmac"]) {
-    if (url.searchParams.has(key)) shopifyParams.set(key, url.searchParams.get(key)!);
-  }
-  const paramString = shopifyParams.toString();
-
-  // Check onboarding status - redirect if not completed
-  const settings = await prisma.settings.findUnique({ where: { shop } });
-  if (!settings || !settings.hasCompletedOnboarding) {
-    // Create settings if missing (first launch)
-    if (!settings) {
-      await prisma.settings.create({
-        data: { shop, hasCompletedOnboarding: false },
-      });
+    // Preserve Shopify params so the redirected request can authenticate
+    const url = new URL(request.url);
+    const shopifyParams = new URLSearchParams();
+    for (const key of ["shop", "host", "embedded", "locale", "session", "timestamp", "hmac"]) {
+      if (url.searchParams.has(key)) shopifyParams.set(key, url.searchParams.get(key)!);
     }
-    return redirect(`/app/onboarding${paramString ? `?${paramString}` : ""}`);
-  }
+    const paramString = shopifyParams.toString();
 
-  const isPro = await hasActivePayment(request);
-  const planName = isPro ? "EMPIRE_PRO" : "FREE";
+    // Check onboarding status - redirect if not completed
+    const settings = await prisma.settings.findUnique({ where: { shop } });
+    if (!settings || !settings.hasCompletedOnboarding) {
+      // Create settings if missing (first launch)
+      if (!settings) {
+        await prisma.settings.create({
+          data: { shop, hasCompletedOnboarding: false },
+        });
+      }
+      return redirect(`/app/onboarding${paramString ? `?${paramString}` : ""}`);
+    }
 
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const isPro = await hasActivePayment(request);
+    const planName = isPro ? "EMPIRE_PRO" : "FREE";
 
-  // 🚀 PERFORMANCE: Use aggregate queries instead of loading all reviews
-  const [
-    totalReviews,
-    ratingAgg,
-    reviewsThisWeek,
-    reviewsLastWeek,
-    unrepliedCount,
-    urgentCount,
-    pendingOrders,
-    userSession,
-  ] = await Promise.all([
-    prisma.review.count({ where: { shop } }),
-    prisma.review.aggregate({ _avg: { rating: true }, where: { shop } }),
-    prisma.review.count({ where: { shop, createdAt: { gte: sevenDaysAgo } } }),
-    prisma.review.count({ where: { shop, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
-    prisma.review.count({ where: { shop, replies: { none: {} } } }),
-    prisma.review.count({ where: { shop, rating: { lte: 2 }, replies: { none: {} } } }),
-    prisma.order.count({ where: { shop, reviewRequestStatus: "pending" } }),
-    prisma.session.findFirst({
-      where: { shop: session.shop },
-      select: { appInstalledAt: true, lastUpgradePrompt: true, upgradePromptCount: true },
-    }),
-  ]);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const averageRating = ratingAgg._avg.rating ?? 0;
-  const reviewTrend = reviewsLastWeek === 0
-    ? (reviewsThisWeek > 0 ? 100 : 0)
-    : Math.round(((reviewsThisWeek - reviewsLastWeek) / reviewsLastWeek) * 100);
-
-  // Calculate conversion phase
-  const phase = userSession ? getConversionPhase(userSession.appInstalledAt) : "DELIGHT";
-  const canShowUpgrade = userSession
-    ? shouldShowUpgradePrompt(phase, userSession.lastUpgradePrompt)
-    : false;
-
-  // Track page view
-  await trackEvent({
-    shop: session.shop,
-    event: "page_view",
-    page: "dashboard",
-  });
-
-  // 🧠 REAL INTELLIGENCE (PRO)
-  let impact = { formatted: "$0.00", currency: "USD" };
-  let insights: { score: number; label: string; aiSummary: string | null } | null = null;
-
-  if (planName === "EMPIRE_PRO") {
-    // 1. Business Impact: Real Order Revenue (already aggregate, keep as is)
-    const [orderAgg, latestOrder] = await Promise.all([
-      prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } }),
-      prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } }),
+    // 🚀 PERFORMANCE: Use aggregate queries instead of loading all reviews
+    const [
+      totalReviews,
+      ratingAgg,
+      reviewsThisWeek,
+      reviewsLastWeek,
+      unrepliedCount,
+      urgentCount,
+      pendingOrders,
+      userSession,
+    ] = await Promise.all([
+      prisma.review.count({ where: { shop } }),
+      prisma.review.aggregate({ _avg: { rating: true }, where: { shop } }),
+      prisma.review.count({ where: { shop, createdAt: { gte: sevenDaysAgo } } }),
+      prisma.review.count({ where: { shop, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
+      prisma.review.count({ where: { shop, replies: { none: {} } } }),
+      prisma.review.count({ where: { shop, rating: { lte: 2 }, replies: { none: {} } } }),
+      prisma.order.count({ where: { shop, reviewRequestStatus: "pending" } }),
+      prisma.session.findFirst({
+        where: { shop: session.shop },
+        select: { appInstalledAt: true, lastUpgradePrompt: true, upgradePromptCount: true },
+      }),
     ]);
-    const totalRevenue = orderAgg._sum.totalPrice || 0;
-    const currency = latestOrder?.currency || "USD";
-    impact = {
-      formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
-      currency,
-    };
 
-    // 2. AI Insights — serve from cache, generate in background only if stale
-    const positiveCount = await prisma.review.count({
-      where: { shop, OR: [{ sentiment: "POSITIVE" }, { rating: { gte: 4 } }] }
+    const averageRating = ratingAgg._avg.rating ?? 0;
+    const reviewTrend = reviewsLastWeek === 0
+      ? (reviewsThisWeek > 0 ? 100 : 0)
+      : Math.round(((reviewsThisWeek - reviewsLastWeek) / reviewsLastWeek) * 100);
+
+    // Calculate conversion phase
+    const phase = userSession ? getConversionPhase(userSession.appInstalledAt) : "DELIGHT";
+    const canShowUpgrade = userSession
+      ? shouldShowUpgradePrompt(phase, userSession.lastUpgradePrompt)
+      : false;
+
+    // Track page view
+    await trackEvent({
+      shop: session.shop,
+      event: "page_view",
+      page: "dashboard",
     });
-    const sentimentScore = totalReviews > 0 ? (positiveCount / totalReviews) * 5 : 0;
 
-    let sentimentLabel = "Sentiment Stable";
-    if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
-    else if (sentimentScore >= 4.0) sentimentLabel = "High Trust 💎";
-    else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
-    else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
+    // 🧠 REAL INTELLIGENCE (PRO)
+    let impact = { formatted: "$0.00", currency: "USD" };
+    let insights: { score: number; label: string; aiSummary: string | null } | null = null;
 
-    insights = { score: sentimentScore, label: sentimentLabel, aiSummary: settings?.aiInsightsSummary || null };
+    if (planName === "EMPIRE_PRO") {
+      // 1. Business Impact: Real Order Revenue (already aggregate, keep as is)
+      const [orderAgg, latestOrder] = await Promise.all([
+        prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } }),
+        prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } }),
+      ]);
+      const totalRevenue = orderAgg._sum.totalPrice || 0;
+      const currency = latestOrder?.currency || "USD";
+      impact = {
+        formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
+        currency,
+      };
 
-    // AI Insight Dashboard Card — strict READ-ONLY cache.
-    // Generation happens exclusively on the Insights page via button click to protect BYOK tokens.
-    if (settings?.aiProvider && settings?.aiApiKey) {
-      insights.aiSummary = settings.aiInsightsSummary || null;
+      // 2. AI Insights — serve from cache, generate in background only if stale
+      const positiveCount = await prisma.review.count({
+        where: { shop, OR: [{ sentiment: "POSITIVE" }, { rating: { gte: 4 } }] }
+      });
+      const sentimentScore = totalReviews > 0 ? (positiveCount / totalReviews) * 5 : 0;
+
+      let sentimentLabel = "Sentiment Stable";
+      if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
+      else if (sentimentScore >= 4.0) sentimentLabel = "High Trust 💎";
+      else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
+      else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
+
+      insights = { score: sentimentScore, label: sentimentLabel, aiSummary: settings?.aiInsightsSummary || null };
+
+      // AI Insight Dashboard Card — strict READ-ONLY cache.
+      // Generation happens exclusively on the Insights page via button click to protect BYOK tokens.
+      if (settings?.aiProvider && settings?.aiApiKey) {
+        insights.aiSummary = settings.aiInsightsSummary || null;
+      }
     }
+
+    return json({
+      metrics: { totalReviews, averageRating, reviewsThisWeek, reviewTrend, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },
+      planName,
+      phase,
+      canShowUpgrade,
+      features: CONVERSION_CONFIG.FEATURES,
+      impact,
+      insights,
+      settings,
+    });
+  } catch (error) {
+    // Auth can fail on Remix client-side revalidation requests before App Bridge finishes injecting tokens
+    // Or if Vercel Token Exchange inherently fails. We swallow it and show 0s to prevent a fatal 500 error boundary.
+    console.error("Dashboard caught token rejection, rendering zero state:");
+    return json({
+      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, reviewTrend: 0, unrepliedCount: 0, urgentCount: 0, awaitingDeliveryCount: 0 },
+      planName: "FREE",
+      phase: "DELIGHT",
+      canShowUpgrade: false,
+      features: CONVERSION_CONFIG.FEATURES,
+      impact: null,
+      insights: null,
+      settings: null,
+    });
   }
-
-  return json({
-    metrics: { totalReviews, averageRating, reviewsThisWeek, reviewTrend, unrepliedCount, urgentCount, awaitingDeliveryCount: pendingOrders },
-    planName,
-    phase,
-    canShowUpgrade,
-    features: CONVERSION_CONFIG.FEATURES,
-    impact,
-    insights,
-    settings,
-  });
-
 };
-
 
 export default function EmpireDashboard() {
   const { metrics, planName, impact, insights } = useLoaderData<typeof loader>();
