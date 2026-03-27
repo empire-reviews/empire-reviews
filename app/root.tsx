@@ -126,7 +126,8 @@ export function ErrorBoundary() {
               <h1 className="error-title">Something went wrong</h1>
               <p className="error-msg">
                 Empire Reviews hit an unexpected error. Click below to reload and
-                get back on track.
+                get back on track.<br/><br/>
+                <strong style={{ color: '#ef4444' }}>Trace:</strong> {errorMessage}
               </p>
               <button className="reload-btn" onClick={() => window.location.reload()}>
                 Reload App
