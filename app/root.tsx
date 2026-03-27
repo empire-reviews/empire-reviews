@@ -42,18 +42,7 @@ export default function App() {
  */
 export function ErrorBoundary() {
   const error = useRouteError();
-  
-  // Natively serialize the exact crash payload so we can debug it visually bridging the iframe
-  let errorMessage = "Unknown Error";
-  try {
-    if (error instanceof Error) {
-      errorMessage = error.stack || error.message;
-    } else {
-      errorMessage = JSON.stringify(error, null, 2);
-    }
-  } catch (e) {
-    errorMessage = "Un-serializable object trap";
-  }
+  const errorMessage = error instanceof Error ? error.message : String(error);
 
   // Detect stale chunk / module loading failures (common after Vercel redeploys)
   const isChunkError =
@@ -137,8 +126,7 @@ export function ErrorBoundary() {
               <h1 className="error-title">Something went wrong</h1>
               <p className="error-msg">
                 Empire Reviews hit an unexpected error. Click below to reload and
-                get back on track.<br/><br/>
-                <strong style={{ color: '#ef4444' }}>Trace:</strong> {errorMessage}
+                get back on track.
               </p>
               <button className="reload-btn" onClick={() => window.location.reload()}>
                 Reload App
