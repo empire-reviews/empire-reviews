@@ -42,7 +42,18 @@ export default function App() {
  */
 export function ErrorBoundary() {
   const error = useRouteError();
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Natively serialize the exact crash payload so we can debug it visually bridging the iframe
+  let errorMessage = "Unknown Error";
+  try {
+    if (error instanceof Error) {
+      errorMessage = error.stack || error.message;
+    } else {
+      errorMessage = JSON.stringify(error, null, 2);
+    }
+  } catch (e) {
+    errorMessage = "Un-serializable object trap";
+  }
 
   // Detect stale chunk / module loading failures (common after Vercel redeploys)
   const isChunkError =
