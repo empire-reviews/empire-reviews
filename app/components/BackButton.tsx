@@ -1,7 +1,10 @@
+import { Link } from "@remix-run/react";
+
 /**
  * 3D Animated Back Button Component
- * Psychology: Von Restorff Effect — visually distinct elements are more memorable.
- * The gradient glow + 3D hover makes this button impossible to miss.
+ * Uses Remix's <Link> for client-side navigation — critical for Shopify
+ * embedded apps where a hard <a href> causes a full page reload that
+ * strips the `host` + `shop` params and triggers an auth redirect loop.
  */
 export function BackButton({ to = "/app", label = "← Back to Dashboard" }: { to?: string; label?: string }) {
   return (
@@ -54,9 +57,9 @@ export function BackButton({ to = "/app", label = "← Back to Dashboard" }: { t
           z-index: 1;
         }
       `}</style>
-      <a href={to} className="empire-back-btn">
+      <Link to={to} className="empire-back-btn">
         <span>{label}</span>
-      </a>
+      </Link>
     </>
   );
 }

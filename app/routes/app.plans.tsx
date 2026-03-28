@@ -1,5 +1,5 @@
 import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useFetcher } from "@remix-run/react";
+import { useLoaderData, useFetcher, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import {
     Page,
@@ -12,8 +12,8 @@ import { hasActivePayment, requirePayment } from "../billing.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
-    const isPro = await hasActivePayment(request);
+    const { billing, session } = await authenticate.admin(request);
+    const isPro = await hasActivePayment(billing, session);
 
     // Sync DB
     const planName = isPro ? "EMPIRE_PRO" : "FREE";
@@ -28,7 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { billing, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent");
 
@@ -52,7 +52,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Billing upgrade flow
     try {
-        return await requirePayment(request);
+        return await requirePayment(billing);
     } catch (error: any) {
         // billing.request() throws a Response redirect — let it through
         if (error instanceof Response) {
@@ -582,9 +582,9 @@ export default function PlansPage() {
             `}</style>
 
             <div className="zenith-vault">
-                <a href="/app" className="zenith-back-btn">
+                <Link to="/app" className="zenith-back-btn">
                     ← Back to Dashboard
-                </a>
+                </Link>
 
                 <div className="mastery-deck">
                     <h1 className="mastery-title">Unlock The Zenith Of Social Proof.</h1>
