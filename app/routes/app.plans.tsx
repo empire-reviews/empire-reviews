@@ -15,14 +15,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { billing, session } = await authenticate.admin(request);
     const isPro = await hasActivePayment(billing, session);
 
-    // Sync DB
-    const planName = isPro ? "EMPIRE_PRO" : "FREE";
-    // @ts-ignore
-    await prisma.settings.update({
-        where: { shop: session.shop },
-        // @ts-ignore
-        data: { plan: planName }
-    });
+    // SAFE SYNC: Only promote to EMPIRE_PRO, NEVER demote to FREE.
+    // Demoting via a billing check is dangerous — if billing.check() times out
+    // or fails (cold start), a VIP referral-code user would permanently lose access.
+    // Downgrades only happen via the uninstall webhook, not here.
+    if (isPro) {
+        await prisma.settings.updateMany({
+            where: { shop: session.shop },
+            data: { plan: "EMPIRE_PRO" }
+        });
+    }
 
     return json({ isPro });
 };

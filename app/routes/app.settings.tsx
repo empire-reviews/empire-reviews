@@ -38,34 +38,37 @@ const GROWTH_TIPS = [
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { billing, session } = await authenticate.admin(request);
     const shop = session.shop;
 
-    // SYNC BILLING STATUS
-    const isPro = await hasActivePayment(request);
-    const planName = isPro ? "EMPIRE_PRO" : "FREE";
+    // SAFE SYNC: Only promote to EMPIRE_PRO, NEVER demote to FREE.
+    // If billing.check() times out (cold start), isPro=false would otherwise
+    // overwrite a VIP referral-code user's plan to FREE permanently.
+    // Downgrades only happen via the uninstall webhook, not here.
+    const isPro = await hasActivePayment(billing, session);
 
     let settings = await prisma.settings.findUnique({ where: { shop } });
 
     if (!settings) {
-        settings = await prisma.settings.create({ data: { shop, plan: planName } });
-    } else if (settings.plan !== planName) {
-        // Sync database if status changed
+        // First time: create with current plan
+        const initialPlan = isPro ? "EMPIRE_PRO" : "FREE";
+        settings = await prisma.settings.create({ data: { shop, plan: initialPlan } });
+    } else if (isPro && settings.plan !== "EMPIRE_PRO") {
+        // Only upgrade, never downgrade — downgrade handled by uninstall webhook only
         settings = await prisma.settings.update({
             where: { shop },
-            data: { plan: planName }
+            data: { plan: "EMPIRE_PRO" }
         });
     }
 
-
     // Get full details for the dates
-    const subscription = await getPlanDetails(request);
+    const subscription = await getPlanDetails(billing);
 
     return json({ settings, isPro, subscription });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { billing, session } = await authenticate.admin(request);
     const shop = session.shop;
     const formData = await request.formData();
     const intent = formData.get("intent");
@@ -77,7 +80,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "test_ai") {
-        const isPro = await hasActivePayment(request);
+        const isPro = await hasActivePayment(billing, session);
         if (!isPro) {
             return json({ success: false, aiTestResult: "AI Features require the Empire Pro plan." });
         }
@@ -112,7 +115,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let enableGoogle = formData.get("enableGoogle") === "true";
 
     // Double check gating on server side
-    const isPro = await hasActivePayment(request);
+    const isPro = await hasActivePayment(billing, session);
     if (!isPro) {
         enableGoogle = false; // Force disable if not pro
         aiProvider = null; // Force disable AI if not pro
