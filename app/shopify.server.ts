@@ -39,7 +39,10 @@ const shopify = shopifyApp({
     },
   },
   future: {
-    unstable_newEmbeddedAuthStrategy: true,
+    // unstable_newEmbeddedAuthStrategy was removed — it's an experimental flag
+    // that causes billing.check() to use short-lived session tokens on client-side
+    // fetches, making the Shopify billing API return hasActivePayment: false on
+    // cold starts. Reverted to stable offline-token auth strategy.
     expiringOfflineAccessTokens: true,
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN

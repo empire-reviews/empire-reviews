@@ -10,16 +10,19 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment } from "../billing.server";
-import prisma from "../db.server";
+import prisma, { withRetry } from "../db.server";
 import { ArrowRightIcon, ArrowUpIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
 import { CONVERSION_CONFIG } from "../config/conversion";
 import { generateInsights, type AIProvider } from "../services/ai.server";
 
+// No shouldRevalidate export = Remix default behaviour: re-run the loader
+// every time the user navigates to this route. This is intentional — the
+// dashboard displays live counts that MUST reflect the current DB state.
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    const auth = await authenticate.admin(request);
-    const session = auth.session;
+    const { billing, session } = await authenticate.admin(request);
     const { shop } = session;
 
     // Preserve Shopify params so the redirected request can authenticate
@@ -42,35 +45,58 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return redirect(`/app/onboarding${paramString ? `?${paramString}` : ""}`);
     }
 
-    const isPro = await hasActivePayment(request);
+    const isPro = await hasActivePayment(billing, session);
     const planName = isPro ? "EMPIRE_PRO" : "FREE";
 
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-    // 🚀 PERFORMANCE: Use aggregate queries instead of loading all reviews
-    const [
-      totalReviews,
-      ratingAgg,
-      reviewsThisWeek,
-      reviewsLastWeek,
-      unrepliedCount,
-      urgentCount,
-      pendingOrders,
-      userSession,
-    ] = await Promise.all([
-      prisma.review.count({ where: { shop } }),
-      prisma.review.aggregate({ _avg: { rating: true }, where: { shop } }),
-      prisma.review.count({ where: { shop, createdAt: { gte: sevenDaysAgo } } }),
-      prisma.review.count({ where: { shop, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }),
-      prisma.review.count({ where: { shop, replies: { none: {} } } }),
-      prisma.review.count({ where: { shop, rating: { lte: 2 }, replies: { none: {} } } }),
-      prisma.order.count({ where: { shop, reviewRequestStatus: "pending" } }),
-      prisma.session.findFirst({
+    // 🚀 PERFORMANCE: Per-query retry logic — a single DB hiccup can't zero-out the dashboard.
+    // Each query is wrapped individually; failures fall back to a safe default for that metric only.
+    let totalReviews = 0;
+    let ratingAgg: { _avg: { rating: number | null } } = { _avg: { rating: null } };
+    let reviewsThisWeek = 0;
+    let reviewsLastWeek = 0;
+    let unrepliedCount = 0;
+    let urgentCount = 0;
+    let pendingOrders = 0;
+    let userSession: { appInstalledAt: Date | null; lastUpgradePrompt: Date | null; upgradePromptCount: number } | null = null;
+
+    await Promise.allSettled([
+      withRetry(() => prisma.review.count({ where: { shop } }))
+        .then((v) => { totalReviews = v; })
+        .catch((e) => console.error("[dashboard] totalReviews failed:", e.message)),
+
+      withRetry(() => prisma.review.aggregate({ _avg: { rating: true }, where: { shop } }))
+        .then((v) => { ratingAgg = v; })
+        .catch((e) => console.error("[dashboard] ratingAgg failed:", e.message)),
+
+      withRetry(() => prisma.review.count({ where: { shop, createdAt: { gte: sevenDaysAgo } } }))
+        .then((v) => { reviewsThisWeek = v; })
+        .catch((e) => console.error("[dashboard] reviewsThisWeek failed:", e.message)),
+
+      withRetry(() => prisma.review.count({ where: { shop, createdAt: { gte: fourteenDaysAgo, lt: sevenDaysAgo } } }))
+        .then((v) => { reviewsLastWeek = v; })
+        .catch((e) => console.error("[dashboard] reviewsLastWeek failed:", e.message)),
+
+      withRetry(() => prisma.review.count({ where: { shop, replies: { none: {} } } }))
+        .then((v) => { unrepliedCount = v; })
+        .catch((e) => console.error("[dashboard] unrepliedCount failed:", e.message)),
+
+      withRetry(() => prisma.review.count({ where: { shop, rating: { lte: 2 }, replies: { none: {} } } }))
+        .then((v) => { urgentCount = v; })
+        .catch((e) => console.error("[dashboard] urgentCount failed:", e.message)),
+
+      withRetry(() => prisma.order.count({ where: { shop, reviewRequestStatus: "pending" } }))
+        .then((v) => { pendingOrders = v; })
+        .catch((e) => console.error("[dashboard] pendingOrders failed:", e.message)),
+
+      withRetry(() => prisma.session.findFirst({
         where: { shop: session.shop },
         select: { appInstalledAt: true, lastUpgradePrompt: true, upgradePromptCount: true },
-      }),
+      })).then((v) => { userSession = v; })
+        .catch((e) => console.error("[dashboard] userSession failed:", e.message)),
     ]);
 
     const averageRating = ratingAgg._avg.rating ?? 0;
@@ -79,13 +105,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       : Math.round(((reviewsThisWeek - reviewsLastWeek) / reviewsLastWeek) * 100);
 
     // Calculate conversion phase
-    const phase = userSession ? getConversionPhase(userSession.appInstalledAt) : "DELIGHT";
+    const phase = userSession ? getConversionPhase((userSession as any).appInstalledAt) : "DELIGHT";
     const canShowUpgrade = userSession
-      ? shouldShowUpgradePrompt(phase, userSession.lastUpgradePrompt)
+      ? shouldShowUpgradePrompt(phase, (userSession as any).lastUpgradePrompt)
       : false;
 
-    // Track page view
-    await trackEvent({
+    // Track page view - FIRE AND FORGET
+    trackEvent({
       shop: session.shop,
       event: "page_view",
       page: "dashboard",
@@ -96,36 +122,43 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let insights: { score: number; label: string; aiSummary: string | null } | null = null;
 
     if (planName === "EMPIRE_PRO") {
-      // 1. Business Impact: Real Order Revenue (already aggregate, keep as is)
-      const [orderAgg, latestOrder] = await Promise.all([
-        prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } }),
-        prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } }),
-      ]);
-      const totalRevenue = orderAgg._sum.totalPrice || 0;
-      const currency = latestOrder?.currency || "USD";
-      impact = {
-        formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
-        currency,
-      };
+      // 1. Business Impact: Real Order Revenue
+      try {
+        const [orderAgg, latestOrder] = await Promise.all([
+          withRetry(() => prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } })),
+          withRetry(() => prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } })),
+        ]);
+        const totalRevenue = orderAgg._sum.totalPrice || 0;
+        const currency = latestOrder?.currency || "USD";
+        impact = {
+          formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
+          currency,
+        };
+      } catch (e) {
+        console.error("[dashboard] impact fetch failed:", (e as Error).message);
+      }
 
-      // 2. AI Insights — serve from cache, generate in background only if stale
-      const positiveCount = await prisma.review.count({
-        where: { shop, OR: [{ sentiment: "POSITIVE" }, { rating: { gte: 4 } }] }
-      });
-      const sentimentScore = totalReviews > 0 ? (positiveCount / totalReviews) * 5 : 0;
+      // 2. AI Insights — serve from cache only
+      try {
+        const positiveCount = await withRetry(() => prisma.review.count({
+          where: { shop, OR: [{ sentiment: "POSITIVE" }, { rating: { gte: 4 } }] }
+        }));
+        const sentimentScore = totalReviews > 0 ? (positiveCount / totalReviews) * 5 : 0;
 
-      let sentimentLabel = "Sentiment Stable";
-      if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
-      else if (sentimentScore >= 4.0) sentimentLabel = "High Trust 💎";
-      else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
-      else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
+        let sentimentLabel = "Sentiment Stable";
+        if (sentimentScore >= 4.5) sentimentLabel = "Exceptional Love 🚀";
+        else if (sentimentScore >= 4.0) sentimentLabel = "High Trust 💎";
+        else if (sentimentScore >= 3.0) sentimentLabel = "Room to Improve";
+        else if (totalReviews > 0) sentimentLabel = "Critical Action Needed";
 
-      insights = { score: sentimentScore, label: sentimentLabel, aiSummary: settings?.aiInsightsSummary || null };
+        insights = { score: sentimentScore, label: sentimentLabel, aiSummary: settings?.aiInsightsSummary || null };
 
-      // AI Insight Dashboard Card — strict READ-ONLY cache.
-      // Generation happens exclusively on the Insights page via button click to protect BYOK tokens.
-      if (settings?.aiProvider && settings?.aiApiKey) {
-        insights.aiSummary = settings.aiInsightsSummary || null;
+        // AI Insight Dashboard Card — strict READ-ONLY cache.
+        if (settings?.aiProvider && settings?.aiApiKey) {
+          insights.aiSummary = settings.aiInsightsSummary || null;
+        }
+      } catch (e) {
+        console.error("[dashboard] insights fetch failed:", (e as Error).message);
       }
     }
 
@@ -140,19 +173,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       settings,
     });
   } catch (error) {
-    // Auth can fail on Remix client-side revalidation requests before App Bridge finishes injecting tokens
-    // Or if Vercel Token Exchange inherently fails. We swallow it and show 0s to prevent a fatal 500 error boundary.
-    console.error("Dashboard caught token rejection, rendering zero state:");
-    return json({
-      metrics: { totalReviews: 0, averageRating: 0, reviewsThisWeek: 0, reviewTrend: 0, unrepliedCount: 0, urgentCount: 0, awaitingDeliveryCount: 0 },
-      planName: "FREE",
-      phase: "DELIGHT",
-      canShowUpgrade: false,
-      features: CONVERSION_CONFIG.FEATURES,
-      impact: null,
-      insights: null,
-      settings: null,
-    });
+    // Only swallow auth-related redirects — everything else re-throws to the ErrorBoundary.
+    // This prevents cold-start DB timeouts from silently returning zero values.
+    if (error instanceof Response) throw error;
+    console.error("[dashboard] Unhandled loader error:", error);
+    throw error; // Let root.tsx ErrorBoundary handle it with a proper UI + reload button
   }
 };
 
