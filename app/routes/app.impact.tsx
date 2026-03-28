@@ -10,20 +10,22 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { LockIcon } from "@shopify/polaris-icons";
-import { hasActivePayment } from "../billing.server";
+import { isPlanPro } from "../billing.server";
 import { BackButton } from "../components/BackButton";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    await authenticate.admin(request);
-    const isPro = await hasActivePayment(request);
+    const { session } = await authenticate.admin(request);
+    const isPro = await isPlanPro(session.shop);
 
     // GATE: Business Impact is PRO Only
     if (!isPro) {
         return json({ locked: true, stats: null });
     }
 
-    // Real data logic for PRO users would go here
-    const reviews = await prisma.review.findMany();
+    // Real data logic for PRO users
+    const reviews = await prisma.review.findMany({
+        where: { shop: session.shop }
+    });
     const totalReviews = reviews.length;
 
     return json({ locked: false, stats: { totalReviews } });

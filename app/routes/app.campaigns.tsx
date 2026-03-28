@@ -42,12 +42,12 @@ import {
     LockIcon
 } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
-import { hasActivePayment } from "../billing.server";
+import { isPlanPro } from "../billing.server";
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { admin, session } = await authenticate.admin(request);
-    const isPro = await hasActivePayment(request);
+    const isPro = await isPlanPro(session.shop);
 
     // 1. Fetch campaigns from DB
     const dbCampaigns = await prisma.campaign.findMany({
@@ -100,7 +100,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { admin, session } = await authenticate.admin(request);
+    const { admin, billing, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent");
 
@@ -157,7 +157,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // AI template: generate subject + body using merchant's configured AI provider
     if (templateType === "ai") {
-        const isPro = await hasActivePayment(request);
+        const isPro = await isPlanPro(session.shop);
         if (!isPro) {
             return json({ error: "AI Features require Empire Pro." }, { status: 403 });
         }

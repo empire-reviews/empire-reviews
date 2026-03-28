@@ -19,13 +19,13 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
-import { hasActivePayment } from "../billing.server";
+import { isPlanPro } from "../billing.server";
 import { generateInsights } from "../services/ai.server";
 import type { AIProvider } from "../services/ai.server";
 
 export const action = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const isPro = await hasActivePayment(request);
+  const isPro = await isPlanPro(session.shop);
 
   if (!isPro) {
     return json({ success: false, error: "AI Insights require the Pro plan." });
@@ -68,7 +68,7 @@ export const action = async ({ request }: LoaderFunctionArgs) => {
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const isPro = await hasActivePayment(request); // Helper import needed? No, handled by copy-paste or just standard check
+  const isPro = await isPlanPro(session.shop);
 
   // GATE: AI Insights is PRO Only
   if (!isPro) {

@@ -24,11 +24,11 @@ import { useState, useEffect } from "react";
 import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
-import { hasActivePayment } from "../billing.server";
+import { isPlanPro } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
-    const isPro = await hasActivePayment(request);
+    const isPro = await isPlanPro(session.shop);
     const reviews = await prisma.review.findMany({
         where: { shop: session.shop },
         orderBy: { createdAt: "desc" },
@@ -42,7 +42,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { billing, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent") as string;
 
@@ -64,7 +64,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "generate_ai_reply") {
-        const isPro = await hasActivePayment(request);
+        const isPro = await isPlanPro(session.shop);
         if (!isPro) {
             return json({ success: false, aiReply: null, error: "AI Features require the Empire Pro plan." });
         }
@@ -92,7 +92,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "bulk_ai_reply") {
-        const isPro = await hasActivePayment(request);
+        const isPro = await isPlanPro(session.shop);
         if (!isPro) {
             return json({ success: false, error: "AI Features require the Empire Pro plan." });
         }

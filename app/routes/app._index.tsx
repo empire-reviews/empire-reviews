@@ -9,7 +9,7 @@ import {
   Text,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { hasActivePayment } from "../billing.server";
+import { hasActivePayment, isPlanPro } from "../billing.server";
 import prisma, { withRetry } from "../db.server";
 import { ArrowRightIcon, ArrowUpIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
@@ -45,7 +45,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return redirect(`/app/onboarding${paramString ? `?${paramString}` : ""}`);
     }
 
-    const isPro = await hasActivePayment(billing, session);
+    // isPlanPro reads from DB only — instant, never calls Shopify billing API
+    const isPro = await isPlanPro(shop);
     const planName = isPro ? "EMPIRE_PRO" : "FREE";
 
     const now = new Date();
