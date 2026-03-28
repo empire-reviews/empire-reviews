@@ -27,7 +27,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             where: {
                 shop: shop,
                 rating: 5,
-                status: "published",
+                status: "approved",
                 body: { not: "" }
             },
             orderBy: { createdAt: "desc" },
