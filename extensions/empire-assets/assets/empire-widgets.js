@@ -1,61 +1,556 @@
-"use strict";const EmpireWidgets=function(){const y="https://empire-reviews.vercel.app";let h=null,w=null,f=0,d={};const b={init(){setTimeout(()=>{this.renderStarRatings(),this.renderReviewLists()},100)},openReviewModal(t){h=t.getAttribute("data-product-id"),w=t.getAttribute("data-shop-domain"),f=0,document.querySelectorAll(".empire-pick-star").forEach(l=>{l.classList.remove("selected","hover-active","active"),l.style.color="#e2e8f0"});const e=document.getElementById("empire-input-name"),r=document.getElementById("empire-input-body");e&&(e.value=""),r&&(r.value="");const s=document.getElementById("empire-review-fields");s&&(s.style.display="none",s.classList.remove("visible"));const i=document.getElementById("empire-submit-btn");i&&i.classList.remove("empire-btn-ready");const a=document.getElementById("empire-modal-overlay");a&&a.classList.add("open","active");const m=document.getElementById("empire-file-preview");m&&(m.innerHTML="");const c=document.getElementById("empire-modal-success");c&&(c.style.display="none")},closeModal(t){if(t&&t.target!==document.getElementById("empire-modal-overlay")&&!t.target.classList.contains("empire-modal-close"))return;const e=document.getElementById("empire-modal-overlay");e&&e.classList.remove("open","active")},setRating(t){f=t,document.querySelectorAll(".empire-pick-star").forEach((i,a)=>{i.classList.toggle("active",a<t),i.style.color=a<t?"var(--empire-primary)":"#e2e8f0"});const r=document.getElementById("empire-review-fields");r&&(r.style.display="flex",setTimeout(()=>{r.classList.add("visible")},20));const s=document.getElementById("empire-submit-btn");s&&s.classList.add("empire-btn-ready")},handleFileSelect(t){const e=document.getElementById("empire-file-preview");e&&(e.innerHTML="",Array.from(t.target.files).forEach(r=>{if(r.type.startsWith("image/")){const s=new FileReader;s.onload=i=>{const a=document.createElement("img");a.src=i.target.result,e.appendChild(a)},s.readAsDataURL(r)}}))},selectStar(t){this.setRating(t)},async submitReview(t){if(t&&t.preventDefault&&t.preventDefault(),f===0){alert("Please select a star rating first.");return}const e=document.getElementById("empire-submit-btn");if(!e)return;const r=e.innerText;e.innerText="Submitting...",e.disabled=!0;try{const s=new FormData,i=document.getElementById("empire-input-name"),a=document.getElementById("empire-input-body");if(s.append("productId",h||""),s.append("shop",w||""),s.append("rating",f.toString()),i&&i.value&&s.append("author",i.value),a&&a.value&&s.append("body",a.value),(await fetch(`${y}/api/reviews`,{method:"POST",body:s})).ok){e.innerText="Success!";const c=document.getElementById("empire-review-fields"),l=document.getElementById("empire-star-label"),v=document.getElementById("empire-star-picker"),p=document.getElementById("empire-modal-success");c&&(c.style.display="none"),l&&(l.style.display="none"),v&&(v.style.display="none"),p&&(p.style.display="flex"),setTimeout(()=>{this.closeModal(),e.innerText=r,e.disabled=!1,l&&(l.style.display="block"),v&&(v.style.display="flex")},2500)}else throw new Error("Server error")}catch{alert("Failed to submit review. Please try again."),e.innerText=r,e.disabled=!1}},escapeHtml(t){if(!t)return"";const e=document.createElement("div");return e.textContent=t,e.innerHTML},getStarsHtml(t){let e="";for(let r=1;r<=5;r++)e+=r<=t?'<span style="color:var(--empire-primary); font-size:var(--star-size, 1.15rem); line-height:1;">\u2605</span>':'<span style="color:#e2e8f0; font-size:var(--star-size, 1.15rem); line-height:1;">\u2605</span>';return`<div class="empire-stars-inner" style="display:inline-flex; gap:2px; align-items:center; position:relative; overflow:hidden;">${e}</div>`},async fetchReviewsData(t,e,r=1){if(!t||!e)return null;const s=t.replace("gid://shopify/Product/","");try{const i=await fetch(`${y}/api/reviews?productId=${s}&shop=${e}&page=${r}&limit=10`);if(!i.ok)throw new Error("Network error");return await i.json()}catch{return null}},async renderStarRatings(){const t=document.querySelectorAll(".empire-star-rating");if(t.length)for(const e of t){const r=e.getAttribute("data-product-id"),s=e.getAttribute("data-shop-domain");if(!r||!s)continue;const i=await this.fetchReviewsData(r,s,1);if(!i||!i.stats||i.stats.total===0){e.innerHTML='<span class="empire-rating-text">No reviews yet</span>';continue}e.innerHTML=`
+"use strict";
+
+const EmpireWidgets = (function() {
+    const API_BASE = "https://empire-reviews.vercel.app";
+    let activeProductId = null;
+    let activeShopDomain = null;
+    let currentRatingSelected = 0;
+    const widgetState = {}; // Store pagination state for multiple widgets
+
+    const API = {
+        init() {
+            setTimeout(() => {
+                this.renderStarRatings();
+                this.renderReviewLists();
+                this.renderReviewCarousels();
+            }, 100);
+        },
+
+        openReviewModal(triggerElement) {
+            activeProductId = triggerElement.getAttribute('data-product-id');
+            activeShopDomain = triggerElement.getAttribute('data-shop-domain');
+            currentRatingSelected = 0;
+
+            document.querySelectorAll('.empire-pick-star').forEach(el => {
+                el.classList.remove('selected', 'hover-active', 'active');
+                el.style.color = '#e2e8f0';
+            });
+
+            const nameInput = document.getElementById('empire-input-name');
+            const bodyInput = document.getElementById('empire-input-body');
+            if (nameInput) nameInput.value = '';
+            if (bodyInput) bodyInput.value = '';
+
+            const formFields = document.getElementById('empire-review-fields');
+            if (formFields) {
+                formFields.style.display = 'none';
+                formFields.classList.remove('visible');
+            }
+
+            const submitBtn = document.getElementById('empire-submit-btn');
+            if (submitBtn) submitBtn.classList.remove('empire-btn-ready');
+
+            const overlay = document.getElementById('empire-modal-overlay');
+            if (overlay) overlay.classList.add('open', 'active');
+
+            const filePreview = document.getElementById('empire-file-preview');
+            if (filePreview) filePreview.innerHTML = '';
+            
+            const successMsg = document.getElementById('empire-modal-success');
+            if (successMsg) successMsg.style.display = 'none';
+        },
+
+        closeModal(event) {
+            if (event && event.target !== document.getElementById('empire-modal-overlay') && !event.target.classList.contains('empire-modal-close')) {
+                return;
+            }
+            const overlay = document.getElementById('empire-modal-overlay');
+            if (overlay) overlay.classList.remove('open', 'active');
+        },
+
+        setRating(rating) {
+            currentRatingSelected = rating;
+            document.querySelectorAll('.empire-pick-star').forEach((el, index) => {
+                const isActive = index < rating;
+                el.classList.toggle('active', isActive);
+                el.style.color = isActive ? 'var(--empire-primary)' : '#e2e8f0';
+            });
+
+            const formFields = document.getElementById('empire-review-fields');
+            if (formFields) {
+                formFields.style.display = 'flex';
+                setTimeout(() => { formFields.classList.add('visible'); }, 20);
+            }
+
+            const submitBtn = document.getElementById('empire-submit-btn');
+            if (submitBtn) submitBtn.classList.add('empire-btn-ready');
+        },
+
+        selectStar(rating) {
+            this.setRating(rating);
+        },
+
+        async submitReview(event) {
+            if (event && event.preventDefault) event.preventDefault();
+
+            if (currentRatingSelected === 0) {
+                alert("Please select a star rating first.");
+                return;
+            }
+
+            const submitBtn = document.getElementById('empire-submit-btn');
+            if (!submitBtn) return;
+
+            const originalText = submitBtn.innerText;
+            submitBtn.innerText = "Submitting...";
+            submitBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                const nameInput = document.getElementById('empire-input-name');
+                const bodyInput = document.getElementById('empire-input-body');
+
+                formData.append('productId', activeProductId || '');
+                formData.append('shop', activeShopDomain || '');
+                formData.append('rating', currentRatingSelected.toString());
+
+                if (nameInput && nameInput.value) formData.append('author', nameInput.value);
+                if (bodyInput && bodyInput.value) formData.append('body', bodyInput.value);
+
+                const response = await fetch(`${API_BASE}/api/reviews`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    submitBtn.innerText = "Success!";
+                    const formFields = document.getElementById('empire-review-fields');
+                    const label = document.getElementById('empire-star-label');
+                    const picker = document.getElementById('empire-star-picker');
+                    const successMsg = document.getElementById('empire-modal-success');
+
+                    if (formFields) formFields.style.display = 'none';
+                    if (label) label.style.display = 'none';
+                    if (picker) picker.style.display = 'none';
+                    if (successMsg) successMsg.style.display = 'flex';
+
+                    setTimeout(() => {
+                        this.closeModal();
+                        submitBtn.innerText = originalText;
+                        submitBtn.disabled = false;
+                        if (label) label.style.display = 'block';
+                        if (picker) picker.style.display = 'flex';
+                    }, 2500);
+                } else {
+                    throw new Error("Server error");
+                }
+            } catch (error) {
+                alert("Failed to submit review. Please try again.");
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+            }
+        },
+
+        escapeHtml(unsanitized) {
+            if (!unsanitized) return "";
+            const div = document.createElement('div');
+            div.textContent = unsanitized;
+            return div.innerHTML;
+        },
+
+        getStarsHtml(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    stars += '<span class="empire-skeleton-star">\u2605</span>';
+                } else {
+                    stars += '<span style="color:#e2e8f0; font-size:var(--star-size, 1.15rem); line-height:1;">\u2605</span>';
+                }
+            }
+            return `<div class="empire-stars-inner">${stars}</div>`;
+        },
+
+        async fetchReviewsData(productId, shopDomain, page = 1) {
+            if (!productId || !shopDomain) return null;
+            const pureId = productId.replace('gid://shopify/Product/', '');
+            try {
+                const res = await fetch(`${API_BASE}/api/reviews?productId=${pureId}&shop=${shopDomain}&page=${page}&limit=10`);
+                if (!res.ok) throw new Error("Network error");
+                return await res.json();
+            } catch (e) {
+                return null;
+            }
+        },
+
+        async renderStarRatings() {
+            const wrappers = document.querySelectorAll('.empire-star-rating');
+            if (!wrappers.length) return;
+
+            for (const wrapper of wrappers) {
+                const productId = wrapper.getAttribute('data-product-id');
+                const shopDomain = wrapper.getAttribute('data-shop-domain');
+                if (!productId || !shopDomain) continue;
+
+                const data = await this.fetchReviewsData(productId, shopDomain, 1);
+                
+                if (!data || !data.stats || data.stats.total === 0) {
+                    wrapper.innerHTML = '<span class="empire-rating-text">No reviews yet</span>';
+                    continue;
+                }
+
+                wrapper.innerHTML = `
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
-                            <div class="empire-stars-wrap">${this.getStarsHtml(Math.round(i.stats.average))}</div>
-                            <span class="empire-rating-text">${i.stats.average.toFixed(2)} out of 5</span>
+                            <div class="empire-stars-wrap">${this.getStarsHtml(Math.round(data.stats.average))}</div>
+                            <span class="empire-rating-text">${data.stats.average.toFixed(2)} out of 5</span>
                         </div>
                         <div class="empire-rating-text" style="color: var(--text-color, var(--empire-text-light));">
-                            Based on ${i.stats.total} reviews 
+                            Based on ${data.stats.total} reviews 
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#48c7a6" style="width:1.2em; height:1.2em; vertical-align:middle; margin-left:2px; transform:translateY(-1px);"><rect width="24" height="24" rx="4"/><path fill="#fff" d="M9.5 16l-4-4 1.5-1.5 2.5 2.5 6.5-6.5L17.5 8z"/></svg>
                         </div>
                     </div>
-                `}},async renderReviewLists(){const t=document.querySelectorAll(".empire-reviews-widget");if(t.length)for(const e of t){const r=e.getAttribute("data-product-id"),s=e.getAttribute("data-shop-domain"),i=e.id||"widget_"+Math.floor(Math.random()*1e5);if(!r||!s)continue;d[i]={page:1,hasMore:!0,isLoading:!0,statsLoaded:!1};const a=await this.fetchReviewsData(r,s,1),m=e.querySelector(".empire-summary-skeleton"),c=e.querySelector(".empire-distribution-container"),l=e.querySelector(".empire-reviews-grid"),v=e.querySelector(".empire-load-more-trigger");if(!a||!a.reviews||a.reviews.length===0){l&&(l.classList.remove("empire-loading"),l.innerHTML=`
+                `;
+            }
+        },
+
+        async renderReviewLists() {
+            // ... omitting for brevity if I was fully rewriting but I MUST include it to not break it.
+            // Oh, I can just write the whole thing cleanly. Let's do it.
+            const widgets = document.querySelectorAll('.empire-reviews-widget');
+            if (!widgets.length) return;
+
+            for (const widget of widgets) {
+                const productId = widget.getAttribute('data-product-id');
+                const shopDomain = widget.getAttribute('data-shop-domain');
+                const widgetId = widget.id || 'widget_' + Math.floor(Math.random() * 100000);
+                
+                if (!productId || !shopDomain) continue;
+                
+                widgetState[widgetId] = { page: 1, hasMore: true, isLoading: true, statsLoaded: false };
+
+                const data = await this.fetchReviewsData(productId, shopDomain, 1);
+                
+                const summarySkeleton = widget.querySelector('.empire-summary-skeleton');
+                const distContainer = widget.querySelector('.empire-distribution-container');
+                const reviewsGrid = widget.querySelector('.empire-reviews-grid');
+                const loadMoreTrigger = widget.querySelector('.empire-load-more-trigger');
+
+                if (!data || !data.reviews || data.reviews.length === 0) {
+                    if (reviewsGrid) {
+                        reviewsGrid.classList.remove('empire-loading');
+                        reviewsGrid.innerHTML = `
                             <div class="empire-empty-state">
-                                <div class="empire-empty-icon">\u2728</div>
+                                <div class="empire-empty-icon">✨</div>
                                 <h3>Be the first to review!</h3>
-                            </div>`),m&&(m.innerHTML='<div class="empire-summary-score">0.0</div><div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">Based on 0 reviews</div>'),c&&(c.innerHTML="");continue}if(m&&a.stats&&(m.outerHTML=`
+                            </div>`;
+                    }
+                    if (summarySkeleton) summarySkeleton.innerHTML = '<div class="empire-summary-score">0.0</div><div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">Based on 0 reviews</div>';
+                    if (distContainer) distContainer.innerHTML = '';
+                    continue;
+                }
+
+                if (summarySkeleton && data.stats) {
+                    summarySkeleton.outerHTML = `
                         <div class="empire-summary-stats">
-                            <div class="empire-summary-score">${a.stats.average.toFixed(1)}</div>
-                            <div style="font-size: 0.95rem; font-weight: 500; color: #64748b; margin-top: 4px;">Based on ${a.stats.total} reviews</div>
-                        </div>`),c&&a.stats){let p="";const o=a.stats.total||1;for(let n=5;n>=1;n--){const g=a.stats.distribution[n]||0,u=Math.round(g/o*100);p+=`
+                            <div class="empire-summary-score">${data.stats.average.toFixed(1)}</div>
+                            <div style="font-size: 0.95rem; font-weight: 500; color: #64748b; margin-top: 4px;">Based on ${data.stats.total} reviews</div>
+                        </div>`;
+                }
+
+                if (distContainer && data.stats) {
+                    let distHtml = '';
+                    const totalSafe = data.stats.total || 1;
+                    for (let rating = 5; rating >= 1; rating--) {
+                        const count = data.stats.distribution[rating] || 0;
+                        const pct = Math.round((count / totalSafe) * 100);
+                        distHtml += `
                             <div class="empire-dist-row">
-                                <span class="empire-dist-label">${n} <span style="color:var(--empire-primary);">\u2605</span></span>
+                                <span class="empire-dist-label">${rating} <span style="color:var(--empire-primary);">★</span></span>
                                 <div style="flex-grow:1; display:flex; align-items:center;">
                                     <svg width="100%" height="12" style="border-radius:99px;" preserveAspectRatio="none">
                                         <rect width="100%" height="12" fill="#f1f5f9" rx="6" />
-                                        <rect width="${u}%" height="12" fill="var(--empire-primary)" rx="6" />
+                                        <rect width="${pct}%" height="12" fill="var(--empire-primary)" rx="6" />
                                     </svg>
                                 </div>
-                                <span class="empire-dist-count">${g}</span>
+                                <span class="empire-dist-count">${count}</span>
                             </div>
-                        `}c.innerHTML=p}if(l){l.classList.remove("empire-loading"),l.innerHTML=a.reviews.map(n=>this.createReviewCardHtml(n)).join(""),d[i].hasMore=a.pagination?.hasMore??!1,d[i].isLoading=!1;const p=e.querySelector(".empire-summary-col"),o=e.querySelector(".empire-reviews-col");if(p&&o&&window.innerWidth<=900&&!e.querySelector(".empire-mobile-reviews-toggle")){o.classList.add("empire-mobile-hidden");const n=document.createElement("button");n.className="empire-mobile-reviews-toggle",n.innerText="See all reviews here \u2193",p.appendChild(n),n.addEventListener("click",()=>{o.classList.contains("empire-mobile-hidden")?(o.classList.remove("empire-mobile-hidden"),n.innerText="Hide reviews \u2191"):(o.classList.add("empire-mobile-hidden"),n.innerText="See all reviews here \u2193")})}if(v&&d[i].hasMore){const n=new IntersectionObserver(async g=>{if(g[0].isIntersecting&&!d[i].isLoading&&d[i].hasMore){d[i].isLoading=!0,d[i].page+=1,v.innerHTML='<div class="empire-spinner"></div> Loading...';const u=await this.fetchReviewsData(r,s,d[i].page);u&&u.reviews&&u.reviews.length>0?(l.insertAdjacentHTML("beforeend",u.reviews.map(L=>this.createReviewCardHtml(L)).join("")),d[i].hasMore=u.pagination?.hasMore??!1):d[i].hasMore=!1,d[i].hasMore?v.innerHTML="":(v.innerHTML="",n.disconnect()),d[i].isLoading=!1}},{root:e.querySelector(".empire-reviews-col"),rootMargin:"200px"});n.observe(v)}if(o){let n=!1;o.addEventListener("mouseenter",()=>n=!0),o.addEventListener("mouseleave",()=>n=!1),o.addEventListener("touchstart",()=>n=!0,{passive:!0}),o.addEventListener("touchend",()=>{setTimeout(()=>n=!1,2e3)},{passive:!0}),setInterval(()=>{!n&&o.scrollHeight>o.clientHeight&&(o.scrollTop+=1,!d[i].hasMore&&o.scrollTop+o.clientHeight>=o.scrollHeight-2&&(o.scrollTop=0)),p&&p.offsetHeight>0&&(window.innerWidth>900?o.style.maxHeight=p.offsetHeight+"px":o.style.maxHeight="none")},40)}}}},createReviewCardHtml(t){const e=new Date(t.createdAt).toLocaleDateString(),r=this.escapeHtml(t.title||""),s=this.escapeHtml(t.body||""),i=this.escapeHtml(t.customerName||"Anonymous");let a="";t.media&&t.media.length>0&&(a='<div class="empire-review-images">',t.media.forEach(l=>{a+=`<img src="${l.url}" class="empire-review-image" alt="Review Photo" loading="lazy" />`}),a+="</div>");let m="";t.replies&&t.replies.length>0&&(m=`
+                        `;
+                    }
+                    distContainer.innerHTML = distHtml;
+                }
+
+                if (reviewsGrid) {
+                    reviewsGrid.classList.remove('empire-loading');
+                    reviewsGrid.innerHTML = data.reviews.map(rev => this.createReviewCardHtml(rev)).join('');
+                    
+                    widgetState[widgetId].hasMore = data.pagination?.hasMore ?? false;
+                    widgetState[widgetId].isLoading = false;
+
+                    const summaryCol = widget.querySelector('.empire-summary-col');
+                    const reviewsCol = widget.querySelector('.empire-reviews-col');
+
+                    if (summaryCol && reviewsCol) {
+                        if (window.innerWidth <= 900 && !widget.querySelector('.empire-mobile-reviews-toggle')) {
+                            reviewsCol.classList.add('empire-mobile-hidden');
+                            const toggleBtn = document.createElement('button');
+                            toggleBtn.className = 'empire-mobile-reviews-toggle';
+                            toggleBtn.innerText = 'See all reviews here ↓';
+                            summaryCol.appendChild(toggleBtn);
+
+                            toggleBtn.addEventListener('click', () => {
+                                if (reviewsCol.classList.contains('empire-mobile-hidden')) {
+                                    reviewsCol.classList.remove('empire-mobile-hidden');
+                                    toggleBtn.innerText = 'Hide reviews ↑';
+                                } else {
+                                    reviewsCol.classList.add('empire-mobile-hidden');
+                                    toggleBtn.innerText = 'See all reviews here ↓';
+                                }
+                            });
+                        }
+
+                        let isHovered = false;
+                        reviewsCol.addEventListener('mouseenter', () => isHovered = true);
+                        reviewsCol.addEventListener('mouseleave', () => isHovered = false);
+                        reviewsCol.addEventListener('touchstart', () => isHovered = true, {passive: true});
+                        reviewsCol.addEventListener('touchend', () => {
+                            setTimeout(() => isHovered = false, 2000);
+                        }, {passive: true});
+
+                        setInterval(() => {
+                            if (!isHovered && reviewsCol.scrollHeight > reviewsCol.clientHeight) {
+                                reviewsCol.scrollTop += 1;
+                                if (!widgetState[widgetId].hasMore && reviewsCol.scrollTop + reviewsCol.clientHeight >= reviewsCol.scrollHeight - 2) {
+                                    reviewsCol.scrollTop = 0;
+                                }
+                            }
+                            if (summaryCol && summaryCol.offsetHeight > 0) {
+                                if (window.innerWidth > 900) {
+                                    reviewsCol.style.maxHeight = summaryCol.offsetHeight + 'px';
+                                } else {
+                                    reviewsCol.style.maxHeight = 'none';
+                                }
+                            }
+                        }, 40);
+                    }
+
+                    if (loadMoreTrigger && widgetState[widgetId].hasMore) {
+                        const observer = new IntersectionObserver(async (entries) => {
+                            if (entries[0].isIntersecting && !widgetState[widgetId].isLoading && widgetState[widgetId].hasMore) {
+                                widgetState[widgetId].isLoading = true;
+                                widgetState[widgetId].page += 1;
+                                loadMoreTrigger.innerHTML = '<div class="empire-spinner"></div> Loading...';
+                                
+                                const nextData = await this.fetchReviewsData(productId, shopDomain, widgetState[widgetId].page);
+                                if (nextData && nextData.reviews && nextData.reviews.length > 0) {
+                                    reviewsGrid.insertAdjacentHTML('beforeend', nextData.reviews.map(r => this.createReviewCardHtml(r)).join(''));
+                                    widgetState[widgetId].hasMore = nextData.pagination?.hasMore ?? false;
+                                } else {
+                                    widgetState[widgetId].hasMore = false;
+                                }
+                                
+                                if (!widgetState[widgetId].hasMore) {
+                                    loadMoreTrigger.innerHTML = '';
+                                    observer.disconnect();
+                                } else {
+                                    loadMoreTrigger.innerHTML = '';
+                                }
+                                widgetState[widgetId].isLoading = false;
+                            }
+                        }, { root: widget.querySelector('.empire-reviews-col'), rootMargin: '200px' });
+                        observer.observe(loadMoreTrigger);
+                    }
+                }
+            }
+        },
+
+        createReviewCardHtml(review) {
+            const dateStr = new Date(review.createdAt).toLocaleDateString();
+            const title = this.escapeHtml(review.title || '');
+            const body = this.escapeHtml(review.body || '');
+            const author = this.escapeHtml(review.customerName || 'Anonymous');
+
+            let mediaHtml = '';
+            if (review.media && review.media.length > 0) {
+                mediaHtml = '<div class="empire-review-images">';
+                review.media.forEach(m => {
+                    mediaHtml += `<img src="${m.url}" class="empire-review-image" alt="Review Photo" loading="lazy" />`;
+                });
+                mediaHtml += '</div>';
+            }
+
+            let replyHtml = '';
+            if (review.replies && review.replies.length > 0) {
+                replyHtml = `
                     <details class="empire-owner-reply-accordion">
-                        <summary>\u{1F451} Store Owner Response</summary>
+                        <summary>👑 Store Owner Response</summary>
                         <div class="empire-owner-reply-content">
-                            ${this.escapeHtml(t.replies[0].body)}
+                            ${this.escapeHtml(review.replies[0].body)}
                         </div>
-                    </details>`);const c=t.verified?`<span class="empire-verified-badge">
+                    </details>`;
+            }
+
+            const verifiedBadge = review.verified ? `
+                <span class="empire-verified-badge">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
                     Verified Buyer
-                   </span>`:"";return`
+                </span>` : '';
+
+            return `
                 <div class="empire-review-card empire-animate-in">
                     <div class="empire-card-header">
                         <div class="empire-card-header-left">
                             <div style="display:flex; align-items:center; gap: 10px;">
-                                <div class="empire-avatar">${i.charAt(0).toUpperCase()}</div>
+                                <div class="empire-avatar">${author.charAt(0).toUpperCase()}</div>
                                 <div class="empire-header-text">
-                                    <span class="empire-reviewer-name" style="font-size:0.95rem;">${i}</span>
-                                    <span class="empire-review-date" style="font-size:0.75rem;">${e}</span>
+                                    <span class="empire-reviewer-name" style="font-size:0.95rem;">${author}</span>
+                                    <span class="empire-review-date" style="font-size:0.75rem;">${dateStr}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="empire-header-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                            <div class="empire-stars-wrap">${this.getStarsHtml(t.rating)}</div>
-                            ${c}
+                            <div class="empire-stars-wrap" style="font-size:16px;">${this.getStarsHtml(review.rating)}</div>
+                            ${verifiedBadge}
                         </div>
                     </div>
-                    ${r?`<h4 class="empire-review-title">${r}</h4>`:""}
-                    <p class="empire-review-body">${s}</p>
-                    ${a}
-                    ${m}
-                </div>`}};return document.addEventListener("DOMContentLoaded",function(){const t=document.querySelectorAll(".empire-pick-star");t.forEach((e,r)=>{e.addEventListener("mouseenter",()=>{t.forEach((s,i)=>{s.classList.toggle("hover-active",i<=r),s.style.color=i<=r?"var(--empire-primary)":"#e2e8f0"})}),e.addEventListener("mouseleave",()=>{t.forEach(s=>{s.classList.remove("hover-active"),s.style.color=s.classList.contains("active")?"var(--empire-primary)":"#e2e8f0"})})})}),window.EmpireWidgets=b,b}();window.EmpireWidgets.init();
+                    ${title ? `<h4 class="empire-review-title">${title}</h4>` : ''}
+                    <p class="empire-review-body">${body}</p>
+                    ${mediaHtml}
+                    ${replyHtml}
+                </div>`;
+        },
+
+        // --- CAROUSEL LOGIC ---
+        async renderReviewCarousels() {
+            const carousels = document.querySelectorAll('.empire-review-carousel-section');
+            if (!carousels.length) return;
+
+            for (const section of carousels) {
+                const shopDomain = section.getAttribute('data-shop-domain');
+                if (!shopDomain) continue;
+
+                const track = section.querySelector('.empire-carousel-track');
+                const prevBtn = section.querySelector('.empire-carousel-prev');
+                const nextBtn = section.querySelector('.empire-carousel-next');
+                const dotsContainer = section.querySelector('.empire-carousel-dots');
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/featured?shop=${shopDomain}&limit=10`);
+                    if (!res.ok) throw new Error("Failed to load featured reviews");
+                    const data = await res.json();
+
+                    if (!data.reviews || data.reviews.length === 0) {
+                        track.innerHTML = '<div style="width:100%; text-align:center; padding: 40px; color:#64748b;">No featured reviews found.</div>';
+                        continue;
+                    }
+
+                    // Render Cards
+                    track.innerHTML = data.reviews.map(rev => {
+                        const dateStr = new Date(rev.createdAt).toLocaleDateString();
+                        const initial = rev.customerName ? rev.customerName.charAt(0).toUpperCase() : "A";
+                        // Using fixed 5 stars since the backend filters rating=5
+                        const starsHtml = `<div class="empire-stars-wrap" style="color:var(--empire-carousel-primary); font-size:18px;">
+                            <span class="empire-skeleton-star">★</span><span class="empire-skeleton-star">★</span><span class="empire-skeleton-star">★</span><span class="empire-skeleton-star">★</span><span class="empire-skeleton-star">★</span>
+                        </div>`;
+
+                        const verifiedHtml = rev.verified ? `
+                        <div style="display:flex; align-items:center; gap:4px; font-weight:800; font-size:0.75rem; color:#10b981; margin-bottom:12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#38bdf8" style="width:1.2em; height:1.2em;"><rect width="24" height="24" rx="4"></rect><path fill="#fff" d="M9.5 16l-4-4 1.5-1.5 2.5 2.5 6.5-6.5L17.5 8z"></path></svg>
+                            VERIFIED BUYER
+                        </div>` : '';
+
+                        return `
+                        <div class="empire-carousel-card">
+                            ${starsHtml}
+                            <div class="empire-carousel-card-name">${this.escapeHtml(rev.customerName)}</div>
+                            ${verifiedHtml}
+                            <div class="empire-carousel-card-text">"${this.escapeHtml(rev.body)}"</div>
+                            <div class="empire-carousel-card-footer">
+                                <div class="empire-carousel-card-avatar">${initial}</div>
+                                <div class="empire-carousel-card-meta">
+                                    <div class="empire-carousel-card-date">${dateStr}</div>
+                                    <div class="empire-carousel-card-product">${this.escapeHtml(rev.customerName)} - Verified</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                    // Logic for Navigation & Glowing Center
+                    const cards = Array.from(track.querySelectorAll('.empire-carousel-card'));
+                    
+                    if (cards.length > 0) {
+                        // Render dots
+                        dotsContainer.innerHTML = cards.map((_, i) => `<div class="empire-carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>`).join('');
+                        const dots = Array.from(dotsContainer.querySelectorAll('.empire-carousel-dot'));
+
+                        // Intersection observer to track which card is in the center
+                        const observer = new IntersectionObserver((entries) => {
+                            entries.forEach(entry => {
+                                if (entry.isIntersecting) {
+                                    // Remove active from all
+                                    cards.forEach(c => c.classList.remove('empire-carousel-active'));
+                                    dots.forEach(d => d.classList.remove('active'));
+                                    
+                                    // Add to current
+                                    entry.target.classList.add('empire-carousel-active');
+                                    const index = cards.indexOf(entry.target);
+                                    if (dots[index]) dots[index].classList.add('active');
+                                }
+                            });
+                        }, {
+                            root: track,
+                            threshold: 0.6 // Card must be 60% visible to trigger active state
+                        });
+
+                        cards.forEach(card => observer.observe(card));
+
+                        // Initial scroll to middle to trigger glow if it's the first card
+                        setTimeout(() => {
+                            if (cards.length > 1) {
+                                track.scrollBy({ left: 1, behavior: 'instant' });
+                                track.scrollBy({ left: -1, behavior: 'instant' });
+                            } else if (cards.length === 1) {
+                                cards[0].classList.add('empire-carousel-active');
+                            }
+                        }, 100);
+
+                        // Buttons
+                        prevBtn.addEventListener('click', () => {
+                            track.scrollBy({ left: -340, behavior: 'smooth' }); // card width + gap
+                        });
+                        nextBtn.addEventListener('click', () => {
+                            track.scrollBy({ left: 340, behavior: 'smooth' });
+                        });
+
+                        // Dot clicks
+                        dots.forEach(dot => {
+                            dot.addEventListener('click', () => {
+                                const index = dot.getAttribute('data-index');
+                                if (cards[index]) {
+                                    cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                }
+                            });
+                        });
+                    }
+
+                } catch (e) {
+                    console.error("Carousel render error:", e);
+                    track.innerHTML = '<div style="width:100%; text-align:center; padding: 40px; color:#ef4444;">Failed to load reviews.</div>';
+                }
+            }
+        }
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const stars = document.querySelectorAll('.empire-pick-star');
+        stars.forEach((star, index) => {
+            star.addEventListener('mouseenter', () => {
+                stars.forEach((s, idx) => {
+                    const isHovered = idx <= index;
+                    s.classList.toggle('hover-active', isHovered);
+                    s.style.color = isHovered ? 'var(--empire-primary)' : '#e2e8f0';
+                });
+            });
+            star.addEventListener('mouseleave', () => {
+                stars.forEach(s => {
+                    s.classList.remove('hover-active');
+                    s.style.color = s.classList.contains('active') ? 'var(--empire-primary)' : '#e2e8f0';
+                });
+            });
+        });
+    });
+
+    return API;
+})();
+
+window.EmpireWidgets = EmpireWidgets;
+window.EmpireWidgets.init();

@@ -1,0 +1,89 @@
+<div class="empire-review-carousel-section" data-shop-domain="{{ shop.domain }}" style="
+    --empire-carousel-bg: {{ block.settings.bg_color }};
+    --empire-carousel-text: {{ block.settings.text_color }};
+    --empire-carousel-primary: {{ block.settings.primary_color }};
+    background-color: var(--empire-carousel-bg);
+    padding: {{ block.settings.padding_y }}px 0;
+">
+    <div class="empire-carousel-container">
+        <div class="empire-carousel-header">
+            <h4 class="empire-carousel-subtitle" style="color: {{ block.settings.subtitle_color }}">{{ block.settings.subtitle }}</h4>
+            <h2 class="empire-carousel-title" style="color: var(--empire-carousel-text)">{{ block.settings.title }}</h2>
+        </div>
+        
+        <div class="empire-carousel-wrapper">
+            <button class="empire-carousel-nav empire-carousel-prev" aria-label="Previous Review">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            
+            <div class="empire-carousel-track" id="empire-carousel-track_{{ block.id }}">
+                <div class="empire-carousel-loading" style="padding: 40px; text-align: center; width: 100%;">
+                    <div class="empire-spinner" style="border-top-color: var(--empire-carousel-primary)"></div>
+                </div>
+            </div>
+            
+            <button class="empire-carousel-nav empire-carousel-next" aria-label="Next Review">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+        </div>
+        
+        <div class="empire-carousel-dots" id="empire-carousel-dots_{{ block.id }}"></div>
+    </div>
+</div>
+
+{% schema %}
+{
+  "name": "Empire Review Carousel",
+  "target": "section",
+  "stylesheet": "empire-widgets.css",
+  "javascript": "empire-widgets.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "What Our Customers Say"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subheading",
+      "default": "Customer Reviews"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#fafafa"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#0f172a"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle Color",
+      "default": "#64748b"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Brand Color (Stars & Accents)",
+      "default": "#f59e0b"
+    },
+    {
+      "type": "range",
+      "id": "padding_y",
+      "min": 20,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Vertical Padding",
+      "default": 80
+    }
+  ]
+}
+{% endschema %}
