@@ -1,7 +1,7 @@
 <div class="empire-star-rating" 
      data-product-id="{{ product.id }}"
      data-shop-domain="{{ shop.domain }}"
-     style="--star-color: {{ block.settings.star_color }}; --text-color: {{ block.settings.text_color }}; justify-content: {{ block.settings.alignment }};">
+     style="--star-color: {{ block.settings.star_color }}; --text-color: {{ block.settings.text_color }}; --star-size: {{ block.settings.star_size }}px; --text-size: {{ block.settings.text_size }}px; justify-content: {{ block.settings.alignment }};">
     
     <div class="empire-stars-skeleton">
         <span class="empire-skeleton-star">★</span>
@@ -43,6 +43,26 @@
         { "value": "flex-end", "label": "Right" }
       ],
       "default": "flex-start"
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "min": 12,
+      "max": 48,
+      "step": 1,
+      "unit": "px",
+      "label": "Star Size",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 10,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Text Size",
+      "default": 14
     }
   ]
 }
