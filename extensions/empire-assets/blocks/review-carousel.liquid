@@ -12,22 +12,24 @@
         </div>
         
         <div class="empire-carousel-wrapper">
-            <button class="empire-carousel-nav empire-carousel-prev" aria-label="Previous Review">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            
             <div class="empire-carousel-track" id="empire-carousel-track_{{ block.id }}">
                 <div class="empire-carousel-loading" style="padding: 40px; text-align: center; width: 100%;">
                     <div class="empire-spinner" style="border-top-color: var(--empire-carousel-primary)"></div>
                 </div>
             </div>
             
-            <button class="empire-carousel-nav empire-carousel-next" aria-label="Next Review">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
+            <div class="empire-carousel-nav-row">
+                <button class="empire-carousel-nav empire-carousel-prev" aria-label="Previous Review">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                
+                <div class="empire-carousel-dots" id="empire-carousel-dots_{{ block.id }}"></div>
+                
+                <button class="empire-carousel-nav empire-carousel-next" aria-label="Next Review">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
         </div>
-        
-        <div class="empire-carousel-dots" id="empire-carousel-dots_{{ block.id }}"></div>
     </div>
 </div>
 

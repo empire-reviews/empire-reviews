@@ -907,46 +907,20 @@
 .empire-carousel-wrapper {
     position: relative;
     display: flex;
+    flex-direction: column;
     align-items: center;
 }
-
-.empire-carousel-nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    color: #334155;
-    transition: all 0.2s ease;
-}
-
-.empire-carousel-nav:hover {
-    background: #f8fafc;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-    transform: translateY(-50%) scale(1.05);
-}
-
-.empire-carousel-prev { left: -22px; }
-.empire-carousel-next { right: -22px; }
 
 .empire-carousel-track {
     display: flex;
     gap: 24px;
-    padding: 40px 20px;
-    margin: -40px -20px; /* offset padding so shadows don't clip */
+    padding: 20px 20px 40px 20px;
+    margin: -20px -20px 0 -20px; /* offset padding so shadows don't clip */
     overflow-x: auto;
     scroll-behavior: smooth;
     scroll-snap-type: x mandatory;
     scrollbar-width: none; /* Firefox */
+    width: 100%;
 }
 
 .empire-carousel-track::-webkit-scrollbar {
@@ -957,35 +931,34 @@
     flex: 0 0 320px;
     width: 320px;
     scroll-snap-align: center;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 16px;
-    padding: 28px;
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid #f1f5f9;
     position: relative;
 }
 
 /* The active/center card glowing effect */
 .empire-carousel-card.empire-carousel-active {
     transform: scale(1.05);
-    background: rgba(255, 255, 255, 0.95);
+    background: #ffffff;
+    border-color: transparent;
     z-index: 2;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.1);
 }
 
 .empire-carousel-card.empire-carousel-active::after {
     content: '';
     position: absolute;
-    inset: -3px;
-    border-radius: 19px;
-    background: linear-gradient(135deg, #fcd34d, #38bdf8, #c084fc);
+    inset: -2px;
+    border-radius: 26px;
+    background: linear-gradient(135deg, #fcd34d, #38bdf8, #a855f7);
     z-index: -1;
-    opacity: 0.7;
-    transition: opacity 0.4s;
+    opacity: 0.8;
 }
 
 .empire-carousel-card-name {
@@ -1027,7 +1000,8 @@
 .empire-carousel-card-meta {
     display: flex;
     flex-direction: column;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
 
 .empire-carousel-card-date {
@@ -1035,21 +1009,51 @@
 }
 
 .empire-carousel-card-product {
-    font-weight: 600;
-    color: #475569;
+    font-weight: 700;
+    color: #334155;
 }
 
-/* Dots */
+/* Bottom Navigation Row */
+.empire-carousel-nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 900px;
+    margin: 20px auto 0;
+    padding: 0 20px;
+}
+
+.empire-carousel-nav {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.empire-carousel-nav:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: scale(1.05);
+}
+
 .empire-carousel-dots {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 8px;
-    margin-top: 2rem;
 }
 
 .empire-carousel-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #cbd5e1;
     cursor: pointer;
@@ -1057,8 +1061,8 @@
 }
 
 .empire-carousel-dot.active {
-    background: #1e293b;
-    width: 24px;
+    background: #334155;
+    width: 20px;
     border-radius: 4px;
 }
 
