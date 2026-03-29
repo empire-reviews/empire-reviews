@@ -113,12 +113,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             status = "approved";
         }
 
-        // Handle Media Creation
-        const mediaCreate = [];
-        if (mediaUrls) {
+        // Handle Media Creation (Strictly PRO Only)
+        const mediaCreate: any[] = [];
+        if (mediaUrls && settings?.plan === "EMPRESS_PRO") {
             const urls = mediaUrls.split(',').map(u => u.trim()).filter(u => u);
             for (const url of urls) {
-                mediaCreate.push({ url, type: 'image' });
+                // Ensure URLs are secure HTTPS to prevent malicious XSS
+                if (url.startsWith("https://")) {
+                    mediaCreate.push({ url, type: 'image' });
+                }
             }
         }
 
@@ -287,10 +290,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             stats = { total, average, distribution };
         }
 
+        // Fetch Store Settings to determine PRO features (like Photo Uploads)
+        let settings = null;
+        if (shop) {
+             settings = await prisma.settings.findFirst({
+                 where: { shop },
+                 select: { plan: true }
+             });
+        }
+        const allowPhotoUploads = settings?.plan === "EMPRESS_PRO";
+
         // Return pagination metadata alongside data
         const hasMore = reviews.length === limit;
         return json(
-            { reviews, stats, pagination: { page, hasMore } },
+            { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads } },
             {
                 headers: corsHeaders(request),
             }

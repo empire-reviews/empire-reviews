@@ -426,6 +426,44 @@ export default function EmpireDashboard() {
             </div>
           )}
 
+          {/* 📸 PRO FEATURE PROMO (Loss Aversion / Feature Gating) */}
+          {planName === "FREE" && (
+            <div style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              padding: '1.5rem',
+              borderRadius: '12px',
+              border: '1px dashed #cbd5e1',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)'
+            }}>
+              <div style={{ flex: 1 }}>
+                <Text as="h3" variant="headingMd" fontWeight="semibold">📸 Unlock Photo & Video Reviews</Text>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Text as="p" variant="bodyMd" tone="subdued">Visual social proof increases product conversion rates by up to 24%. Upgrade to EMPRESS_PRO to instantly add the photo upload widget to your store.</Text>
+                </div>
+              </div>
+              <button 
+                  onClick={() => navigate("/app/plans")} 
+                  style={{ 
+                      whiteSpace: 'nowrap', 
+                      marginLeft: '1.5rem', 
+                      background: '#10b981', 
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
+                  }}>
+                Unlock Feature ✨
+              </button>
+            </div>
+          )}
+
           {/* 📊 PSYCHOLOGICAL STAT CARDS */}
           <Layout>
             <Layout.Section>

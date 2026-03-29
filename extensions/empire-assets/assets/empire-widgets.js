@@ -48,6 +48,24 @@ const EmpireWidgets = (function() {
             
             const successMsg = document.getElementById('empire-modal-success');
             if (successMsg) successMsg.style.display = 'none';
+
+            // Photo Uploader Injection (PRO Feature)
+            const uploadContainer = document.getElementById('empire-photo-upload-container');
+            if (uploadContainer) {
+                uploadContainer.innerHTML = ''; // reset
+                // Only render if PRO feature is unlocked by the backend
+                if (window.EmpireFeatures && window.EmpireFeatures.allowPhotoUploads === true) {
+                    uploadContainer.innerHTML = `
+                        <div class="empire-photo-dropzone" id="empire-photo-dropzone">
+                            <div class="empire-photo-dropzone-icon">📷</div>
+                            <div class="empire-photo-dropzone-text">Click to add photos (Max 3)</div>
+                            <input type="file" id="empire-photo-input" accept="image/png, image/jpeg, image/webp" multiple style="display:none;" />
+                        </div>
+                        <div class="empire-photo-previews" id="empire-photo-previews"></div>
+                    `;
+                    this.initPhotoUploader();
+                }
+            }
         },
 
         closeModal(event) {
@@ -107,6 +125,10 @@ const EmpireWidgets = (function() {
                 if (nameInput && nameInput.value) formData.append('author', nameInput.value);
                 if (bodyInput && bodyInput.value) formData.append('body', bodyInput.value);
 
+                if (window.EmpireUploadedPhotos && window.EmpireUploadedPhotos.length > 0) {
+                    formData.append('media_urls', window.EmpireUploadedPhotos.join(','));
+                }
+
                 const response = await fetch(`${API_BASE}/api/reviews`, {
                     method: 'POST',
                     body: formData
@@ -139,6 +161,85 @@ const EmpireWidgets = (function() {
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
             }
+        },
+
+        initPhotoUploader() {
+            const dropzone = document.getElementById('empire-photo-dropzone');
+            const fileInput = document.getElementById('empire-photo-input');
+            const previewsContainer = document.getElementById('empire-photo-previews');
+            
+            if (!dropzone || !fileInput) return;
+
+            window.EmpireUploadedPhotos = []; // reset global state
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            dropzone.addEventListener('dragover', () => dropzone.classList.add('drag-active'));
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-active'));
+            dropzone.addEventListener('drop', (e) => {
+                dropzone.classList.remove('drag-active');
+                if (e.dataTransfer.files) this.handleFilesUpload(e.dataTransfer.files, dropzone, previewsContainer);
+            });
+
+            const self = this;
+            fileInput.addEventListener('change', function() {
+                if (this.files) self.handleFilesUpload(this.files, dropzone, previewsContainer);
+            });
+        },
+
+        async handleFilesUpload(files, dropzone, previewsContainer) {
+            const fileArray = Array.from(files).slice(0, 3 - window.EmpireUploadedPhotos.length);
+            if (fileArray.length === 0) return;
+
+            const originalHtml = dropzone.innerHTML;
+            dropzone.innerHTML = `<div class="empire-uploading-overlay"><div class="empire-spinner"></div>Uploading...</div>${originalHtml}`;
+            dropzone.style.pointerEvents = 'none';
+
+            for (let file of fileArray) {
+                try {
+                    // Cloudinary Unsigned Upload
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', 'docs_upload_example_us_preset'); // Demo Preset
+                    formData.append('cloud_name', 'demo');
+
+                    const res = await fetch('https://api.cloudinary.com/v1_1/demo/image/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (data.secure_url) {
+                        window.EmpireUploadedPhotos.push(data.secure_url);
+                        
+                        const prev = document.createElement('div');
+                        prev.className = 'empire-photo-preview-item';
+                        prev.innerHTML = `
+                            <img src="${data.secure_url}" class="empire-photo-preview-img" />
+                            <button class="empire-photo-remove" onclick="EmpireWidgets.removePhoto('${data.secure_url}', this.parentElement)">✕</button>
+                        `;
+                        previewsContainer.appendChild(prev);
+                    }
+                } catch (err) {
+                    console.error("Photo upload failed:", err);
+                }
+            }
+
+            // Restore UI
+            dropzone.innerHTML = originalHtml;
+            dropzone.style.pointerEvents = 'auto';
+        },
+
+        removePhoto(url, element) {
+            window.EmpireUploadedPhotos = window.EmpireUploadedPhotos.filter(u => u !== url);
+            if (element) element.remove();
         },
 
         escapeHtml(unsanitized) {
@@ -219,6 +320,11 @@ const EmpireWidgets = (function() {
                 widgetState[widgetId] = { page: 1, hasMore: true, isLoading: true, statsLoaded: false };
 
                 const data = await this.fetchReviewsData(productId, shopDomain, 1);
+                
+                // Store global features block so modal can read it later
+                if (data && data.features) {
+                    window.EmpireFeatures = data.features;
+                }
                 
                 const summarySkeleton = widget.querySelector('.empire-summary-skeleton');
                 const distContainer = widget.querySelector('.empire-distribution-container');

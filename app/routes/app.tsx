@@ -14,9 +14,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     await authenticate.admin(request);
   } catch (error) {
-    // We explicitly swallow ALL errors here (even Responses) so that
-    // Vercel token exchange failures do not trigger an infinite redirect loop
-    // or fatal 500 error before App Bridge can initialize the client environment.
+    if (error instanceof Response) throw error;
+    // We explicitly swallow non-Response errors here so that
+    // Vercel cold starts/network glitches do not trigger a fatal 500
     console.log("App layout: auth deferred to App Bridge UI initialization");
   }
 

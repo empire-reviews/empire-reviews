@@ -59,7 +59,11 @@
         <!-- Optional Review Fields (shown after star select) -->
         <div class="empire-review-fields" id="empire-review-fields">
             <input type="text" class="empire-input" id="empire-input-name" placeholder="Your name (optional)" maxlength="80" />
-            <textarea class="empire-input empire-textarea" id="empire-input-body" placeholder="Tell us what you think... (optional)" maxlength="1000" rows="4"></textarea>
+            <textarea class="empire-input empire-textarea" id="empire-input-body" placeholder="Tell us what you think..." maxlength="1000" rows="4"></textarea>
+            
+            <!-- Injected dynamically via JS if the user has EMPRESS_PRO features enabled -->
+            <div id="empire-photo-upload-container"></div>
+
             <button class="empire-submit-btn" id="empire-submit-btn" onclick="EmpireWidgets.submitReview()">
                 <span class="empire-submit-label">Submit Review</span>
             </button>
