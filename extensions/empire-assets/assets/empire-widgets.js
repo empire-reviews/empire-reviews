@@ -221,12 +221,24 @@ const EmpireWidgets = (function() {
                 `;
                 previewsContainer.appendChild(prev);
 
-                // Convert file to Base64 to safely append to submission form natively
                 try {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const base64Data = e.target.result;
-                        window.EmpireUploadedPhotos.push(base64Data);
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('upload_preset', 'empire reviews');
+                    formData.append('cloud_name', 'doefkcth6');
+
+                    const response = await fetch('https://api.cloudinary.com/v1_1/doefkcth6/image/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) throw new Error(data.error?.message || "Cloudinary error");
+
+                    if (data.secure_url) {
+                        const secureUrl = data.secure_url;
+                        window.EmpireUploadedPhotos.push(secureUrl);
                         
                         // Update UI to success state
                         prev.querySelector('.empire-uploading-shimmer').style.display = 'none';
@@ -235,16 +247,13 @@ const EmpireWidgets = (function() {
                         const rmBtn = prev.querySelector('.empire-photo-remove');
                         rmBtn.disabled = false;
                         rmBtn.onclick = function() {
-                            EmpireWidgets.removePhoto(base64Data, prev);
+                            EmpireWidgets.removePhoto(secureUrl, prev);
                         };
-                    };
-                    reader.onerror = function() {
-                        prev.innerHTML = '<div style="font-size:10px; color:red; padding:4px; text-align:center;">Failed</div>';
-                    };
-                    reader.readAsDataURL(file);
+                    }
                 } catch (err) {
-                    console.error("Local file processing failed", err);
-                    prev.remove();
+                    console.error("Cloudinary file processing failed", err);
+                    prev.innerHTML = '<div style="font-size:10px; color:white; background:var(--empire-primary); padding:4px; text-align:center; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">Error</div>';
+                    setTimeout(() => prev.remove(), 2000);
                 }
             }
         },
