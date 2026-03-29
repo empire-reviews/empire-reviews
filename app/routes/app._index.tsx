@@ -442,7 +442,7 @@ export default function EmpireDashboard() {
               <div style={{ flex: 1 }}>
                 <Text as="h3" variant="headingMd" fontWeight="semibold">📸 Unlock Photo & Video Reviews</Text>
                 <div style={{ marginTop: '0.5rem' }}>
-                  <Text as="p" variant="bodyMd" tone="subdued">Visual social proof increases product conversion rates by up to 24%. Upgrade to EMPRESS_PRO to instantly add the photo upload widget to your store.</Text>
+                  <Text as="p" variant="bodyMd" tone="subdued">Visual social proof increases product conversion rates by up to 24%. Upgrade to EMPIRE Pro to instantly add the photo upload widget to your store.</Text>
                 </div>
               </div>
               <button 

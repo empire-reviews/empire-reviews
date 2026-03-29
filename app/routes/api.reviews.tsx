@@ -115,7 +115,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         // Handle Media Creation (Strictly PRO Only)
         const mediaCreate: any[] = [];
-        if (mediaUrls && settings?.plan === "EMPRESS_PRO") {
+        if (mediaUrls && settings?.plan === "EMPIRE_PRO") {
             const urls = mediaUrls.split(',').map(u => u.trim()).filter(u => u);
             for (const url of urls) {
                 // Ensure URLs are secure HTTPS to prevent malicious XSS
@@ -298,7 +298,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                  select: { plan: true }
              });
         }
-        const allowPhotoUploads = settings?.plan === "EMPRESS_PRO";
+        const allowPhotoUploads = settings?.plan === "EMPIRE_PRO";
 
         // Return pagination metadata alongside data
         const hasMore = reviews.length === limit;
