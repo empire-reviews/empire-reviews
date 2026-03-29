@@ -15,7 +15,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
-    const limit = parseInt(url.searchParams.get("limit") || "10");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
 
     if (!shop) {
         return json({ error: "Missing shop parameter" }, { status: 400, headers: corsHeaders });
