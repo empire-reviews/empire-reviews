@@ -981,19 +981,19 @@
 }
 
 .empire-carousel-card-name {
-    font-size: 1.3rem;
+    font-size: calc(var(--empire-carousel-text-size, 16px) * 1.35);
     font-weight: 800;
     color: #020617;
-    margin: 16px 0 8px 0;
+    margin: 8px 0 6px 0;
     letter-spacing: -0.01em;
 }
 
 .empire-carousel-card-text {
     font-size: var(--empire-carousel-text-size, 16px);
-    line-height: 1.6;
+    line-height: 1.5;
     color: #475569;
     flex-grow: 1;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .empire-carousel-card-footer {
