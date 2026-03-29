@@ -32,7 +32,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const reviews = await prisma.review.findMany({
         where: { shop: session.shop },
         orderBy: { createdAt: "desc" },
-        include: { replies: true }
+        include: { replies: true, media: true }
     });
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
     const aiConfigured = !!(settings?.aiProvider && settings?.aiApiKey);
@@ -121,6 +121,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         return json({ success: true, message: `AI replied to ${repliedCount} reviews`, repliedCount });
+    }
+
+    if (intent === "delete_media") {
+        const mediaId = formData.get("mediaId") as string;
+        await prisma.reviewMedia.delete({ where: { id: mediaId } });
+        return json({ success: true, message: "Photo deleted" });
     }
 
     if (intent === "delete_review") {
@@ -395,6 +401,24 @@ export default function ReviewsPage() {
                     </div>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
+                    {review.media && review.media.length > 0 ? (
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxWidth: '120px' }}>
+                            {review.media.map((m: any) => (
+                                <div key={m.id} style={{ position: 'relative', width: '36px', height: '36px' }}>
+                                    <img src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }} onClick={() => window.open(m.url, '_blank')} alt="Review Photo" />
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); fetcher.submit({ intent: 'delete_media', mediaId: m.id }, { method: 'post' }); }}
+                                        style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
+                                        title="Delete Photo"
+                                    >✕</button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '13px' }}>—</span>
+                    )}
+                </IndexTable.Cell>
+                <IndexTable.Cell>
                     {isReplied ? (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {review.status === 'pending' && (
@@ -582,6 +606,7 @@ export default function ReviewsPage() {
                                         { title: "Rating" },
                                         { title: "AI Sentiment" },
                                         { title: "Review" },
+                                        { title: "Photos" },
                                         { title: "" },
                                     ]}
                                 >
