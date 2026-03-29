@@ -464,45 +464,66 @@ const EmpireWidgets = (function() {
                         </div>`;
                     }).join('');
 
-                    // Logic for Navigation & Glowing Center
-                    const cards = Array.from(track.querySelectorAll('.empire-carousel-card'));
+                    const singleSetHtml = track.innerHTML;
                     
-                    if (cards.length > 0) {
-                        // Render dots
-                        dotsContainer.innerHTML = cards.map((_, i) => `<div class="empire-carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>`).join('');
-                        const dots = Array.from(dotsContainer.querySelectorAll('.empire-carousel-dot'));
+                    // True Infinite Loop execution: We clone the full set 3 times to allow seamless looping forward AND backward
+                    track.innerHTML = singleSetHtml + singleSetHtml + singleSetHtml;
 
-                        // Intersection observer to track which card is in the center for dots only
+                    const originalCount = data.reviews.length;
+                    const scrollAmount = 344; // card width (320px) + gap (24px)
+                    const setWidth = originalCount * scrollAmount;
+
+                    if (originalCount > 0) {
+                        // We only need indicator dots for the original number of cards
+                        dotsContainer.innerHTML = Array.from({length: originalCount}).map((_, i) => `<div class="empire-carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>`).join('');
+                        const dots = Array.from(dotsContainer.querySelectorAll('.empire-carousel-dot'));
+                        const allCards = Array.from(track.querySelectorAll('.empire-carousel-card'));
+
+                        // Instantly jump to the middle cloned set so we can scroll infinitely immediately
+                        setTimeout(() => {
+                            track.scrollTo({ left: setWidth, behavior: 'instant' });
+                        }, 50);
+
+                        // Update the dots based on whichever clone comes into the center view
                         const observer = new IntersectionObserver((entries) => {
                             entries.forEach(entry => {
                                 if (entry.isIntersecting) {
                                     dots.forEach(d => d.classList.remove('active'));
-                                    
-                                    const index = cards.indexOf(entry.target);
+                                    // Math.floor modulo ensures the dot matches the correct original card index
+                                    const index = allCards.indexOf(entry.target) % originalCount;
                                     if (dots[index]) dots[index].classList.add('active');
                                 }
                             });
-                        }, {
-                            root: track,
-                            threshold: 0.6 // Card must be 60% visible to trigger active dot
+                        }, { root: track, threshold: 0.6 });
+
+                        allCards.forEach(card => observer.observe(card));
+
+                        // INFINITE CONTINUOUS JUMP LOGIC
+                        track.addEventListener('scroll', () => {
+                            // If scrolled past the last card of the Middle Set into the 3rd set, instantly snap backwards 1 full set
+                            if (track.scrollLeft >= setWidth * 2 - (scrollAmount / 2)) {
+                                track.scrollTo({ left: track.scrollLeft - setWidth, behavior: 'instant' });
+                            } 
+                            // If scrolled backwards past the first card of the Middle Set into the 1st set, instantly snap forward 1 full set
+                            else if (track.scrollLeft <= (scrollAmount / 2)) {
+                                track.scrollTo({ left: track.scrollLeft + setWidth, behavior: 'instant' });
+                            }
                         });
 
-                        cards.forEach(card => observer.observe(card));
-
-                        // Navigation Buttons
+                        // Standard Buttons
                         prevBtn.addEventListener('click', () => {
-                            track.scrollBy({ left: -344, behavior: 'smooth' }); // card width (320) + gap (24)
+                            track.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
                         });
                         nextBtn.addEventListener('click', () => {
-                            track.scrollBy({ left: 344, behavior: 'smooth' });
+                            track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
                         });
 
                         // Dot clicks
                         dots.forEach((dot, idx) => {
                             dot.addEventListener('click', () => {
-                                if (cards[idx]) {
-                                    cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                                }
+                                // Jump directly within the current frame view
+                                const currentSetStart = Math.floor(track.scrollLeft / setWidth) * setWidth;
+                                track.scrollTo({ left: currentSetStart + (idx * scrollAmount), behavior: 'smooth' });
                             });
                         });
 
@@ -513,15 +534,9 @@ const EmpireWidgets = (function() {
                         const startAutoScroll = () => {
                             autoScrollTimer = setInterval(() => {
                                 if (!isHovering) {
-                                    const maxScroll = track.scrollWidth - track.clientWidth;
-                                    // If we reached the end, rewind back to the start smoothly
-                                    if (track.scrollLeft >= maxScroll - 10) {
-                                        track.scrollTo({ left: 0, behavior: 'smooth' });
-                                    } else {
-                                        nextBtn.click();
-                                    }
+                                    nextBtn.click(); // No need to check ends! track event listener handles infinite teleportation!
                                 }
-                            }, 3500); // 3.5 seconds
+                            }, 3500); 
                         };
 
                         section.addEventListener('mouseenter', () => isHovering = true);
@@ -531,6 +546,7 @@ const EmpireWidgets = (function() {
 
                         startAutoScroll();
                     }
+
 
                 } catch (e) {
                     console.error("Carousel render error:", e);
