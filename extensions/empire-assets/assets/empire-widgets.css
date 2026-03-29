@@ -1102,51 +1102,55 @@
   ======================================== 
 */
 .empire-photo-dropzone {
-    border: 2px dashed #e2e8f0;
+    display: flex;
+    align-items: center;
+    border: 1.5px dashed #cbd5e1;
     border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    cursor: pointer;
+    padding: 16px;
     background: #f8fafc;
+    min-height: 80px;
     transition: all 0.2s ease;
     margin-bottom: 24px;
     position: relative;
     overflow: hidden;
 }
 
-.empire-photo-dropzone:hover, 
 .empire-photo-dropzone.drag-active {
     border-color: var(--empire-primary);
     background: rgba(var(--empire-primary-rgb, 59, 130, 246), 0.05);
 }
 
-.empire-photo-dropzone-icon {
-    font-size: 2rem;
-    margin-bottom: 8px;
-    opacity: 0.7;
+.empire-dropzone-clicker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    padding: 8px 16px;
+    color: #475569;
 }
 
-.empire-photo-dropzone-text {
-    font-size: 0.9rem;
-    color: #64748b;
-    font-weight: 500;
+.empire-dropzone-clicker:hover {
+    color: var(--empire-primary);
 }
 
 .empire-photo-previews {
     display: flex;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 8px;
+    margin-left: 16px;
+    align-items: center;
     flex-wrap: wrap;
-    justify-content: center;
 }
 
 .empire-photo-preview-item {
     position: relative;
-    width: 64px;
-    height: 64px;
+    width: 60px;
+    height: 60px;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    background: #f1f5f9;
 }
 
 .empire-photo-preview-img {

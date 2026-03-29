@@ -116,13 +116,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // Handle Media Creation (Strictly PRO Only)
         const mediaCreate: any[] = [];
         if (mediaUrls && settings?.plan === "EMPIRE_PRO") {
-            const urls = mediaUrls.split(',').map(u => u.trim()).filter(u => u);
-            for (const url of urls) {
-                // Ensure URLs are secure HTTPS to prevent malicious XSS
-                if (url.startsWith("https://")) {
-                    mediaCreate.push({ url, type: 'image' });
+            try {
+                // Parse safely as JSON array
+                let urls = [];
+                if (mediaUrls.startsWith('[')) urls = JSON.parse(mediaUrls);
+                else urls = mediaUrls.split(',').map((u: string) => u.trim()); // Legacy fallback
+
+                for (const url of urls) {
+                    // Ensure URLs are secure HTTPS or Base64 images to prevent XSS
+                    if (url.startsWith("https://") || url.startsWith("data:image/")) {
+                        mediaCreate.push({ url, type: 'image' });
+                    }
                 }
-            }
+            } catch(e) { console.error("Media URL parsing error", e); }
         }
 
         const review = await prisma.review.create({

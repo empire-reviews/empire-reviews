@@ -56,12 +56,15 @@ const EmpireWidgets = (function() {
                 // Only render if PRO feature is unlocked by the backend
                 if (window.EmpireFeatures && window.EmpireFeatures.allowPhotoUploads === true) {
                     uploadContainer.innerHTML = `
+                        <div style="font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">Drag and Drop</div>
                         <div class="empire-photo-dropzone" id="empire-photo-dropzone">
-                            <div class="empire-photo-dropzone-icon">📷</div>
-                            <div class="empire-photo-dropzone-text">Click to add photos (Max 3)</div>
+                            <div class="empire-dropzone-clicker" id="empire-dropzone-clicker">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <div>Drag & Drop or Click to upload<br><span style="font-size: 0.8rem; color: #64748b;">(Max 4 photos, 10MB each)</span></div>
+                            </div>
+                            <div class="empire-photo-previews" id="empire-photo-previews"></div>
                             <input type="file" id="empire-photo-input" accept="image/png, image/jpeg, image/webp" multiple style="display:none;" />
                         </div>
-                        <div class="empire-photo-previews" id="empire-photo-previews"></div>
                     `;
                     this.initPhotoUploader();
                 }
@@ -126,7 +129,7 @@ const EmpireWidgets = (function() {
                 if (bodyInput && bodyInput.value) formData.append('body', bodyInput.value);
 
                 if (window.EmpireUploadedPhotos && window.EmpireUploadedPhotos.length > 0) {
-                    formData.append('media_urls', window.EmpireUploadedPhotos.join(','));
+                    formData.append('media_urls', JSON.stringify(window.EmpireUploadedPhotos));
                 }
 
                 const response = await fetch(`${API_BASE}/api/reviews`, {
@@ -167,12 +170,17 @@ const EmpireWidgets = (function() {
             const dropzone = document.getElementById('empire-photo-dropzone');
             const fileInput = document.getElementById('empire-photo-input');
             const previewsContainer = document.getElementById('empire-photo-previews');
+            const clicker = document.getElementById('empire-dropzone-clicker');
             
             if (!dropzone || !fileInput) return;
 
-            window.EmpireUploadedPhotos = []; // reset global state
+            window.EmpireUploadedPhotos = []; 
 
-            dropzone.addEventListener('click', () => fileInput.click());
+            // Only trigger file select if clicking the left side clicker (or empty zone)
+            clicker.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('click', (e) => {
+                if (e.target === dropzone) fileInput.click();
+            });
             
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropzone.addEventListener(eventName, function(e) {
@@ -185,56 +193,60 @@ const EmpireWidgets = (function() {
             dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-active'));
             dropzone.addEventListener('drop', (e) => {
                 dropzone.classList.remove('drag-active');
-                if (e.dataTransfer.files) this.handleFilesUpload(e.dataTransfer.files, dropzone, previewsContainer);
+                if (e.dataTransfer.files) this.handleFilesUpload(e.dataTransfer.files, previewsContainer);
             });
 
             const self = this;
             fileInput.addEventListener('change', function() {
-                if (this.files) self.handleFilesUpload(this.files, dropzone, previewsContainer);
+                if (this.files) self.handleFilesUpload(this.files, previewsContainer);
+                this.value = ''; // reset so same file can be selected again if removed
             });
         },
 
-        async handleFilesUpload(files, dropzone, previewsContainer) {
-            const fileArray = Array.from(files).slice(0, 3 - window.EmpireUploadedPhotos.length);
+        async handleFilesUpload(files, previewsContainer) {
+            // Updated to max 4 photos to match reference mockup
+            const fileArray = Array.from(files).slice(0, 4 - window.EmpireUploadedPhotos.length);
             if (fileArray.length === 0) return;
 
-            const originalHtml = dropzone.innerHTML;
-            dropzone.innerHTML = `<div class="empire-uploading-overlay"><div class="empire-spinner"></div>Uploading...</div>${originalHtml}`;
-            dropzone.style.pointerEvents = 'none';
-
             for (let file of fileArray) {
+                // Instantly generate a temporary local URL for immediate visual feedback
+                const localUrl = URL.createObjectURL(file);
+                
+                const prev = document.createElement('div');
+                prev.className = 'empire-photo-preview-item';
+                prev.innerHTML = `
+                    <div class="empire-uploading-shimmer" style="position: absolute; inset:0; background: rgba(255,255,255,0.5); display: flex; align-items:center; justify-content:center;"><div class="empire-spinner" style="width:16px; height:16px; border-width:2px;"></div></div>
+                    <img src="${localUrl}" class="empire-photo-preview-img" style="opacity: 0.5;" />
+                    <button class="empire-photo-remove" disabled>✕</button>
+                `;
+                previewsContainer.appendChild(prev);
+
+                // Convert file to Base64 to safely append to submission form natively
                 try {
-                    // Cloudinary Unsigned Upload
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('upload_preset', 'docs_upload_example_us_preset'); // Demo Preset
-                    formData.append('cloud_name', 'demo');
-
-                    const res = await fetch('https://api.cloudinary.com/v1_1/demo/image/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const data = await res.json();
-                    if (data.secure_url) {
-                        window.EmpireUploadedPhotos.push(data.secure_url);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const base64Data = e.target.result;
+                        window.EmpireUploadedPhotos.push(base64Data);
                         
-                        const prev = document.createElement('div');
-                        prev.className = 'empire-photo-preview-item';
-                        prev.innerHTML = `
-                            <img src="${data.secure_url}" class="empire-photo-preview-img" />
-                            <button class="empire-photo-remove" onclick="EmpireWidgets.removePhoto('${data.secure_url}', this.parentElement)">✕</button>
-                        `;
-                        previewsContainer.appendChild(prev);
-                    }
+                        // Update UI to success state
+                        prev.querySelector('.empire-uploading-shimmer').style.display = 'none';
+                        prev.querySelector('img').style.opacity = '1';
+                        
+                        const rmBtn = prev.querySelector('.empire-photo-remove');
+                        rmBtn.disabled = false;
+                        rmBtn.onclick = function() {
+                            EmpireWidgets.removePhoto(base64Data, prev);
+                        };
+                    };
+                    reader.onerror = function() {
+                        prev.innerHTML = '<div style="font-size:10px; color:red; padding:4px; text-align:center;">Failed</div>';
+                    };
+                    reader.readAsDataURL(file);
                 } catch (err) {
-                    console.error("Photo upload failed:", err);
+                    console.error("Local file processing failed", err);
+                    prev.remove();
                 }
             }
-
-            // Restore UI
-            dropzone.innerHTML = originalHtml;
-            dropzone.style.pointerEvents = 'auto';
         },
 
         removePhoto(url, element) {
