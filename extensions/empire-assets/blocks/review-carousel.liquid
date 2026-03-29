@@ -3,6 +3,8 @@
     --empire-carousel-text: {{ block.settings.text_color }};
     --empire-carousel-primary: {{ block.settings.primary_color }};
     --empire-carousel-star-size: {{ block.settings.star_size }}px;
+    --star-size: {{ block.settings.star_size }}px;
+    --empire-carousel-text-size: {{ block.settings.text_size }}px;
     background-color: var(--empire-carousel-bg);
     padding: {{ block.settings.padding_y }}px 0;
 ">
@@ -86,6 +88,16 @@
       "unit": "px",
       "label": "Star Size",
       "default": 18
+    },
+    {
+      "type": "range",
+      "id": "text_size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Text Size",
+      "default": 16
     },
     {
       "type": "range",

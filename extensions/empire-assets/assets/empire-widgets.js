@@ -472,23 +472,19 @@ const EmpireWidgets = (function() {
                         dotsContainer.innerHTML = cards.map((_, i) => `<div class="empire-carousel-dot ${i === 0 ? 'active' : ''}" data-index="${i}"></div>`).join('');
                         const dots = Array.from(dotsContainer.querySelectorAll('.empire-carousel-dot'));
 
-                        // Intersection observer to track which card is in the center
+                        // Intersection observer to track which card is in the center for dots only
                         const observer = new IntersectionObserver((entries) => {
                             entries.forEach(entry => {
                                 if (entry.isIntersecting) {
-                                    // Remove active from all
-                                    cards.forEach(c => c.classList.remove('empire-carousel-active'));
                                     dots.forEach(d => d.classList.remove('active'));
                                     
-                                    // Add to current
-                                    entry.target.classList.add('empire-carousel-active');
                                     const index = cards.indexOf(entry.target);
                                     if (dots[index]) dots[index].classList.add('active');
                                 }
                             });
                         }, {
                             root: track,
-                            threshold: 0.6 // Card must be 60% visible to trigger active state
+                            threshold: 0.6 // Card must be 60% visible to trigger active dot
                         });
 
                         cards.forEach(card => observer.observe(card));

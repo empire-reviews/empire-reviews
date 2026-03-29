@@ -950,8 +950,7 @@
     position: relative;
 }
 
-/* The active/center and hover glowing effect */
-.empire-carousel-card.empire-carousel-active,
+/* The hover glowing effect */
 .empire-carousel-card:hover {
     transform: scale(1.05);
     z-index: 10;
@@ -977,7 +976,6 @@
     pointer-events: none;
 }
 
-.empire-carousel-card.empire-carousel-active::before,
 .empire-carousel-card:hover::before {
     opacity: 1;
 }
@@ -991,9 +989,9 @@
 }
 
 .empire-carousel-card-text {
-    font-size: 1.05rem;
+    font-size: var(--empire-carousel-text-size, 16px);
     line-height: 1.6;
-    color: #334155;
+    color: #475569;
     flex-grow: 1;
     margin-bottom: 24px;
 }
