@@ -488,9 +488,9 @@ const EmpireWidgets = (function() {
 
             let mediaHtml = '';
             if (review.media && review.media.length > 0) {
-                mediaHtml = '<div class="empire-review-images">';
+                mediaHtml = '<div class="empire-review-gallery">';
                 review.media.forEach(m => {
-                    mediaHtml += `<img src="${m.url}" class="empire-review-image" alt="Review Photo" loading="lazy" />`;
+                    mediaHtml += `<img src="${m.url}" class="empire-gallery-img" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
                 });
                 mediaHtml += '</div>';
             }
