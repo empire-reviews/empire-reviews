@@ -2,6 +2,7 @@
     --empire-carousel-bg: {{ block.settings.bg_color }};
     --empire-carousel-text: {{ block.settings.text_color }};
     --empire-carousel-primary: {{ block.settings.primary_color }};
+    --empire-carousel-star-size: {{ block.settings.star_size }}px;
     background-color: var(--empire-carousel-bg);
     padding: {{ block.settings.padding_y }}px 0;
 ">
@@ -75,6 +76,16 @@
       "id": "primary_color",
       "label": "Brand Color (Stars & Accents)",
       "default": "#f59e0b"
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "min": 14,
+      "max": 36,
+      "step": 1,
+      "unit": "px",
+      "label": "Star Size",
+      "default": 18
     },
     {
       "type": "range",
