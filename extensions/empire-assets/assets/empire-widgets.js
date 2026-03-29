@@ -489,33 +489,47 @@ const EmpireWidgets = (function() {
 
                         cards.forEach(card => observer.observe(card));
 
-                        // Initial scroll to middle to trigger glow if it's the first card
-                        setTimeout(() => {
-                            if (cards.length > 1) {
-                                track.scrollBy({ left: 1, behavior: 'instant' });
-                                track.scrollBy({ left: -1, behavior: 'instant' });
-                            } else if (cards.length === 1) {
-                                cards[0].classList.add('empire-carousel-active');
-                            }
-                        }, 100);
-
-                        // Buttons
+                        // Navigation Buttons
                         prevBtn.addEventListener('click', () => {
-                            track.scrollBy({ left: -340, behavior: 'smooth' }); // card width + gap
+                            track.scrollBy({ left: -344, behavior: 'smooth' }); // card width (320) + gap (24)
                         });
                         nextBtn.addEventListener('click', () => {
-                            track.scrollBy({ left: 340, behavior: 'smooth' });
+                            track.scrollBy({ left: 344, behavior: 'smooth' });
                         });
 
                         // Dot clicks
-                        dots.forEach(dot => {
+                        dots.forEach((dot, idx) => {
                             dot.addEventListener('click', () => {
-                                const index = dot.getAttribute('data-index');
-                                if (cards[index]) {
-                                    cards[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                if (cards[idx]) {
+                                    cards[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                                 }
                             });
                         });
+
+                        // Autoplay Loop Logic
+                        let isHovering = false;
+                        let autoScrollTimer;
+
+                        const startAutoScroll = () => {
+                            autoScrollTimer = setInterval(() => {
+                                if (!isHovering) {
+                                    const maxScroll = track.scrollWidth - track.clientWidth;
+                                    // If we reached the end, rewind back to the start smoothly
+                                    if (track.scrollLeft >= maxScroll - 10) {
+                                        track.scrollTo({ left: 0, behavior: 'smooth' });
+                                    } else {
+                                        nextBtn.click();
+                                    }
+                                }
+                            }, 3500); // 3.5 seconds
+                        };
+
+                        section.addEventListener('mouseenter', () => isHovering = true);
+                        section.addEventListener('mouseleave', () => isHovering = false);
+                        section.addEventListener('touchstart', () => isHovering = true);
+                        section.addEventListener('touchend', () => setTimeout(() => isHovering = false, 3000)); 
+
+                        startAutoScroll();
                     }
 
                 } catch (e) {
