@@ -1295,16 +1295,16 @@
 /* Star badge overlay at bottom-left */
 .empire-gallery-tile-badge {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    bottom: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-radius: 999px;
-    padding: 4px 10px;
-    font-size: 0.75rem;
+    padding: 6px 14px;
+    font-size: 1.1rem;
     color: #f59e0b;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     display: flex;
     align-items: center;
     gap: 2px;
