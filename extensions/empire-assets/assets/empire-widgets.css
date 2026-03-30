@@ -1225,3 +1225,182 @@
 .empire-gallery-img:hover {
     transform: scale(1.05);
 }
+
+/* ==========================================================================
+   10. Customer Photo Gallery Widget (Pinterest / Masonry Style)
+   ========================================================================== */
+
+.empire-photo-gallery-section {
+    width: 100%;
+    overflow: hidden;
+}
+
+.empire-gallery-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 5%;
+}
+
+.empire-gallery-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.empire-gallery-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px 0;
+}
+
+.empire-gallery-subtitle {
+    font-size: 1rem;
+    color: #64748b;
+    margin: 0;
+}
+
+/* Masonry column layout */
+.empire-photo-masonry-grid {
+    columns: var(--gallery-cols, 5);
+    column-gap: var(--gallery-gap, 10px);
+}
+
+.empire-gallery-tile {
+    break-inside: avoid;
+    margin-bottom: var(--gallery-gap, 10px);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    background: #ffffff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    cursor: zoom-in;
+    display: block;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.empire-gallery-tile:hover {
+    transform: scale(1.025);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+    z-index: 2;
+}
+
+.empire-gallery-tile img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Star badge overlay at bottom-left */
+.empire-gallery-tile-badge {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: #f59e0b;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    pointer-events: none;
+}
+
+/* Loading + Empty states */
+.empire-gallery-loading {
+    display: flex;
+    justify-content: center;
+    padding: 60px 0;
+}
+
+.empire-gallery-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+/* ---- LIGHTBOX ---- */
+.empire-photo-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+}
+
+.empire-photo-lightbox.open {
+    display: flex;
+}
+
+.empire-photo-lightbox-img {
+    max-width: min(680px, 90vw);
+    max-height: 72vh;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+
+.empire-photo-lightbox-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.empire-photo-lightbox-stars {
+    color: #f59e0b;
+    font-size: 1rem;
+}
+
+.empire-photo-lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #ffffff;
+    font-size: 1.4rem;
+    line-height: 1;
+    transition: background 0.2s ease;
+}
+
+.empire-photo-lightbox-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Responsive: collapse columns on mobile */
+@media (max-width: 768px) {
+    .empire-photo-masonry-grid {
+        columns: 2 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .empire-photo-masonry-grid {
+        columns: 2 !important;
+    }
+}
+
