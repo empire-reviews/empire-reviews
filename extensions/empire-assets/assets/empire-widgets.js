@@ -587,7 +587,10 @@ const EmpireWidgets = (function() {
                         return `
                         <div class="empire-carousel-card">
                             ${starsHtml}
-                            <div class="empire-carousel-card-name">${this.escapeHtml(rev.customerName)}</div>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                                <div class="empire-carousel-card-avatar" style="width:36px; height:36px; margin:0; border: none; font-size:1rem; flex-shrink:0;">${initial}</div>
+                                <div class="empire-carousel-card-name" style="margin:0;">${this.escapeHtml(rev.customerName)}</div>
+                            </div>
                             ${verifiedHtml}
                             <div class="empire-carousel-card-text">"${this.escapeHtml(rev.body)}"</div>
                             ${mediaHtml}

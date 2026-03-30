@@ -5,8 +5,10 @@
     --empire-carousel-star-size: {{ block.settings.star_size }}px;
     --star-size: {{ block.settings.star_size }}px;
     --empire-carousel-text-size: {{ block.settings.text_size }}px;
+    --empire-card-pt: {{ block.settings.card_padding_top }}px;
+    --empire-card-pb: {{ block.settings.card_padding_bottom }}px;
     background-color: var(--empire-carousel-bg);
-    padding: {{ block.settings.padding_y }}px 0;
+    padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px 0;
 ">
     <div class="empire-carousel-container">
         <div class="empire-carousel-header">
@@ -100,14 +102,52 @@
       "default": 16
     },
     {
+      "type": "header",
+      "content": "Section Padding"
+    },
+    {
       "type": "range",
-      "id": "padding_y",
-      "min": 20,
+      "id": "padding_top",
+      "min": 0,
       "max": 120,
       "step": 4,
       "unit": "px",
-      "label": "Vertical Padding",
+      "label": "Top Padding",
       "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom Padding",
+      "default": 80
+    },
+    {
+      "type": "header",
+      "content": "Card Box Padding"
+    },
+    {
+      "type": "range",
+      "id": "card_padding_top",
+      "min": 10,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Card Upper Padding",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "card_padding_bottom",
+      "min": 10,
+      "max": 80,
+      "step": 2,
+      "unit": "px",
+      "label": "Card Lower Padding",
+      "default": 32
     }
   ]
 }
