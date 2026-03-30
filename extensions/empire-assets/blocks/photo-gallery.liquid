@@ -10,6 +10,7 @@
     data-cols="{{ block.settings.grid_cols }}"
     style="
         --gallery-cols: {{ block.settings.grid_cols }};
+        --gallery-cols-mobile: {{ block.settings.grid_cols_mobile }};
         --gallery-gap: {{ block.settings.grid_gap }}px;
         background: {{ block.settings.bg_color }};
         padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px;
@@ -72,10 +73,19 @@
       "type": "range",
       "id": "grid_cols",
       "min": 2,
-      "max": 5,
+      "max": 10,
       "step": 1,
       "label": "Columns (Desktop)",
       "default": 3
+    },
+    {
+      "type": "range",
+      "id": "grid_cols_mobile",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "label": "Columns (Mobile)",
+      "default": 2
     },
     {
       "type": "range",

@@ -1394,13 +1394,13 @@
 /* Responsive: collapse columns on mobile */
 @media (max-width: 768px) {
     .empire-photo-masonry-grid {
-        columns: 2 !important;
+        columns: var(--gallery-cols-mobile, 2) !important;
     }
 }
 
 @media (max-width: 480px) {
     .empire-photo-masonry-grid {
-        columns: 2 !important;
+        columns: var(--gallery-cols-mobile, 2) !important;
     }
 }
 
