@@ -575,19 +575,22 @@ const EmpireWidgets = (function() {
                             VERIFIED BUYER
                         </div>` : '';
 
+                        let mediaHtml = '';
+                        if (rev.media && rev.media.length > 0) {
+                            mediaHtml = '<div class="empire-review-gallery" style="margin-top:16px; display:flex; gap:8px;">';
+                            rev.media.slice(0, 3).forEach(m => {
+                                mediaHtml += `<img src="${m.url}" class="empire-gallery-img" style="width:60px; height:60px; object-fit:cover; border-radius:6px; cursor:pointer;" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
+                            });
+                            mediaHtml += '</div>';
+                        }
+
                         return `
                         <div class="empire-carousel-card">
                             ${starsHtml}
                             <div class="empire-carousel-card-name">${this.escapeHtml(rev.customerName)}</div>
                             ${verifiedHtml}
                             <div class="empire-carousel-card-text">"${this.escapeHtml(rev.body)}"</div>
-                            <div class="empire-carousel-card-footer">
-                                <div class="empire-carousel-card-avatar">${initial}</div>
-                                <div class="empire-carousel-card-meta">
-                                    <div class="empire-carousel-card-date">${dateStr}</div>
-                                    <div class="empire-carousel-card-product">${this.escapeHtml(rev.customerName)} - Verified</div>
-                                </div>
-                            </div>
+                            ${mediaHtml}
                         </div>`;
                     }).join('');
 

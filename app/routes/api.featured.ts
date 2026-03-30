@@ -39,7 +39,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 body: true,
                 customerName: true,
                 createdAt: true,
-                verified: true
+                verified: true,
+                media: true
             }
         });
 
