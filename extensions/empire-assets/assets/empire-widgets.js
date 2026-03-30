@@ -565,29 +565,31 @@ const EmpireWidgets = (function() {
                         const dateStr = new Date(rev.createdAt).toLocaleDateString();
                         const initial = rev.customerName ? rev.customerName.charAt(0).toUpperCase() : "A";
                         // Using fixed 5 stars since the backend filters rating=5
-                        const starsHtml = `<div class="empire-stars-wrap" style="color:#f59e0b; font-size:16px;">
-                            <span style="margin-right:2px;">★</span><span style="margin-right:2px;">★</span><span style="margin-right:2px;">★</span><span style="margin-right:2px;">★</span><span style="margin-right:2px;">★</span>
+                        const starsHtml = `<div class="empire-stars-wrap" style="color:var(--empire-carousel-primary); font-size:var(--empire-carousel-star-size, 18px); margin-bottom: 8px;">
+                            <span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span>
                         </div>`;
+
+                        const verifiedHtml = rev.verified ? `
+                        <div style="display:flex; align-items:center; gap:6px; font-weight:700; font-size:0.65rem; color:#10b981; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:12px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#10b981" style="width:14px; height:14px;"><rect width="24" height="24" rx="4"></rect><path fill="#fff" d="M10 16.4l-4.2-4.2 1.4-1.4 2.8 2.8 7.2-7.2 1.4 1.4z"></path></svg>
+                            VERIFIED BUYER
+                        </div>` : '';
 
                         let mediaHtml = '';
                         if (rev.media && rev.media.length > 0) {
                             mediaHtml = '<div class="empire-review-gallery" style="margin-top:16px; display:flex; gap:8px;">';
                             rev.media.slice(0, 3).forEach(m => {
-                                mediaHtml += `<img src="${m.url}" class="empire-gallery-img" style="width:55px; height:55px; border-radius:6px; cursor:pointer;" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
+                                mediaHtml += `<img src="${m.url}" class="empire-gallery-img" style="width:60px; height:60px; object-fit:cover; border-radius:6px; cursor:pointer;" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
                             });
                             mediaHtml += '</div>';
                         }
 
                         return `
-                        <div class="empire-carousel-card" style="display:flex; flex-direction:column;">
-                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <div class="empire-carousel-card-avatar" style="width:42px; height:42px; margin:0; border: none; font-size:1.1rem; flex-shrink:0;">${initial}</div>
-                                    <div class="empire-carousel-card-name" style="margin:0; font-weight:700; color:#111827; font-size:1.05rem;">${this.escapeHtml(rev.customerName)}</div>
-                                </div>
-                                ${starsHtml}
-                            </div>
-                            <div class="empire-carousel-card-text" style="color:#374151; font-size:0.95rem; line-height:1.5; font-style:normal;">${this.escapeHtml(rev.body)}</div>
+                        <div class="empire-carousel-card">
+                            ${starsHtml}
+                            <div class="empire-carousel-card-name">${this.escapeHtml(rev.customerName)}</div>
+                            ${verifiedHtml}
+                            <div class="empire-carousel-card-text">"${this.escapeHtml(rev.body)}"</div>
                             ${mediaHtml}
                         </div>`;
                     }).join('');
