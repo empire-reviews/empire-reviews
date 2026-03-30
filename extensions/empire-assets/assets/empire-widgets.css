@@ -1301,8 +1301,8 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-radius: 999px;
-    padding: 6px 14px;
-    font-size: 1.1rem;
+    padding: 4px 10px;
+    font-size: var(--gallery-star-size, 14px);
     color: #f59e0b;
     letter-spacing: 0.02em;
     display: flex;

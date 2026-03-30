@@ -12,6 +12,7 @@
         --gallery-cols: {{ block.settings.grid_cols }};
         --gallery-cols-mobile: {{ block.settings.grid_cols_mobile }};
         --gallery-gap: {{ block.settings.grid_gap }}px;
+        --gallery-star-size: {{ block.settings.star_size }}px;
         background: {{ block.settings.bg_color }};
         padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px;
     "
@@ -96,6 +97,16 @@
       "unit": "px",
       "label": "Gap Between Photos",
       "default": 10
+    },
+    {
+      "type": "range",
+      "id": "star_size",
+      "min": 8,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "label": "Star Size",
+      "default": 14
     },
     {
       "type": "range",
