@@ -13,7 +13,6 @@ const EmpireWidgets = (function() {
                 this.renderStarRatings();
                 this.renderReviewLists();
                 this.renderReviewCarousels();
-                this.renderPhotoGalleries();
             }, 100);
         },
 
@@ -688,115 +687,6 @@ const EmpireWidgets = (function() {
                 }
             }
         }
-    },
-
-    // --- PHOTO GALLERY LOGIC ---
-    async renderPhotoGalleries() {
-        const sections = document.querySelectorAll('.empire-photo-gallery-section');
-        if (!sections.length) return;
-
-        // Inject shared lightbox into body once
-        if (!document.getElementById('empire-photo-lightbox')) {
-            const lb = document.createElement('div');
-            lb.id = 'empire-photo-lightbox';
-            lb.className = 'empire-photo-lightbox';
-            lb.innerHTML = `
-                <button class="empire-photo-lightbox-close" id="empire-lb-close" aria-label="Close">&times;</button>
-                <img class="empire-photo-lightbox-img" id="empire-lb-img" src="" alt="Customer Photo" />
-                <div class="empire-photo-lightbox-meta" id="empire-lb-meta"></div>
-            `;
-            document.body.appendChild(lb);
-
-            // Close on button click
-            document.getElementById('empire-lb-close').addEventListener('click', () => {
-                lb.classList.remove('open');
-                document.body.style.overflow = '';
-            });
-            // Close on backdrop click
-            lb.addEventListener('click', (e) => {
-                if (e.target === lb) {
-                    lb.classList.remove('open');
-                    document.body.style.overflow = '';
-                }
-            });
-            // Close on Escape key
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    lb.classList.remove('open');
-                    document.body.style.overflow = '';
-                }
-            });
-        }
-
-        for (const section of sections) {
-            const shopDomain = section.getAttribute('data-shop-domain');
-            const productId = section.getAttribute('data-product-id') || '';
-            const limit = section.getAttribute('data-limit') || '30';
-            const gridId = section.querySelector('.empire-photo-masonry-grid')?.id;
-            const emptyId = section.querySelector('.empire-gallery-empty')?.id;
-            if (!shopDomain || !gridId) continue;
-
-            const grid = document.getElementById(gridId);
-            const emptyEl = emptyId ? document.getElementById(emptyId) : null;
-
-            try {
-                let apiUrl = `${API_BASE}/api/photos?shop=${shopDomain}&limit=${limit}`;
-                if (productId) apiUrl += `&productId=${productId}`;
-
-                const res = await fetch(apiUrl);
-                if (!res.ok) throw new Error('Failed to load photos');
-                const data = await res.json();
-
-                if (!data.photos || data.photos.length === 0) {
-                    grid.innerHTML = '';
-                    if (emptyEl) emptyEl.style.display = 'block';
-                    continue;
-                }
-
-                const starsFor = (rating) => '★'.repeat(rating) + '☆'.repeat(5 - rating);
-
-                grid.innerHTML = data.photos.map(photo => {
-                    const stars = starsFor(photo.rating);
-                    return `
-                    <div class="empire-gallery-tile"
-                        data-url="${this.escapeHtml(photo.url)}"
-                        data-name="${this.escapeHtml(photo.customerName)}"
-                        data-rating="${photo.rating}"
-                        data-body="${this.escapeHtml(photo.body.substring(0, 120))}"
-                        role="button"
-                        tabindex="0"
-                        aria-label="View photo by ${this.escapeHtml(photo.customerName)}"
-                    >
-                        <img src="${this.escapeHtml(photo.url)}" alt="Review photo by ${this.escapeHtml(photo.customerName)}" loading="lazy" />
-                        <div class="empire-gallery-tile-badge">${stars}</div>
-                    </div>`;
-                }).join('');
-
-                // Attach lightbox events
-                grid.querySelectorAll('.empire-gallery-tile').forEach(tile => {
-                    const openLb = () => {
-                        const lb = document.getElementById('empire-photo-lightbox');
-                        const img = document.getElementById('empire-lb-img');
-                        const meta = document.getElementById('empire-lb-meta');
-                        img.src = tile.getAttribute('data-url');
-                        const name = tile.getAttribute('data-name');
-                        const rating = parseInt(tile.getAttribute('data-rating'));
-                        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
-                        meta.innerHTML = `<span class="empire-photo-lightbox-stars">${stars}</span><span>${this.escapeHtml(name)}</span>`;
-                        lb.classList.add('open');
-                        document.body.style.overflow = 'hidden';
-                    };
-                    tile.addEventListener('click', openLb);
-                    tile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openLb(); });
-                });
-
-            } catch (err) {
-                console.error('[Empire] Photo gallery error:', err);
-                grid.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Failed to load photos.</div>';
-            }
-        }
-    }
-
     };
 
     document.addEventListener("DOMContentLoaded", function() {
