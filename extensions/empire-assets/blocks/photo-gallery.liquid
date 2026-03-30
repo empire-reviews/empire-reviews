@@ -1,0 +1,127 @@
+{% assign gallery_product_id = '' %}
+{% if block.settings.filter_mode == 'product' and product.id != blank %}
+  {% assign gallery_product_id = product.id %}
+{% endif %}
+<div
+    class="empire-photo-gallery-section"
+    data-shop-domain="{{ shop.domain }}"
+    data-product-id="{{ gallery_product_id }}"
+    data-limit="{{ block.settings.max_photos }}"
+    data-cols="{{ block.settings.grid_cols }}"
+    style="
+        --gallery-cols: {{ block.settings.grid_cols }};
+        --gallery-gap: {{ block.settings.grid_gap }}px;
+        background: {{ block.settings.bg_color }};
+        padding: {{ block.settings.padding_top }}px 0 {{ block.settings.padding_bottom }}px;
+    "
+>
+    <div class="empire-gallery-container">
+
+        {% if block.settings.heading != blank %}
+        <div class="empire-gallery-header">
+            <h2 class="empire-gallery-title">{{ block.settings.heading }}</h2>
+            {% if block.settings.subheading != blank %}
+            <p class="empire-gallery-subtitle">{{ block.settings.subheading }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="empire-photo-masonry-grid" id="empire-gallery-grid-{{ block.id }}">
+            <div class="empire-gallery-loading">
+                <div class="empire-spinner" style="border-top-color: #f59e0b;"></div>
+            </div>
+        </div>
+
+        <div class="empire-gallery-empty" id="empire-gallery-empty-{{ block.id }}" style="display:none;">
+            <p>No customer photos yet — be the first to share yours!</p>
+        </div>
+
+    </div>
+</div>
+
+{% schema %}
+{
+  "name": "Empire Photo Gallery",
+  "target": "section",
+  "stylesheet": "empire-widgets.css",
+  "javascript": "empire-widgets.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Customer Photo Gallery"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Real photos from real buyers"
+    },
+    {
+      "type": "select",
+      "id": "filter_mode",
+      "label": "Photo Source",
+      "options": [
+        { "value": "store", "label": "All Store Photos" },
+        { "value": "product", "label": "This Product Only" }
+      ],
+      "default": "store"
+    },
+    {
+      "type": "range",
+      "id": "grid_cols",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "label": "Columns (Desktop)",
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "label": "Gap Between Photos",
+      "default": 10
+    },
+    {
+      "type": "range",
+      "id": "max_photos",
+      "min": 6,
+      "max": 48,
+      "step": 6,
+      "label": "Max Photos to Show",
+      "default": 30
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#f8fafc"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Top Padding",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom Padding",
+      "default": 60
+    }
+  ]
+}
+{% endschema %}
