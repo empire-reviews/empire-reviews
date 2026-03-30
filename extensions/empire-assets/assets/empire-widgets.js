@@ -565,7 +565,7 @@ const EmpireWidgets = (function() {
                         const dateStr = new Date(rev.createdAt).toLocaleDateString();
                         const initial = rev.customerName ? rev.customerName.charAt(0).toUpperCase() : "A";
                         // Using fixed 5 stars since the backend filters rating=5
-                        const starsHtml = `<div class="empire-stars-wrap" style="color:var(--empire-carousel-primary); font-size:var(--empire-carousel-star-size, 18px); margin-bottom: 8px;">
+                        const starsHtml = `<div class="empire-stars-wrap" style="color:var(--empire-carousel-primary); font-size:var(--empire-carousel-star-size, 18px); margin-bottom: 0px;">
                             <span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span><span class="empire-skeleton-star" style="margin-right: -2px;">★</span>
                         </div>`;
 
@@ -587,8 +587,8 @@ const EmpireWidgets = (function() {
                         return `
                         <div class="empire-carousel-card">
                             ${starsHtml}
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                                <div class="empire-carousel-card-avatar" style="width:36px; height:36px; margin:0; border: none; font-size:1rem; flex-shrink:0;">${initial}</div>
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px; margin-top:2px;">
+                                <div class="empire-carousel-card-avatar" style="width:40px; height:40px; margin:0; border: none; font-size:1.35rem; flex-shrink:0;">${initial}</div>
                                 <div class="empire-carousel-card-name" style="margin:0;">${this.escapeHtml(rev.customerName)}</div>
                             </div>
                             ${verifiedHtml}
