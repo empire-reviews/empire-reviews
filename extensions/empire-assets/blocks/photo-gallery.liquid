@@ -1,7 +1,11 @@
+{% assign gallery_product_id = '' %}
+{% if block.settings.filter_mode == 'product' and product.id != blank %}
+  {% assign gallery_product_id = product.id %}
+{% endif %}
 <div
     class="empire-photo-gallery-section"
     data-shop-domain="{{ shop.domain }}"
-    data-product-id="{{ block.settings.filter_mode == 'product' and product.id != blank ? product.id : '' }}"
+    data-product-id="{{ gallery_product_id }}"
     data-limit="{{ block.settings.max_photos }}"
     data-cols="{{ block.settings.grid_cols }}"
     style="
