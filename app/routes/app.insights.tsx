@@ -79,6 +79,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const hasAiConfig = !!(settings?.aiProvider && settings?.aiApiKey);
 
   const reviews = await prisma.review.findMany({
+    where: { shop: session.shop },
     include: { replies: true }
   });
   // ... rest of logic ...
