@@ -295,13 +295,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
 
         // Fetch Store Settings to determine PRO features (like Photo Uploads)
-        let settings = null;
+        let settings: any = null;
         if (shop) {
              settings = await prisma.settings.findFirst({
-                 where: { shop },
-                 select: { plan: true }
+                 where: { shop }
              });
         }
+        
+        const safeSettings = settings ? {
+            primaryColor: settings.primaryColor,
+            aiProvider: settings.aiProvider,
+            allowPhotoUploads: settings.plan === "EMPIRE_PRO"
+        } : null;
+
         const allowPhotoUploads = settings?.plan === "EMPIRE_PRO";
 
         // Return pagination metadata alongside data
@@ -309,7 +315,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const headers: any = corsHeaders(request);
         headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
         return json(
-            { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads } },
+            { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads }, settings: safeSettings },
             { headers }
         );
     } catch (e) {
