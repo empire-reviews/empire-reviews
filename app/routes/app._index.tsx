@@ -486,7 +486,7 @@ export default function EmpireDashboard() {
                     <p style={{ color: '#64748b', fontSize: '0.9rem' }}>New reviews this week</p>
                   </div>
                   <div style={{ width: '100%', height: '4px', background: '#e2e8f0', marginTop: '1rem', borderRadius: '2px' }}>
-                    <div style={{ width: '65%', height: '100%', background: '#10b981', borderRadius: '2px' }}></div>
+                    <div style={{ width: `${Math.min(100, Math.max(5, 50 + (metrics.reviewTrend * 5)))}%`, height: '100%', background: '#10b981', borderRadius: '2px' }}></div>
                   </div>
                 </div>
 
