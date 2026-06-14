@@ -18,6 +18,7 @@ import {
     BlockStack,
     Spinner,
     Pagination,
+    Select,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -32,19 +33,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const isPro = await isPlanPro(session.shop);
     
     const url = new URL(request.url);
+    const statusFilter = url.searchParams.get("status");
+    const ratingFilter = url.searchParams.get("rating");
+    const whereClause: any = { shop: session.shop };
+    if (statusFilter) whereClause.status = statusFilter;
+    if (ratingFilter) whereClause.rating = parseInt(ratingFilter, 10);
+
     const page = parseInt(url.searchParams.get("page") || "1", 10);
     const PAGE_SIZE = 50;
     const skip = (page - 1) * PAGE_SIZE;
 
     const [reviews, totalCount] = await Promise.all([
         prisma.review.findMany({
-            where: { shop: session.shop },
+            where: whereClause,
             orderBy: { createdAt: "desc" },
             include: { replies: true, media: true },
             take: PAGE_SIZE,
             skip: skip
         }),
-        prisma.review.count({ where: { shop: session.shop } })
+        prisma.review.count({ where: whereClause })
     ]);
 
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
@@ -52,7 +59,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const pendingCount = await prisma.review.count({ where: { shop: session.shop, status: 'pending' } });
     const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
     
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page });
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page, statusFilter });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -178,6 +185,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "bulk_delete_reviews") {
+        const isPro = await isPlanPro(session.shop);
+        if (!isPro) {
+            return json({ error: "Bulk delete is a Pro feature" }, { status: 403 });
+        }
         const reviewIds = JSON.parse(formData.get("reviewIds") as string);
         await prisma.review.deleteMany({ where: { id: { in: reviewIds }, shop: session.shop } });
         return json({ success: true, message: "Reviews deleted permanently" });
@@ -194,7 +205,7 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
     const aiFetcher = useFetcher();
@@ -597,7 +608,19 @@ export default function ReviewsPage() {
                                             onClearButtonClick={() => setQueryValue("")}
                                         />
                                     </div>
-                                    <Button icon={FilterIcon}>Filter</Button>
+                                    <div style={{ width: '150px' }}>
+                                        <Select
+                                            label="Status"
+                                            labelHidden
+                                            options={[
+                                                { label: 'All Status', value: '' },
+                                                { label: 'Pending', value: 'pending' },
+                                                { label: 'Approved', value: 'approved' }
+                                            ]}
+                                            value={statusFilter || ''}
+                                            onChange={(value) => navigate(value ? `?status=${value}` : '?')}
+                                        />
+                                    </div>
                                 </div>
 
                                 <IndexTable

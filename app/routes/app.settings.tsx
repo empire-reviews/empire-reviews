@@ -120,8 +120,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     // Integrations
     const enableFlow = formData.get("enableFlow") === "true";
-    const enableKlaviyo = formData.get("enableKlaviyo") === "true";
-    const klaviyoApiKey = formData.get("klaviyoApiKey") as string;
     const reviewRequestDelay = parseInt(formData.get("reviewRequestDelay") as string) || 3;
     // Google Feed is PRO feature
     let enableGoogle = formData.get("enableGoogle") === "true";
@@ -147,8 +145,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             aiProvider,
             aiApiKey,
             enableFlow,
-            enableKlaviyo,
-            klaviyoApiKey,
             enableGoogle,
             reviewRequestDelay,
             physicalAddress,

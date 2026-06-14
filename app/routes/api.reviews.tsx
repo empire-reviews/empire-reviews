@@ -306,11 +306,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
         // Return pagination metadata alongside data
         const hasMore = reviews.length === limit;
+        const headers: any = corsHeaders(request);
+        headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
         return json(
             { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads } },
-            {
-                headers: corsHeaders(request),
-            }
+            { headers }
         );
     } catch (e) {
         console.error("API Fetch Error:", e);
