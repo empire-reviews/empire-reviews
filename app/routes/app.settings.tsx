@@ -19,7 +19,7 @@ import {
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, getPlanDetails } from "../billing.server";
 import prisma from "../db.server";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { testAIConnection, type AIProvider } from "../services/ai.server";
 import { ThemeIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
@@ -164,9 +164,14 @@ export default function SettingsPage() {
     const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
 
     const [isDirty, setIsDirty] = useState(false);
+    const isMounted = useRef(false);
 
     // Watch for changes to trigger Save Bar
     useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
         setIsDirty(true);
     }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
 
