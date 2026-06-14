@@ -314,9 +314,9 @@ export default function ImpactPage() {
                             </BlockStack>
 
                             <BlockStack gap="300">
-                                <form action="/app/settings" method="post" style={{ width: '100%' }}>
-                                    <input type="hidden" name="intent" value="upgrade" />
-                                    <button style={{
+                                <button
+                                    onClick={() => navigate("/app/plans")}
+                                    style={{
                                         background: '#10b981',
                                         color: 'white',
                                         padding: '1.25rem',
@@ -332,10 +332,10 @@ export default function ImpactPage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '10px'
-                                    }}>
-                                        Start Growing — $9.99/mo →
-                                    </button>
-                                </form>
+                                    }}
+                                >
+                                    Start Growing — $9.99/mo →
+                                </button>
                                 <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
                                     Risk-free • Cancel anytime
                                 </div >

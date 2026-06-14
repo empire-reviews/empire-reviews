@@ -64,7 +64,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Get full details for the dates
     const subscription = await getPlanDetails(billing);
 
-    return json({ settings, isPro, subscription });
+    const isEmailConfigured = !!settings.resendApiKey;
+    const isAiConfigured = !!settings.aiApiKey;
+    let systemHealth = "Needs Attention";
+    let healthColor = "#ef4444"; // red
+    if (isEmailConfigured && isAiConfigured) {
+       systemHealth = "Optimal";
+       healthColor = "#10b981"; // green
+    } else if (isEmailConfigured || isAiConfigured) {
+       systemHealth = "Good";
+       healthColor = "#f59e0b"; // yellow
+    }
+
+    return json({ settings, isPro, subscription, systemHealth, healthColor });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -147,7 +159,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-    const { settings, isPro, subscription } = useLoaderData<typeof loader>();
+    const { settings, isPro, subscription, systemHealth, healthColor } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
 
@@ -292,7 +304,7 @@ export default function SettingsPage() {
                                 <div className="stat-label">SYSTEM HEALTH</div>
                                 <Badge tone={isPro ? "success" : "info"}>{isPro ? "Pro Optimized" : "Standard"}</Badge>
                             </div>
-                            <div className="stat-value">Optimal</div>
+                            <div className="stat-value" style={{ color: healthColor }}>{systemHealth}</div>
                             <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>All core settings are configured.</p>
                         </div>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
