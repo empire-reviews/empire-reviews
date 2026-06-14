@@ -202,6 +202,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const text = await file.text();
         const records = parseCSV(text);
 
+        if (records.length > 500) {
+            return json({ error: "Import file is too large. Please limit to 500 rows per file." }, { status: 400 });
+        }
+
         const allIdentifiers = records.map((r: any) => ({ handle: r.handle, title: r.product_title }));
         const productMap = await resolveProductsSmartly(admin, allIdentifiers);
 
@@ -293,18 +297,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             ? `Imported ${importedCount}. Skipped ${skippedCount} (Product not found).`
             : `Successfully imported ${importedCount} reviews.`;
 
-        // DEBUG: Return first record for inspection
-        const debugInfo = records.length > 0 ? {
-            detectedHeaders: Object.keys(records[0]),
-            firstRecord: records[0]
-        } : null;
-
         return json({
             success: true,
             count: importedCount,
             skipped: skippedCount,
-            message,
-            debug: debugInfo
+            message
         });
 
     } catch (e) {
