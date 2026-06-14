@@ -349,7 +349,7 @@ export default function ImportPage() {
 
         // Let's construct a "rawSamples" array by just splitting the lines simply for display purposes 
         // (Visual check only, doesn't need to be perfect parsing as long as user sees content)
-        const rawSamples = lines.slice(1, 4).map(line => line.split(',').map(s => s.trim().replace(/^"|"$/g, '')));
+        const rawSamples = lines.slice(1, 4).map(line => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(s => s.replace(/^"|"$/g, '').trim()));
 
         setPreviewData({
             count: records.length,

@@ -57,7 +57,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
 
     // 2. Fetch True Audience Size & Live Mock Data
-    const potentialAudience = await prisma.order.count({ where: { shop: session.shop } });
+    const audienceGroup = await prisma.order.groupBy({
+        by: ['customerEmail'],
+        where: { shop: session.shop, customerEmail: { not: null } }
+    });
+    const potentialAudience = audienceGroup.length;
 
     const orderResponse = await admin.graphql(
         `#graphql
@@ -207,8 +211,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         } catch (e) {
             console.error("Failed to fetch shop email from GraphQL", e);
         }
-        const dummyProduct = "Sample Product";
-        const dummyReviewLink = `https://${session.shop}/apps/empire-reviews`;
+        const lastOrder = await prisma.order.findFirst({
+            where: { shop: session.shop },
+            orderBy: { createdAt: "desc" },
+            select: { productTitle: true }
+        });
+        const dummyProduct = lastOrder?.productTitle || "Your Recent Purchase";
+        const dummyReviewLink = `https://${session.shop}/products/sample-product#empire-reviews`;
         const testButtonHtml = `<div style="text-align: center; margin-top: 30px;"><a href="${dummyReviewLink}" style="background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; display: inline-block;">Write a Review</a></div>`;
         
         const personalizedBody = body
