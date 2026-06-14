@@ -305,13 +305,31 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const safeSettings = settings ? {
             primaryColor: settings.primaryColor,
             aiProvider: settings.aiProvider,
-            allowPhotoUploads: settings.plan === "EMPIRE_PRO"
+            allowPhotoUploads: settings.plan === "EMPIRE_PRO",
+            enableFloatingTab: settings.enableFloatingTab,
+            floatingTabPosition: settings.floatingTabPosition,
+            enableAiSummary: settings.enableAiSummary
         } : null;
 
         const allowPhotoUploads = settings?.plan === "EMPIRE_PRO";
 
         // Return pagination metadata alongside data
         const hasMore = reviews.length === limit;
+        
+        // Handle AI Summary intent
+        if (url.searchParams.get("intent") === "summary" && settings?.enableAiSummary && settings?.aiProvider) {
+            try {
+                const { generateInsights } = await import("../services/ai.server");
+                const insightReviews = reviews.map(r => ({ body: r.body, rating: r.rating }));
+                const { summary } = await generateInsights({ provider: settings.aiProvider as any, apiKey: settings.aiApiKey || "" }, insightReviews, "quick");
+                const headers: any = corsHeaders(request);
+                headers["Cache-Control"] = "public, max-age=3600, s-maxage=3600"; // Cache summary for an hour
+                return json({ summary }, { headers });
+            } catch (e) {
+                return json({ error: "Summary generation failed" }, { status: 500, headers: corsHeaders(request) });
+            }
+        }
+        
         const headers: any = corsHeaders(request);
         headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
         return json(

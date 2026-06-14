@@ -1,0 +1,159 @@
+<div class="empire-floating-tab empire-position-{{ block.settings.position }}" 
+     id="empire-floating-tab-{{ block.id }}"
+     data-shop-domain="{{ shop.permanent_domain }}"
+     style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-text: {{ block.settings.text_color }};"
+     onclick="EmpireWidgets.openFloatingTab(this)">
+    <span class="empire-floating-icon">⭐</span>
+    <span class="empire-floating-text">Reviews</span>
+</div>
+
+<!-- The sliding panel -->
+<div class="empire-floating-panel" id="empire-floating-panel-{{ block.id }}">
+    <div class="empire-floating-header">
+        <h3>Store Reviews</h3>
+        <button onclick="EmpireWidgets.closeFloatingTab(this)">✕</button>
+    </div>
+    <div class="empire-floating-content">
+        <div class="empire-loading-spinner">Loading...</div>
+    </div>
+</div>
+
+<style>
+.empire-floating-tab {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--empire-primary);
+    color: var(--empire-bg);
+    padding: 12px 16px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease;
+    font-family: inherit;
+    font-weight: 600;
+}
+.empire-position-left { left: -16px; transform: translateY(-50%) rotate(90deg); transform-origin: left bottom; }
+.empire-position-right { right: -16px; transform: translateY(-50%) rotate(-90deg); transform-origin: right bottom; }
+.empire-floating-tab:hover {
+    transform: translateY(-50%) rotate(90deg) scale(1.05);
+}
+.empire-position-right:hover {
+    transform: translateY(-50%) rotate(-90deg) scale(1.05);
+}
+
+.empire-floating-panel {
+    position: fixed;
+    top: 0;
+    width: 400px;
+    max-width: 90vw;
+    height: 100vh;
+    background: var(--empire-bg);
+    z-index: 2147483647;
+    box-shadow: 0 0 24px rgba(0,0,0,0.2);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    font-family: inherit;
+}
+.empire-position-left ~ .empire-floating-panel { left: 0; transform: translateX(-100%); }
+.empire-position-right ~ .empire-floating-panel { right: 0; transform: translateX(100%); }
+
+.empire-floating-panel.empire-open {
+    transform: translateX(0) !important;
+}
+
+.empire-floating-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.empire-floating-header h3 { margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--empire-text); }
+.empire-floating-header button { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--empire-text); }
+
+.empire-floating-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    color: var(--empire-text);
+}
+</style>
+
+<script>
+    if (!window.EmpireWidgets) window.EmpireWidgets = {};
+    window.EmpireWidgets.openFloatingTab = function(btn) {
+        const panel = btn.nextElementSibling;
+        panel.classList.add('empire-open');
+        if (!panel.dataset.loaded) {
+            const shop = btn.dataset.shopDomain;
+            const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://empire-reviews.com';
+            fetch(`${host}/api/reviews?shop=${shop}&limit=10`)
+                .then(res => res.json())
+                .then(data => {
+                    const content = panel.querySelector('.empire-floating-content');
+                    if(data.reviews && data.reviews.length > 0) {
+                        content.innerHTML = data.reviews.map(r => `
+                            <div style="margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 16px;">
+                                <div style="color: var(--empire-primary); margin-bottom: 4px;">${'★'.repeat(r.rating)}</div>
+                                <h4 style="margin: 0 0 8px 0; font-size: 1rem;">${r.title || ''}</h4>
+                                <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">${r.body || ''}</p>
+                                <small style="display: block; margin-top: 8px; font-weight: bold; opacity: 0.7;">- ${r.customerName}</small>
+                            </div>
+                        `).join('');
+                    } else {
+                        content.innerHTML = '<p>No reviews yet.</p>';
+                    }
+                    panel.dataset.loaded = 'true';
+                })
+                .catch(e => {
+                    panel.querySelector('.empire-floating-content').innerHTML = '<p>Failed to load reviews.</p>';
+                });
+        }
+    };
+    window.EmpireWidgets.closeFloatingTab = function(btn) {
+        btn.closest('.empire-floating-panel').classList.remove('empire-open');
+    };
+</script>
+
+{% schema %}
+{
+  "name": "Floating Trust Tab",
+  "target": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Tab Position",
+      "options": [
+        { "value": "left", "label": "Left Side" },
+        { "value": "right", "label": "Right Side" }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary Color",
+      "default": "#f59e0b"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#1e293b"
+    }
+  ]
+}
+{% endschema %}

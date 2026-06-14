@@ -145,6 +145,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             borderRadius,
             aiProvider,
             aiApiKey,
+            enableFloatingTab,
+            floatingTabPosition,
+            enableAiSummary,
             enableFlow,
             enableGoogle,
             reviewRequestDelay,
@@ -173,6 +176,11 @@ export default function SettingsPage() {
     const [borderRadius, setBorderRadius] = useState((settings as any).borderRadius || "8px");
     const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
     const [senderEmail, setSenderEmail] = useState((settings as any).senderEmail || "");
+    
+    // Premium Widgets
+    const [enableFloatingTab, setEnableFloatingTab] = useState((settings as any).enableFloatingTab || false);
+    const [floatingTabPosition, setFloatingTabPosition] = useState((settings as any).floatingTabPosition || "left");
+    const [enableAiSummary, setEnableAiSummary] = useState((settings as any).enableAiSummary || false);
 
     const [isDirty, setIsDirty] = useState(false);
     const isMounted = useRef(false);
@@ -184,7 +192,7 @@ export default function SettingsPage() {
             return;
         }
         setIsDirty(true);
-    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail]);
+    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail, enableFloatingTab, floatingTabPosition, enableAiSummary]);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -225,6 +233,9 @@ export default function SettingsPage() {
                 borderRadius,
                 aiProvider,
                 aiApiKey,
+                enableFloatingTab: String(enableFloatingTab),
+                floatingTabPosition,
+                enableAiSummary: String(enableAiSummary),
                 enableFlow: String(flowEnabled),
                 enableKlaviyo: String(klaviyoEnabled),
                 klaviyoApiKey: klaviyoKey,
@@ -426,6 +437,41 @@ export default function SettingsPage() {
                                         </div>
                                         <div style={{ flexShrink: 0, width: '220px' }}>
                                             <Select labelHidden label="Corner Style" options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Floating Trust Tab</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Show a sticky reviews tab on the side of the screen.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', width: '220px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <Select labelHidden label="Tab Position" options={[{ label: 'Left Side', value: 'left' }, { label: 'Right Side', value: 'right' }]} value={floatingTabPosition} onChange={setFloatingTabPosition} disabled={!enableFloatingTab} />
+                                            </div>
+                                            <Checkbox label="Enable" checked={enableFloatingTab} onChange={setEnableFloatingTab} />
+                                        </div>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Text as="h3" variant="headingSm" fontWeight="medium">AI Review Summary</Text>
+                                                <Badge tone="magic">PRO</Badge>
+                                            </div>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Display an AI-generated summary snippet above the reviews widget.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, width: '220px', display: 'flex', justifyContent: 'flex-end' }}>
+                                            <Checkbox label="Enable AI Summary" checked={enableAiSummary} onChange={(checked) => {
+                                                if (checked && !isPro) {
+                                                    shopify.toast.show("This feature requires Empire PRO");
+                                                } else {
+                                                    setEnableAiSummary(checked);
+                                                }
+                                            }} />
                                         </div>
                                     </div>
                                 </div>

@@ -1,0 +1,125 @@
+<div class="empire-ai-summary" 
+     id="empire-ai-summary-{{ block.id }}"
+     data-product-id="{{ product.id }}"
+     data-shop-domain="{{ shop.permanent_domain }}"
+     style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-radius: {{ block.settings.border_radius }}px;">
+    
+    <div class="empire-ai-header">
+        <span class="empire-ai-icon">✨</span>
+        <span class="empire-ai-title">AI Smart Summary</span>
+    </div>
+    <div class="empire-ai-content empire-loading-pulse">
+        Generating intelligent summary...
+    </div>
+</div>
+
+<style>
+.empire-ai-summary {
+    background: var(--empire-bg, #ffffff);
+    border-radius: var(--empire-radius, 12px);
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+    font-family: inherit;
+}
+.empire-ai-summary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #a855f7, var(--empire-primary, #6366f1), #ec4899);
+}
+.empire-ai-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.empire-ai-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: linear-gradient(90deg, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.empire-ai-content {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #475569;
+}
+.empire-loading-pulse {
+    animation: empirePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    opacity: 0.5;
+}
+@keyframes empirePulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.2; }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const el = document.getElementById('empire-ai-summary-{{ block.id }}');
+    if (!el) return;
+    
+    const productId = el.dataset.productId;
+    const shopDomain = el.dataset.shopDomain;
+    
+    if (!productId) {
+        el.querySelector('.empire-ai-content').innerText = "AI Summary requires a product.";
+        el.querySelector('.empire-ai-content').classList.remove('empire-loading-pulse');
+        return;
+    }
+    
+    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://empire-reviews.com';
+    fetch(`${host}/api/reviews?shop=${shopDomain}&productId=${productId}&intent=summary`)
+        .then(res => res.json())
+        .then(data => {
+            const content = el.querySelector('.empire-ai-content');
+            content.classList.remove('empire-loading-pulse');
+            if (data.summary) {
+                content.innerText = data.summary;
+            } else if (data.error) {
+                el.style.display = 'none';
+            } else {
+                content.innerText = "Not enough reviews to generate a summary yet.";
+            }
+        })
+        .catch(err => {
+            el.style.display = 'none';
+        });
+});
+</script>
+
+{% schema %}
+{
+  "name": "AI Review Summary",
+  "target": "section",
+  "settings": [
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Accent Color",
+      "default": "#6366f1"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "unit": "px",
+      "label": "Border Radius",
+      "default": 12
+    }
+  ]
+}
+{% endschema %}

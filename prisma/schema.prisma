@@ -92,6 +92,9 @@ model Settings {
   widgetBgColor          String  @default("#ffffff")
   starColor              String  @default("#fbbf24")
   borderRadius           String  @default("8px")
+  enableFloatingTab      Boolean @default(false)
+  floatingTabPosition    String  @default("left") // "left" or "right"
+  enableAiSummary        Boolean @default(false)
   enableFlow             Boolean @default(false)
   enableKlaviyo          Boolean @default(false)
   klaviyoApiKey          String?
