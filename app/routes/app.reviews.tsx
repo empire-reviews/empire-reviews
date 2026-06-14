@@ -19,6 +19,7 @@ import {
     Spinner,
     Pagination,
     Select,
+    EmptyState,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -623,39 +624,49 @@ export default function ReviewsPage() {
                                     </div>
                                 </div>
 
-                                <IndexTable
-                                    resourceName={resourceName}
-                                    itemCount={filteredReviews.length}
-                                    selectedItemsCount={allResourcesSelected ? "All" : selectedResources.length}
-                                    onSelectionChange={handleSelectionChange}
-                                    promotedBulkActions={[
-                                        {
-                                            content: '✓ Approve Selected',
-                                            onAction: () => {
-                                                fetcher.submit({ intent: 'bulk_approve_reviews', reviewIds: JSON.stringify(selectedResources) }, { method: 'post' });
+                                {reviews.length === 0 ? (
+                                    <EmptyState
+                                        heading="Manage your reviews here"
+                                        action={{ content: 'Start a campaign', url: '/app/campaigns' }}
+                                        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                                    >
+                                        <p>You don't have any reviews yet. Send an email campaign to your past customers to get started!</p>
+                                    </EmptyState>
+                                ) : (
+                                    <IndexTable
+                                        resourceName={resourceName}
+                                        itemCount={filteredReviews.length}
+                                        selectedItemsCount={allResourcesSelected ? "All" : selectedResources.length}
+                                        onSelectionChange={handleSelectionChange}
+                                        promotedBulkActions={[
+                                            {
+                                                content: '✓ Approve Selected',
+                                                onAction: () => {
+                                                    fetcher.submit({ intent: 'bulk_approve_reviews', reviewIds: JSON.stringify(selectedResources) }, { method: 'post' });
+                                                },
                                             },
-                                        },
-                                        {
-                                            content: '🤖 Bulk Reply with AI',
-                                            onAction: handleBulkAiReply,
-                                        },
-                                        {
-                                            content: 'Delete reviews',
-                                            onAction: () => setBulkDeleteModalOpen(true),
-                                        },
-                                    ]}
-                                    headings={[
-                                        { title: "Date" },
-                                        { title: "Customer" },
-                                        { title: "Rating" },
-                                        { title: "AI Sentiment" },
-                                        { title: "Review" },
-                                        { title: "Photos" },
-                                        { title: "" },
-                                    ]}
-                                >
-                                    {rowMarkup}
-                                </IndexTable>
+                                            {
+                                                content: '🤖 Bulk Reply with AI',
+                                                onAction: handleBulkAiReply,
+                                            },
+                                            {
+                                                content: 'Delete reviews',
+                                                onAction: () => setBulkDeleteModalOpen(true),
+                                            },
+                                        ]}
+                                        headings={[
+                                            { title: "Date" },
+                                            { title: "Customer" },
+                                            { title: "Rating" },
+                                            { title: "AI Sentiment" },
+                                            { title: "Review" },
+                                            { title: "Photos" },
+                                            { title: "" },
+                                        ]}
+                                    >
+                                        {rowMarkup}
+                                    </IndexTable>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
                                     <Pagination
                                         hasPrevious={page > 1}
