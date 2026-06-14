@@ -209,9 +209,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
 
         return json({ success: true, review }, {
-            headers: {
-                "Access-Control-Allow-Origin": "*",
-            }
+            headers: corsHeaders(request),
         });
 
     } catch (error) {
