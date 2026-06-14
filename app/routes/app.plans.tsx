@@ -11,6 +11,8 @@ import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment } from "../billing.server";
 import prisma from "../db.server";
 
+const PRO_PLAN_PRICE = "$9.99/mo";
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { billing, session } = await authenticate.admin(request);
     const isPro = await hasActivePayment(billing, session);
@@ -650,7 +652,7 @@ export default function PlansPage() {
                         </div>
 
                         <div className="slab-price">
-                            <div className="price-val">$9.99<span className="price-curr">/ mo</span></div>
+                            <Text variant="heading2xl" as="h3">{PRO_PLAN_PRICE}</Text>
                             <div className="trial-badge">7-DAY FREE TRIAL INCLUDED</div>
                         </div>
 

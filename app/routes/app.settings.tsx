@@ -76,7 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
        healthColor = "#f59e0b"; // yellow
     }
 
-    return json({ settings, isPro, subscription, systemHealth, healthColor });
+    return json({ settings, isPro, subscription, systemHealth, healthColor, shop: session.shop });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -113,6 +113,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const starColor = formData.get("starColor") as string || "#fbbf24";
     const borderRadius = formData.get("borderRadius") as string || "8px";
     const physicalAddress = (formData.get("physicalAddress") as string) || null;
+    const senderEmail = (formData.get("senderEmail") as string) || "reviews@empirereviews.com";
 
     // AI Configuration
     let aiProvider = formData.get("aiProvider") as string || null;
@@ -148,6 +149,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             enableGoogle,
             reviewRequestDelay,
             physicalAddress,
+            senderEmail,
         } as any,
     });
 
@@ -155,7 +157,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function SettingsPage() {
-    const { settings, isPro, subscription, systemHealth, healthColor } = useLoaderData<typeof loader>();
+    const { settings, isPro, subscription, systemHealth, healthColor, shop } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
 
@@ -170,6 +172,7 @@ export default function SettingsPage() {
     const [starColor, setStarColor] = useState((settings as any).starColor || "#fbbf24");
     const [borderRadius, setBorderRadius] = useState((settings as any).borderRadius || "8px");
     const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
+    const [senderEmail, setSenderEmail] = useState((settings as any).senderEmail || "");
 
     const [isDirty, setIsDirty] = useState(false);
     const isMounted = useRef(false);
@@ -181,7 +184,7 @@ export default function SettingsPage() {
             return;
         }
         setIsDirty(true);
-    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay]);
+    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail]);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -228,6 +231,7 @@ export default function SettingsPage() {
                 enableGoogle: String(googleShoppingEnabled),
                 reviewRequestDelay: String(reviewRequestDelay),
                 physicalAddress,
+                senderEmail,
             },
             { method: "post" }
         );
@@ -470,6 +474,23 @@ export default function SettingsPage() {
                                         </div>
                                         <div style={{ flexShrink: 0 }}>
                                             <Checkbox labelHidden label="Email Alerts" checked={emailAlerts} onChange={setEmailAlerts} />
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Sender Email</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>The email address your review requests are sent from.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, width: '240px' }}>
+                                            <TextField
+                                                labelHidden
+                                                label="Sender Email"
+                                                value={senderEmail}
+                                                onChange={setSenderEmail}
+                                                autoComplete="email"
+                                                placeholder={`hello@${shop}`}
+                                            />
                                         </div>
                                     </div>
                                 </div>
