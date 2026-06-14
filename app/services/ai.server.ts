@@ -17,7 +17,7 @@ const PROVIDER_ENDPOINTS: Record<AIProvider, string> = {
     claude: "https://api.anthropic.com/v1/messages",
     deepseek: "https://api.deepseek.com/chat/completions",
     groq: "https://api.groq.com/openai/v1/chat/completions",
-    ollama: "http://localhost:11434/api/chat",
+    ollama: "",
 };
 
 const PROVIDER_MODELS: Record<AIProvider, string> = {
