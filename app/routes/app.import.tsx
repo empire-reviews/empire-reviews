@@ -13,6 +13,7 @@ import {
     Box,
     InlineStack,
     Badge,
+    ProgressBar,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -318,6 +319,7 @@ export default function ImportPage() {
     const [auditData, setAuditData] = useState<{ count: number, rating: number, platforms: string[] } | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
     const [hasSubmitted, setHasSubmitted] = useState(false);
+    const [importProgress, setImportProgress] = useState(0);
 
     const handleDrop = useCallback(async (_droppedFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
         const droppedFile = acceptedFiles[0];
@@ -390,6 +392,21 @@ export default function ImportPage() {
             setHasSubmitted(false);
         }
     }, [fetcher.state, fetcher.data, step, hasSubmitted]);
+
+    useEffect(() => {
+        let interval: any;
+        if (fetcher.state === "submitting" && hasSubmitted) {
+            setImportProgress(10);
+            interval = setInterval(() => {
+                setImportProgress(p => Math.min(p + Math.random() * 15, 90));
+            }, 500);
+        } else if (fetcher.state === "idle" && fetcher.data) {
+            if (fetcher.data.success) {
+                setImportProgress(100);
+            }
+        }
+        return () => clearInterval(interval);
+    }, [fetcher.state, fetcher.data, hasSubmitted]);
 
     return (
         <div className="empire-import">
@@ -805,6 +822,12 @@ export default function ImportPage() {
                                 >
                                     Looks Good? Start Migration →
                                 </Button>
+                                {fetcher.state === "submitting" && hasSubmitted && (
+                                    <BlockStack gap="200">
+                                        <ProgressBar progress={importProgress} size="small" tone="success" />
+                                        <Text as="p" variant="bodySm" tone="subdued" alignment="center">Importing reviews... {Math.round(importProgress)}%</Text>
+                                    </BlockStack>
+                                )}
                                 <Button variant="plain" onClick={() => setStep(1)}>
                                     Upload Different File
                                 </Button>
@@ -857,6 +880,12 @@ export default function ImportPage() {
                                             </Button>
                                         </div>
                                     </InlineStack>
+                                    {fetcher.state === "submitting" && hasSubmitted && (
+                                        <BlockStack gap="200">
+                                            <ProgressBar progress={importProgress} size="small" tone="success" />
+                                            <Text as="p" variant="bodySm" tone="subdued" alignment="center">Importing reviews... {Math.round(importProgress)}%</Text>
+                                        </BlockStack>
+                                    )}
                                 </BlockStack>
                             )}
 

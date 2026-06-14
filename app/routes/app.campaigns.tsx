@@ -260,6 +260,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
     });
 
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
     return json({ success: true, campaignId: campaign.id });
 };
 
@@ -548,7 +550,7 @@ export default function CampaignsPage() {
                                             {testing ? "Sending..." : "Send Test 📧"}
                                         </button>
                                         <button className="ignite-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
-                                            {fetcher.state === "submitting" ? "Activating Automations..." : "Activate Setup 🚀"}
+                                            {fetcher.state === "submitting" ? "Queuing Campaign..." : "Activate Setup 🚀"}
                                         </button>
                                     </div>
                                 </div>
