@@ -17,6 +17,7 @@ import {
     Tooltip,
     BlockStack,
     Spinner,
+    Pagination,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -29,16 +30,29 @@ import { isPlanPro } from "../billing.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const isPro = await isPlanPro(session.shop);
-    const reviews = await prisma.review.findMany({
-        where: { shop: session.shop },
-        orderBy: { createdAt: "desc" },
-        include: { replies: true, media: true }
-    });
+    
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const PAGE_SIZE = 50;
+    const skip = (page - 1) * PAGE_SIZE;
+
+    const [reviews, totalCount] = await Promise.all([
+        prisma.review.findMany({
+            where: { shop: session.shop },
+            orderBy: { createdAt: "desc" },
+            include: { replies: true, media: true },
+            take: PAGE_SIZE,
+            skip: skip
+        }),
+        prisma.review.count({ where: { shop: session.shop } })
+    ]);
+
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
     const aiConfigured = !!(settings?.aiProvider && settings?.aiApiKey);
-    const pendingCount = reviews.filter(r => r.status === 'pending').length;
+    const pendingCount = await prisma.review.count({ where: { shop: session.shop, status: 'pending' } });
     const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode });
+    
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -180,7 +194,7 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured, pendingCount, publishMode } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
     const aiFetcher = useFetcher();
@@ -231,7 +245,7 @@ export default function ReviewsPage() {
         } else {
             const templates: any = {
                 5: `Hi ${review.customerName || 'there'}! Wow, thanks for the 5 stars! 🌟 We're thrilled you loved it.`,
-                1: `Hi ${review.customerName || 'there'}, we're so sorry to hear this. Please contact support@empire.com so we can make it right immediately.`
+                1: `Hi ${review.customerName || 'there'}, we're so sorry to hear this. Please contact [your store's support email] so we can make it right immediately.`
             };
             setTextInput(templates[review.rating] || `Hi ${review.customerName || 'there'}, thanks for sharing your feedback!`);
         }
@@ -619,6 +633,14 @@ export default function ReviewsPage() {
                                 >
                                     {rowMarkup}
                                 </IndexTable>
+                                <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
+                                    <Pagination
+                                        hasPrevious={page > 1}
+                                        onPrevious={() => navigate(`?page=${page - 1}`)}
+                                        hasNext={page * 50 < totalCount}
+                                        onNext={() => navigate(`?page=${page + 1}`)}
+                                    />
+                                </div>
                             </Card>
                         </Layout.Section>
                     </Layout>
