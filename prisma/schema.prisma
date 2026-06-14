@@ -96,7 +96,7 @@ model Settings {
   enableKlaviyo          Boolean @default(false)
   klaviyoApiKey          String?
   enableGoogle           Boolean @default(false)
-  plan                   String  @default("FREE") // FREE, EMPRESS_PRO
+  plan                   String  @default("FREE") // FREE, EMPIRE_PRO
   hasCompletedOnboarding Boolean @default(false)
 
   // AI Configuration (BYOK)

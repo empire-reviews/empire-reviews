@@ -371,7 +371,11 @@ export default function EmpireDashboard() {
                     </h1>
                   </div>
                   <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px' }}>
-                    You are gathering feedback faster than 80% of stores. Keep the momentum going by replying to your pending reviews.
+                    {metrics.totalReviews === 0
+                      ? "Launch a campaign to get your first review!"
+                      : metrics.reviewTrend > 0
+                      ? `Your review generation is up by ${metrics.reviewTrend} this month. Keep it going!`
+                      : "Steady progress. Launch a campaign to boost your collection rate!"}
                   </p>
                 </div>
                 <InlineStack gap="300">
