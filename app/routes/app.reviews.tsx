@@ -125,6 +125,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (intent === "delete_media") {
         const mediaId = formData.get("mediaId") as string;
+        const media = await prisma.reviewMedia.findUnique({
+            where: { id: mediaId },
+            include: { review: { select: { shop: true } } }
+        });
+        if (!media || media.review.shop !== session.shop) {
+            return json({ error: "Unauthorized" }, { status: 403 });
+        }
         await prisma.reviewMedia.delete({ where: { id: mediaId } });
         return json({ success: true, message: "Photo deleted" });
     }
