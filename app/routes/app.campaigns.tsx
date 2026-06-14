@@ -85,8 +85,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
     const clickRate = totalSent > 0 ? Math.round((totalClicked / totalSent) * 100) : 0;
 
+    const thisWeekStarts = new Date();
+    thisWeekStarts.setDate(thisWeekStarts.getDate() - 7);
+    const weeklySends = await prisma.campaignSend.count({
+        where: { shop: session.shop, sentAt: { gte: thisWeekStarts } }
+    });
+
     return json({
-        stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience },
+        stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience, weeklySends },
         mockData: { customerName: mockCustomerName, productTitle: mockProductTitle, storeName: session.shop },
         activeCampaigns: dbCampaigns.map((c: any) => ({
             id: c.id,
@@ -153,7 +159,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     let subject = formData.get("subject") as string;
     let body = formData.get("body") as string;
-    const audience = formData.get("audience") as string;
 
     // AI template: generate subject + body using merchant's configured AI provider
     if (templateType === "ai") {
@@ -266,7 +271,6 @@ export default function CampaignsPage() {
     const [subject, setSubject] = useState("How did we do? 🌟");
     const [body, setBody] = useState("Hi {{ name }},\\n\\nWe hope you're loving your new order! \\n\\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\\n\\n{{ review_link }}");
     const [discount, setDiscount] = useState("");
-    const [audience, setAudience] = useState("recent");
     const [testing, setTesting] = useState(false);
     // AI Template State
     const [aiPrompt, setAiPrompt] = useState("");
@@ -295,7 +299,6 @@ export default function CampaignsPage() {
             body,
             templateType,
             discount,
-            // Audience is kept to potentially restrict automation, but defaults rule now
         };
         if (templateType === "ai") payload.aiPrompt = aiPrompt;
         fetcher.submit(payload, { method: "post" });
@@ -361,7 +364,9 @@ export default function CampaignsPage() {
                             <div className="prism-card">
                                 <div className="prism-label"><span className="prism-spark" style={{ background: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>Reviews</div>
                                 <div className="prism-val">{stats.generatedReviews}</div>
-                                <Badge tone="attention">+12 This Week</Badge>
+                                {stats.weeklySends > 0 && (
+                                    <Badge tone="attention">+{stats.weeklySends} This Week</Badge>
+                                )}
                             </div>
                         </div>
 
@@ -494,20 +499,9 @@ export default function CampaignsPage() {
                                 )}
 
                                 <div className={templateType === 'ai' && !isPro ? 'is-locked' : ''}>
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd" tone="magic">2. Audience Segmentation</Text>
-                                        <Select
-                                            label="Target Audience"
-                                            options={[{ label: "Recent Buyers (Last 30 Days)", value: "recent" }]}
-                                            value={audience}
-                                            onChange={setAudience}
-                                            helpText="We automatically exclude customers who have already reviewed or unsubscribed."
-                                        />
-                                    </BlockStack>
-                                    <br/>
 
                                     <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd" tone="magic">3. Customize Content</Text>
+                                        <Text as="h3" variant="headingMd" tone="magic">2. Customize Content</Text>
                                         <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px' }}>
                                             <strong>Available merge tags:</strong> <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ store_name }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ product_title }}"}</code>, <code style={{background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px'}}>{"{{ review_link }}"}</code>
                                         </div>
