@@ -1,5 +1,5 @@
 import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate, useRouteError, isRouteErrorResponse } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -734,5 +734,32 @@ export default function EmpireDashboard() {
         </BlockStack>
       </Page >
     </div >
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  let errorMessage = "Unknown error";
+  let errorStack = "";
+
+  if (isRouteErrorResponse(error)) {
+    errorMessage = `${error.status} ${error.statusText} - ${error.data}`;
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+    errorStack = error.stack || "";
+  } else {
+    errorMessage = String(error);
+  }
+
+  return (
+    <Page>
+      <BlockStack gap="400">
+        <Text as="h2" variant="headingLg" tone="critical">Dashboard Render Crash</Text>
+        <Text as="p" fontWeight="bold">{errorMessage}</Text>
+        <pre style={{ background: '#fee2e2', padding: '1rem', color: '#991b1b', overflowX: 'auto' }}>
+          {errorStack || "No stack trace available. If 'Unexpected Server Error', the error was scrubbed by Remix SSR."}
+        </pre>
+      </BlockStack>
+    </Page>
   );
 }
