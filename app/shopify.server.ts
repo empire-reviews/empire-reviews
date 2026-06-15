@@ -53,8 +53,24 @@ const shopify = shopifyApp({
 export default shopify;
 export const apiVersion = ApiVersion.October24;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
-export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
+
+// Override authenticate to add retry logic for transient Vercel cold-start DB timeouts
+export const authenticate = {
+  ...shopify.authenticate,
+  admin: async (request: Request) => {
+    try {
+      return await shopify.authenticate.admin(request);
+    } catch (error: any) {
+      if (error?.message?.includes("Prisma session table does not exist")) {
+        console.warn("[shopify] Caught transient session table error, retrying in 1s...");
+        await new Promise(r => setTimeout(r, 1000));
+        return await shopify.authenticate.admin(request);
+      }
+      throw error;
+    }
+  }
+};
