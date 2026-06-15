@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { useLoaderData, useSubmit, useNavigation, useRouteError, isRouteErrorResponse } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -343,6 +343,37 @@ export default function Onboarding() {
                     </BlockStack>
                 </Card>
             </BlockStack>
+        </Page>
+    );
+}
+
+export function ErrorBoundary() {
+    const error = useRouteError();
+    let errorMessage = "Unknown error";
+    let errorStack = "";
+
+    if (isRouteErrorResponse(error)) {
+        errorMessage = `${error.status} ${error.statusText} - ${error.data}`;
+    } else if (error instanceof Error) {
+        errorMessage = error.message;
+        errorStack = error.stack || "";
+    } else {
+        errorMessage = String(error);
+    }
+
+    return (
+        <Page narrowWidth>
+            <Card>
+                <BlockStack gap="400">
+                    <Text as="h2" variant="headingLg" tone="critical">Onboarding Crash</Text>
+                    <Text as="p">{errorMessage}</Text>
+                    {errorStack && (
+                        <div style={{ padding: '1rem', background: '#f4f6f8', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+                            <Text as="p" variant="bodySm">{errorStack}</Text>
+                        </div>
+                    )}
+                </BlockStack>
+            </Card>
         </Page>
     );
 }
