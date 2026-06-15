@@ -6,6 +6,7 @@ import {
     Badge,
     InlineStack,
     Text,
+    Modal,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment } from "../billing.server";
@@ -92,6 +93,9 @@ export default function PlansPage() {
     // Referral State
     const [referralOpen, setReferralOpen] = useState(false);
     const [referralCode, setReferralCode] = useState("");
+    
+    // Downgrade Warning State
+    const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
 
     const handleReferralSubmit = () => {
         fetcher.submit({ intent: "referral", code: referralCode }, { method: "POST" });
@@ -650,7 +654,7 @@ export default function PlansPage() {
                         <button
                             className={`zenith-btn btn-starter ${isPro ? '' : 'btn-disabled'}`}
                             onClick={() => {
-                                if (isPro) fetcher.submit({ intent: 'downgrade' }, { method: 'POST' });
+                                if (isPro) setDowngradeModalOpen(true);
                             }}
                             disabled={!isPro || fetcher.state === 'submitting'}
                         >
@@ -759,9 +763,47 @@ export default function PlansPage() {
                             onClick={handleReferralSubmit}
                             disabled={fetcher.state === "submitting" || !referralCode.trim()}
                         >
-                            {fetcher.state === "submitting" ? "Verifying..." : "Unlock Pro Access ⚡"}
+                            {fetcher.state === "submitting" ? "Verifying..." : "Unlock Pro"}
                         </button>
-                        <p className="vip-footer">Codes are one-time use and grant lifetime access.</p>
+                    </div>
+                </div>
+            )}
+
+            {downgradeModalOpen && (
+                <div className="vip-overlay" onClick={() => setDowngradeModalOpen(false)}>
+                    <div className="vip-modal" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🥺</div>
+                        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f1f5f9', marginBottom: '1rem', fontFamily: 'Outfit' }}>
+                            Wait! You're abandoning the Empire?
+                        </h2>
+                        <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.5 }}>
+                            If you switch to Starter, your automated trust engine will power down. You'll instantly lose:
+                        </p>
+                        
+                        <ul style={{ textAlign: 'left', background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '12px', listStyle: 'none', margin: '0 0 2rem 0', color: '#f87171', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                            <li>💔 <strong>No more AI Auto-Replies</strong> to boost customer retention</li>
+                            <li>💔 <strong>Review limits</strong> capped at a tiny 50 per month</li>
+                            <li>💔 <strong>Google Shopping</strong> feed gets instantly disabled</li>
+                            <li>💔 <strong>Automated Email Campaigns</strong> stop sending out</li>
+                        </ul>
+
+                        <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
+                            <button 
+                                onClick={() => setDowngradeModalOpen(false)}
+                                style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                Keep My Empire Pro Powers 👑
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setDowngradeModalOpen(false);
+                                    fetcher.submit({ intent: 'downgrade' }, { method: 'POST' });
+                                }}
+                                style={{ width: '100%', padding: '14px', background: 'transparent', color: '#64748b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem' }}
+                            >
+                                Yes, I want less sales (Downgrade)
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
