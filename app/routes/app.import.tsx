@@ -659,80 +659,94 @@ export default function ImportPage() {
                         </div>
 
                         {/* RIGHT COLUMN: CSV FORMAT GUIDE */}
+                        {/* RIGHT COLUMN: CSV FORMAT GUIDE */}
                         <div className="tilt-card" style={{
                             background: 'white',
                             borderRadius: '40px',
                             padding: '3rem',
-                            boxShadow: '0 40px 80px -15px rgba(0,0,0,0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.1)',
+                            boxShadow: '0 40px 80px -15px rgba(0,0,0,0.05)',
+                            border: '1px solid #f1f5f9',
                             height: '100%',
                             display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between'
+                            flexDirection: 'column'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
-                                <div style={{ fontSize: '1.8rem' }}>📋</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                                 <BlockStack gap="100">
-                                    <Text as="h2" variant="headingMd" fontWeight="bold">CSV Column Reference</Text>
-                                    <Text as="p" tone="subdued" variant="bodySm">Accepted column names for each field</Text>
+                                    <Text as="h2" variant="headingLg" fontWeight="bold">Column Reference</Text>
+                                    <Text as="p" tone="subdued" variant="bodySm">Auto-detected headers for seamless imports.</Text>
                                 </BlockStack>
+                                <Button 
+                                    icon={NoteIcon} 
+                                    onClick={() => window.open('/app/import/template', '_blank')}
+                                >
+                                    Download Sample
+                                </Button>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                                    {[
-                                        { field: '⭐ Rating',       required: true,  type: 'Number (1–5)',         accepts: ['rating', 'stars', 'star'],                                    color: '#fbbf24', bg: '#fffbeb' },
-                                        { field: '💬 Review Body',  required: true,  type: 'Text (long)',          accepts: ['body', 'content', 'review', 'text', 'comment', 'reviewbody'], color: '#10b981', bg: '#ecfdf5' },
-                                        { field: '👤 Customer Name',required: false, type: 'Text',                accepts: ['name', 'author', 'customer', 'reviewer', 'customername'],      color: '#6366f1', bg: '#eef2ff' },
-                                        { field: '📧 Email',        required: false, type: 'Email address',       accepts: ['email', 'customeremail', 'revieweremail'],                     color: '#3b82f6', bg: '#eff6ff' },
-                                        { field: '🏷️ Review Title', required: false, type: 'Text (short)',        accepts: ['title', 'headline', 'reviewtitle'],                            color: '#8b5cf6', bg: '#f5f3ff' },
-                                        { field: '📅 Date',         required: false, type: 'Date / Timestamp',    accepts: ['date', 'createdat', 'reviewdate', 'timestamp'],                color: '#64748b', bg: '#f8fafc' },
-                                        { field: '🔗 Product',      required: false, type: 'Handle or URL',       accepts: ['handle', 'product_handle', 'product_url', 'productlink'],     color: '#f59e0b', bg: '#fffbeb' },
-                                        { field: '🖼️ Images',       required: false, type: 'Comma-separated URLs',accepts: ['picture_urls', 'images', 'photos', 'media'],                  color: '#06b6d4', bg: '#ecfeff' },
-                                        { field: '💬 Owner Reply',  required: false, type: 'Text',                accepts: ['reply', 'response', 'ownerreply'],                             color: '#10b981', bg: '#ecfdf5' },
-                                    ].map((row, i) => (
-                                        <div key={i} className="blueprint-row" style={{
-                                            background: row.bg,
-                                            borderRadius: '12px',
-                                            padding: '10px 14px',
-                                            border: `1px solid ${row.color}22`
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    <Text as="p" variant="bodySm" fontWeight="bold">{row.field}</Text>
-                                                    {row.required && (
-                                                        <span style={{ fontSize: '0.6rem', background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>REQ</span>
-                                                    )}
-                                                </div>
-                                                <Text as="p" variant="bodyXs" tone="subdued">{row.type}</Text>
+                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                {[
+                                    { field: 'Rating',        required: true,  type: 'Number (1–5)',         accepts: ['rating', 'stars', 'star'] },
+                                    { field: 'Review Body',   required: true,  type: 'Text (long)',          accepts: ['body', 'content', 'review', 'text', 'comment'] },
+                                    { field: 'Customer Name', required: false, type: 'Text',                 accepts: ['name', 'author', 'customer', 'reviewer'] },
+                                    { field: 'Email',         required: false, type: 'Email',                accepts: ['email', 'customeremail'] },
+                                    { field: 'Review Title',  required: false, type: 'Text (short)',         accepts: ['title', 'headline'] },
+                                    { field: 'Date',          required: false, type: 'Timestamp',            accepts: ['date', 'createdat', 'timestamp'] },
+                                    { field: 'Product',       required: false, type: 'Handle or URL',        accepts: ['handle', 'product_url', 'product'] },
+                                    { field: 'Images',        required: false, type: 'Comma-sep URLs',       accepts: ['picture_urls', 'images', 'photos'] },
+                                    { field: 'Owner Reply',   required: false, type: 'Text',                 accepts: ['reply', 'response'] },
+                                ].map((row, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '12px 0',
+                                        borderBottom: i === 8 ? 'none' : '1px solid #f1f5f9'
+                                    }}>
+                                        <div style={{ width: '180px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Text as="p" variant="bodyMd" fontWeight="semibold" tone={row.required ? "base" : "subdued"}>
+                                                    {row.field}
+                                                </Text>
+                                                {row.required && (
+                                                    <span style={{ width: '6px', height: '6px', background: '#ef4444', borderRadius: '50%' }} title="Required"></span>
+                                                )}
                                             </div>
-                                            <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                {row.accepts.map((a, j) => (
-                                                    <code key={j} style={{
-                                                        fontSize: '0.7rem',
-                                                        background: 'white',
-                                                        border: `1px solid ${row.color}44`,
-                                                        color: row.color,
-                                                        padding: '1px 6px',
-                                                        borderRadius: '4px',
-                                                        fontFamily: 'monospace'
-                                                    }}>{a}</code>
-                                                ))}
-                                            </div>
+                                            <Text as="p" variant="bodyXs" tone="subdued">{row.type}</Text>
                                         </div>
-                                    ))}
-                                </div>
+                                        <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
+                                            {row.accepts.map((a, j) => (
+                                                <span key={j} style={{
+                                                    fontSize: '0.75rem',
+                                                    background: '#f8fafc',
+                                                    color: '#64748b',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '6px',
+                                                    fontFamily: 'monospace'
+                                                }}>
+                                                    {a}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
 
-                                <div style={{
-                                    background: '#f0fdf4',
-                                    border: '1px solid #10b981',
-                                    borderRadius: '12px',
-                                    padding: '12px 14px',
-                                    fontSize: '0.8rem',
-                                    color: '#065f46',
-                                    lineHeight: '1.6'
-                                }}>
-                                    💡 <strong>Tip:</strong> Column names are auto-detected. Exports from <strong>Judge.me, Loox, Yotpo</strong> and <strong>Okendo</strong> work without any changes.
+                            <div style={{
+                                marginTop: '2rem',
+                                background: '#f8fafc',
+                                borderRadius: '12px',
+                                padding: '16px',
+                                fontSize: '0.85rem',
+                                color: '#475569',
+                                display: 'flex',
+                                gap: '12px',
+                                alignItems: 'center'
+                            }}>
+                                <div style={{ fontSize: '1.2rem' }}>💡</div>
+                                <div>
+                                    Exports from <strong>Judge.me, Loox, Yotpo</strong>, and <strong>Okendo</strong> are supported natively. Just drop the file directly without editing!
                                 </div>
+                            </div>
                         </div>
                     </div>
                 )}
