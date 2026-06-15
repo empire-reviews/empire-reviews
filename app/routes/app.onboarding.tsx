@@ -141,121 +141,130 @@ export default function Onboarding() {
         switch (step) {
             case 1:
                 return (
-                    <BlockStack gap="400">
-                        <Text as="h2" variant="headingLg">Welcome to Empire Reviews</Text>
-                        <Text as="p" tone="subdued">Let's set up your basic preferences so we can tailor your experience.</Text>
-                        <Select
-                            label="Widget Language"
-                            options={[
-                                { label: 'English', value: 'en' },
-                                { label: 'Spanish', value: 'es' },
-                                { label: 'French', value: 'fr' },
-                                { label: 'German', value: 'de' },
-                            ]}
-                            value={language}
-                            onChange={setLanguage}
-                        />
-                        <TextField
-                            label="Admin Email (for notifications)"
-                            value={adminEmail}
-                            onChange={setAdminEmail}
-                            autoComplete="email"
-                            type="email"
-                            helpText="We'll send review alerts here."
-                        />
-                    </BlockStack>
+                    <div>
+                        <h2 className="step-title">Welcome to Empire Reviews</h2>
+                        <p className="step-subtitle">Let's set up your basic preferences so we can tailor your experience.</p>
+                        <BlockStack gap="400">
+                            <Select
+                                label="Widget Language"
+                                options={[
+                                    { label: 'English', value: 'en' },
+                                    { label: 'Spanish', value: 'es' },
+                                    { label: 'French', value: 'fr' },
+                                    { label: 'German', value: 'de' },
+                                ]}
+                                value={language}
+                                onChange={setLanguage}
+                            />
+                            <TextField
+                                label="Admin Email (for notifications)"
+                                value={adminEmail}
+                                onChange={setAdminEmail}
+                                autoComplete="email"
+                                type="email"
+                                helpText="We'll send review alerts here."
+                            />
+                        </BlockStack>
+                    </div>
                 );
             case 2:
                 return (
-                    <BlockStack gap="400">
-                        <Text as="h2" variant="headingLg">Brand Your Experience</Text>
-                        <Text as="p" tone="subdued">Make the review widgets look like they belong to your store.</Text>
-                        <TextField
-                            label="Primary Theme Color (Hex code)"
-                            value={themeColor}
-                            onChange={setThemeColor}
-                            autoComplete="off"
-                            prefix={<div style={{width: 16, height: 16, backgroundColor: themeColor, borderRadius: '50%'}}></div>}
-                        />
-                        <TextField
-                            label="Store Logo URL"
-                            value={storeLogoUrl}
-                            onChange={setStoreLogoUrl}
-                            autoComplete="url"
-                            helpText="Paste the Cloudinary URL or any hosted image URL for your logo."
-                        />
-                        <DropZone onDrop={handleDropZoneDrop} allowMultiple={false}>
-                            {storeLogoUrl ? (
-                                <div style={{padding: '1rem', display: 'flex', justifyContent: 'center'}}>
-                                    <Thumbnail size="large" alt="Store Logo" source={storeLogoUrl} />
-                                </div>
-                            ) : (
-                                <DropZone.FileUpload actionHint="Accepts .gif, .jpg, and .png" />
-                            )}
-                        </DropZone>
-                    </BlockStack>
+                    <div>
+                        <h2 className="step-title">Brand Your Experience</h2>
+                        <p className="step-subtitle">Make the review widgets look like they belong to your store.</p>
+                        <BlockStack gap="400">
+                            <TextField
+                                label="Primary Theme Color (Hex code)"
+                                value={themeColor}
+                                onChange={setThemeColor}
+                                autoComplete="off"
+                                prefix={<div style={{width: 16, height: 16, backgroundColor: themeColor, borderRadius: '50%'}}></div>}
+                            />
+                            <TextField
+                                label="Store Logo URL"
+                                value={storeLogoUrl}
+                                onChange={setStoreLogoUrl}
+                                autoComplete="url"
+                                helpText="Paste the Cloudinary URL or any hosted image URL for your logo."
+                            />
+                            <DropZone onDrop={handleDropZoneDrop} allowMultiple={false}>
+                                {storeLogoUrl ? (
+                                    <div style={{padding: '1rem', display: 'flex', justifyContent: 'center'}}>
+                                        <Thumbnail size="large" alt="Store Logo" source={storeLogoUrl} />
+                                    </div>
+                                ) : (
+                                    <DropZone.FileUpload actionHint="Accepts .gif, .jpg, and .png" />
+                                )}
+                            </DropZone>
+                        </BlockStack>
+                    </div>
                 );
             case 3:
                 return (
-                    <BlockStack gap="400">
-                        <Text as="h2" variant="headingLg">About Your Business</Text>
-                        <Text as="p" tone="subdued">This helps us optimize your review request timing.</Text>
-                        <ChoiceList
-                            title="Primary Business Type"
-                            choices={[
-                                { label: 'E-commerce (Physical Goods)', value: 'ecommerce' },
-                                { label: 'Digital Products', value: 'digital' },
-                                { label: 'Services', value: 'services' },
-                            ]}
-                            selected={businessType}
-                            onChange={setBusinessType}
-                        />
-                        <ChoiceList
-                            title="Do you primarily dropship?"
-                            choices={[
-                                { label: 'Yes (Longer shipping times)', value: 'yes' },
-                                { label: 'No (In-house fulfillment)', value: 'no' },
-                            ]}
-                            selected={isDropshipping}
-                            onChange={setIsDropshipping}
-                        />
-                    </BlockStack>
+                    <div>
+                        <h2 className="step-title">About Your Business</h2>
+                        <p className="step-subtitle">This helps us optimize your review request timing.</p>
+                        <BlockStack gap="400">
+                            <ChoiceList
+                                title="Primary Business Type"
+                                choices={[
+                                    { label: 'E-commerce (Physical Goods)', value: 'ecommerce' },
+                                    { label: 'Digital Products', value: 'digital' },
+                                    { label: 'Services', value: 'services' },
+                                ]}
+                                selected={businessType}
+                                onChange={setBusinessType}
+                            />
+                            <ChoiceList
+                                title="Do you primarily dropship?"
+                                choices={[
+                                    { label: 'Yes (Longer shipping times)', value: 'yes' },
+                                    { label: 'No (In-house fulfillment)', value: 'no' },
+                                ]}
+                                selected={isDropshipping}
+                                onChange={setIsDropshipping}
+                            />
+                        </BlockStack>
+                    </div>
                 );
             case 4:
                 return (
-                    <BlockStack gap="400">
-                        <Text as="h2" variant="headingLg">Review Acquisition Strategy</Text>
-                        <Text as="p" tone="subdued">How do you want to collect reviews?</Text>
-                        <Checkbox
-                            label="Automated Email Requests"
-                            checked={strategyEmail}
-                            onChange={setStrategyEmail}
-                            helpText="Send an email to buyers after their order is fulfilled."
-                        />
-                        <Checkbox
-                            label="SMS Requests"
-                            checked={strategySms}
-                            onChange={setStrategySms}
-                            helpText="Send text messages (requires SMS plan)."
-                        />
-                        <Checkbox
-                            label="On-Site Review Collection"
-                            checked={strategyOnSite}
-                            onChange={setStrategyOnSite}
-                            helpText="Allow customers to leave reviews directly on the product page."
-                        />
-                    </BlockStack>
+                    <div>
+                        <h2 className="step-title">Review Acquisition</h2>
+                        <p className="step-subtitle">How do you want to collect reviews?</p>
+                        <BlockStack gap="400">
+                            <Checkbox
+                                label="Automated Email Requests"
+                                checked={strategyEmail}
+                                onChange={setStrategyEmail}
+                                helpText="Send an email to buyers after their order is fulfilled."
+                            />
+                            <Checkbox
+                                label="SMS Requests"
+                                checked={strategySms}
+                                onChange={setStrategySms}
+                                helpText="Send text messages (requires SMS plan)."
+                            />
+                            <Checkbox
+                                label="On-Site Review Collection"
+                                checked={strategyOnSite}
+                                onChange={setStrategyOnSite}
+                                helpText="Allow customers to leave reviews directly on the product page."
+                            />
+                        </BlockStack>
+                    </div>
                 );
             case 5:
                 const editorUrl = `https://admin.shopify.com/store/${shop.replace('.myshopify.com', '')}/themes/current/editor?context=apps&appEmbed=${extensionId}`;
                 return (
-                    <BlockStack gap="400">
-                        <Text as="h2" variant="headingLg">Enable App Embed</Text>
-                        <Text as="p" tone="subdued">To display reviews on your storefront, you must enable the Empire Reviews App Embed in your Shopify Theme Editor.</Text>
-                        <Card>
+                    <div>
+                        <h2 className="step-title">Enable App Embed</h2>
+                        <p className="step-subtitle">To display reviews on your storefront, you must enable the Empire Reviews App Embed in your Shopify Theme Editor.</p>
+                        <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '20px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
                             <BlockStack gap="400" align="center" inlineAlign="center">
-                                <Text as="p">Click the button below to open your theme editor. Ensure the toggle is turned ON, then click Save.</Text>
+                                <p style={{ fontSize: '1.1rem', color: '#475569' }}>Click the button below to open your theme editor. Ensure the toggle is turned ON, then click Save.</p>
                                 <Button 
+                                    size="large"
                                     variant="primary" 
                                     url={editorUrl} 
                                     target="_blank"
@@ -263,62 +272,80 @@ export default function Onboarding() {
                                     Open Theme Editor
                                 </Button>
                             </BlockStack>
-                        </Card>
-                    </BlockStack>
+                        </div>
+                    </div>
                 );
             case 6:
                 return (
-                    <BlockStack gap="600">
-                        <BlockStack gap="200">
-                            <Text as="h2" variant="headingLg">Choose Your Plan</Text>
-                            <Text as="p" tone="subdued">Start collecting reviews immediately. Upgrade to Awesome for unlimited features!</Text>
-                        </BlockStack>
-                        <Layout>
-                            <Layout.Section variant="oneHalf">
-                                <Card>
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">Free Plan</Text>
-                                        <Text as="p" tone="subdued">$0 / month</Text>
-                                        <ul style={{ paddingLeft: '1rem', color: 'var(--p-color-text-subdued)', marginBottom: '1rem' }}>
-                                            <li>Up to 50 review requests/mo</li>
-                                            <li>Basic review widgets</li>
-                                            <li>Standard support</li>
-                                        </ul>
-                                        <Button
-                                            onClick={() => handleSubmit('free')}
-                                            loading={isSubmitting}
-                                            disabled={isSubmitting}
-                                            fullWidth
-                                        >
-                                            Continue with Free plan
-                                        </Button>
-                                    </BlockStack>
-                                </Card>
-                            </Layout.Section>
-                            <Layout.Section variant="oneHalf">
-                                <Card>
-                                    <BlockStack gap="400">
-                                        <Text as="h3" variant="headingMd">Awesome Plan</Text>
-                                        <Text as="p" tone="subdued">$19 / month</Text>
-                                        <ul style={{ paddingLeft: '1rem', color: 'var(--p-color-text-subdued)', marginBottom: '1rem' }}>
-                                            <li>Unlimited review requests</li>
-                                            <li>Photo & Video reviews</li>
-                                            <li>Premium widgets & priority support</li>
-                                        </ul>
-                                        <Button
-                                            variant="primary"
-                                            onClick={() => handleSubmit('upgrade')}
-                                            loading={isSubmitting}
-                                            disabled={isSubmitting}
-                                            fullWidth
-                                        >
-                                            Try Awesome plan for $0
-                                        </Button>
-                                    </BlockStack>
-                                </Card>
-                            </Layout.Section>
-                        </Layout>
-                    </BlockStack>
+                    <div>
+                        <h2 className="step-title">Choose Your Empire</h2>
+                        <p className="step-subtitle">Start collecting reviews immediately. Upgrade to Pro for unlimited features!</p>
+                        
+                        <div className="plans-grid">
+                            {/* Free Plan */}
+                            <div className="plan-card">
+                                <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Free Plan</h3>
+                                <p style={{ fontSize: '1.2rem', color: '#64748b', marginBottom: '2rem' }}>$0 <span style={{fontSize:'0.9rem'}}>/ month</span></p>
+                                
+                                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#475569' }}>
+                                    <li>✓ Up to 50 review requests/mo</li>
+                                    <li>✓ Basic review widgets</li>
+                                    <li>✓ Standard support</li>
+                                </ul>
+                                
+                                <Button
+                                    size="large"
+                                    onClick={() => handleSubmit('free')}
+                                    loading={isSubmitting}
+                                    disabled={isSubmitting}
+                                    fullWidth
+                                >
+                                    Start Free
+                                </Button>
+                            </div>
+
+                            {/* Pro Plan */}
+                            <div className="plan-card premium">
+                                <div className="premium-glow"></div>
+                                <div style={{ position: 'relative', zIndex: 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Empire Pro</h3>
+                                        <span style={{ background: '#10b981', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Recommended</span>
+                                    </div>
+                                    <p style={{ fontSize: '1.2rem', color: '#a7f3d0', marginBottom: '2rem' }}>$9.99 <span style={{fontSize:'0.9rem'}}>/ month</span></p>
+                                    
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2.5rem 0', display: 'flex', flexDirection: 'column', gap: '1rem', color: '#ecfdf5', fontSize: '1.05rem' }}>
+                                        <li>✓ <strong>Unlimited</strong> review requests</li>
+                                        <li>✓ Photo & Video reviews</li>
+                                        <li>✓ 3D Carousel & Premium Widgets</li>
+                                        <li>✓ Priority Email Support</li>
+                                    </ul>
+                                    
+                                    <button 
+                                        onClick={() => handleSubmit('upgrade')}
+                                        disabled={isSubmitting}
+                                        style={{
+                                            width: '100%',
+                                            padding: '16px',
+                                            background: 'white',
+                                            color: '#064e3b',
+                                            border: 'none',
+                                            borderRadius: '12px',
+                                            fontWeight: 800,
+                                            fontSize: '1rem',
+                                            cursor: 'pointer',
+                                            boxShadow: '0 10px 20px -5px rgba(0,0,0,0.3)',
+                                            transition: 'transform 0.2s, box-shadow 0.2s',
+                                        }}
+                                        onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 15px 25px -5px rgba(0,0,0,0.4)'; }}
+                                        onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 10px 20px -5px rgba(0,0,0,0.3)'; }}
+                                    >
+                                        {isSubmitting ? 'Processing...' : 'Start 7-Day Free Trial'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 );
             default:
                 return null;
@@ -326,32 +353,166 @@ export default function Onboarding() {
     };
 
     return (
-        <Page narrowWidth>
-            <BlockStack gap="800">
-                <div style={{ paddingTop: '2rem' }}>
-                    <ProgressBar progress={(step / totalSteps) * 100} size="small" tone="primary" />
+        <div className="onboarding-wrapper">
+            <style>{`
+                .onboarding-wrapper {
+                    min-height: 100vh;
+                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 2rem;
+                    font-family: 'Inter', sans-serif;
+                }
+                .onboarding-card {
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(20px);
+                    border: 1px solid rgba(255, 255, 255, 0.8);
+                    border-radius: 32px;
+                    padding: 3.5rem;
+                    width: 100%;
+                    max-width: 800px;
+                    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1),
+                                0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+                    transform-style: preserve-3d;
+                    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                .onboarding-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 50px 120px -20px rgba(0, 0, 0, 0.15),
+                                0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+                }
+                .progress-container {
+                    margin-bottom: 3rem;
+                }
+                .progress-bar-bg {
+                    height: 8px;
+                    background: #e2e8f0;
+                    border-radius: 10px;
+                    overflow: hidden;
+                }
+                .progress-bar-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #10b981, #059669);
+                    border-radius: 10px;
+                    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .step-title {
+                    font-size: 2.5rem;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin-bottom: 0.5rem;
+                    line-height: 1.2;
+                }
+                .step-subtitle {
+                    font-size: 1.15rem;
+                    color: #64748b;
+                    margin-bottom: 2.5rem;
+                }
+                .plans-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 2rem;
+                    margin-top: 2rem;
+                }
+                @media (max-width: 768px) {
+                    .plans-grid { grid-template-columns: 1fr; }
+                    .onboarding-card { padding: 2rem; }
+                }
+                .plan-card {
+                    background: white;
+                    border-radius: 24px;
+                    padding: 2.5rem;
+                    border: 2px solid #e2e8f0;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .plan-card:hover {
+                    border-color: #10b981;
+                    box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.15);
+                    transform: translateY(-5px);
+                }
+                .plan-card.premium {
+                    background: linear-gradient(135deg, #064e3b 0%, #0f766e 100%);
+                    color: white;
+                    border: none;
+                    box-shadow: 0 20px 40px -10px rgba(6, 78, 59, 0.4);
+                }
+                .plan-card.premium:hover {
+                    box-shadow: 0 30px 60px -15px rgba(6, 78, 59, 0.5);
+                    transform: translateY(-8px) scale(1.02);
+                }
+                .premium-glow {
+                    position: absolute;
+                    top: -50%;
+                    left: -50%;
+                    width: 200%;
+                    height: 200%;
+                    background: radial-gradient(circle, rgba(16,185,129,0.3) 0%, transparent 60%);
+                    animation: rotate 15s linear infinite;
+                    pointer-events: none;
+                }
+                @keyframes rotate {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .nav-btn {
+                    padding: 14px 28px;
+                    border-radius: 12px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    border: none;
+                    font-size: 1.05rem;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .btn-next {
+                    background: #10b981;
+                    color: white;
+                    box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+                }
+                .btn-next:hover {
+                    background: #059669;
+                    transform: translateY(-2px);
+                    box-shadow: 0 15px 25px -5px rgba(16, 185, 129, 0.5);
+                }
+                .btn-back {
+                    background: white;
+                    color: #475569;
+                    border: 1px solid #cbd5e1;
+                }
+                .btn-back:hover {
+                    background: #f1f5f9;
+                    border-color: #94a3b8;
+                }
+            `}</style>
+
+            <div className="onboarding-card">
+                <div className="progress-container">
+                    <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+                    </div>
                 </div>
                 
-                <Card>
-                    <BlockStack gap="800">
-                        {renderStepContent()}
-                        
-                        {step < 6 && (
-                            <div style={{ marginTop: '2rem' }}>
-                                <InlineStack align="space-between">
-                                    {step > 1 ? (
-                                        <Button onClick={handleBack}>Back</Button>
-                                    ) : (
-                                        <div />
-                                    )}
-                                    <Button variant="primary" onClick={handleNext}>Next Step</Button>
-                                </InlineStack>
-                            </div>
+                {renderStepContent()}
+                
+                {step < 6 && (
+                    <div style={{ marginTop: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {step > 1 ? (
+                            <button className="nav-btn btn-back" onClick={handleBack}>← Back</button>
+                        ) : (
+                            <div />
                         )}
-                    </BlockStack>
-                </Card>
-            </BlockStack>
-        </Page>
+                        <button className="nav-btn btn-next" onClick={handleNext}>Next Step →</button>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
