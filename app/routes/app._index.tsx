@@ -174,11 +174,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       settings,
     });
   } catch (error) {
-    // Only swallow auth-related redirects — everything else re-throws to the ErrorBoundary.
-    // This prevents cold-start DB timeouts from silently returning zero values.
     if (error instanceof Response) throw error;
     console.error("[dashboard] Unhandled loader error:", error);
-    throw error; // Let root.tsx ErrorBoundary handle it with a proper UI + reload button
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : "";
+    throw new Response(stack || msg, { status: 500, statusText: "Loader Crash" });
   }
 };
 

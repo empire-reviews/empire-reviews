@@ -22,11 +22,18 @@ import prisma from "../db.server";
 // import { requirePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    // const { session } = await authenticate.admin(request);
-    return json({
-        shop: "alpha-testing-47.myshopify.com",
-        extensionId: process.env.SHOPIFY_APP_EXTENSION_ID || "",
-    });
+    try {
+        const { session } = await authenticate.admin(request);
+        return json({
+            shop: session.shop,
+            extensionId: process.env.SHOPIFY_APP_EXTENSION_ID || "",
+        });
+    } catch (error) {
+        if (error instanceof Response) throw error;
+        const msg = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : "";
+        throw new Response(stack || msg, { status: 500, statusText: "Onboarding Loader Crash" });
+    }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
