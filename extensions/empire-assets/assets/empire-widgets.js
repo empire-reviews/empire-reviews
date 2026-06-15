@@ -284,10 +284,14 @@ const EmpireWidgets = (function() {
         },
 
         async fetchReviewsData(productId, shopDomain, page = 1) {
-            if (!productId || !shopDomain) return null;
-            const pureId = productId.replace('gid://shopify/Product/', '');
+            if (!shopDomain) return null;
+            let url = `${API_BASE}/api/reviews?shop=${shopDomain}&page=${page}&limit=10`;
+            if (productId && productId.trim() !== '') {
+                const pureId = productId.replace('gid://shopify/Product/', '');
+                url += `&productId=${pureId}`;
+            }
             try {
-                const res = await fetch(`${API_BASE}/api/reviews?productId=${pureId}&shop=${shopDomain}&page=${page}&limit=10`);
+                const res = await fetch(url);
                 if (!res.ok) throw new Error("Network error");
                 return await res.json();
             } catch (e) {
@@ -302,7 +306,7 @@ const EmpireWidgets = (function() {
             for (const wrapper of wrappers) {
                 const productId = wrapper.getAttribute('data-product-id');
                 const shopDomain = wrapper.getAttribute('data-shop-domain');
-                if (!productId || !shopDomain) continue;
+                if (!shopDomain) continue;
 
                 const data = await this.fetchReviewsData(productId, shopDomain, 1);
                 
@@ -337,7 +341,7 @@ const EmpireWidgets = (function() {
                 const shopDomain = widget.getAttribute('data-shop-domain');
                 const widgetId = widget.id || 'widget_' + Math.floor(Math.random() * 100000);
                 
-                if (!productId || !shopDomain) continue;
+                if (!shopDomain) continue;
                 
                 widgetState[widgetId] = { page: 1, hasMore: true, isLoading: true, statsLoaded: false };
 

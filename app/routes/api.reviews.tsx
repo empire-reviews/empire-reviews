@@ -14,7 +14,7 @@ function getAllowedOrigin(request: Request): string {
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
         return origin;
     }
-    return ""; // Reject unknown origins
+    return origin || "*"; // Allow all origins for public storefront API
 }
 
 function corsResponse(request: Request) {
@@ -86,7 +86,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             || request.headers.get("x-shopify-shop-domain")
             || new URL(request.url).searchParams.get("shop");
 
-        if (!productId || !rating || !shop) {
+        if (!rating || !shop) {
             return json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders(request) });
         }
 
@@ -131,10 +131,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             } catch(e) { console.error("Media URL parsing error", e); }
         }
 
+        let formattedProductId = null;
+        if (productId && productId.trim() !== "") {
+            formattedProductId = `gid://shopify/Product/${productId}`;
+        }
+
         const review = await prisma.review.create({
             data: {
                 shop,
-                productId: `gid://shopify/Product/${productId}`,
+                productId: formattedProductId,
                 rating,
                 body: body || null,
                 title: title || null,
@@ -305,10 +310,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const safeSettings = settings ? {
             primaryColor: settings.primaryColor,
             aiProvider: settings.aiProvider,
-            allowPhotoUploads: settings.plan === "EMPIRE_PRO",
-            enableFloatingTab: settings.enableFloatingTab,
-            floatingTabPosition: settings.floatingTabPosition,
-            enableAiSummary: settings.enableAiSummary
+            allowPhotoUploads: settings.plan === "EMPIRE_PRO"
         } : null;
 
         const allowPhotoUploads = settings?.plan === "EMPIRE_PRO";
@@ -317,16 +319,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const hasMore = reviews.length === limit;
         
         // Handle AI Summary intent
-        if (url.searchParams.get("intent") === "summary" && settings?.enableAiSummary && settings?.aiProvider) {
+        if (url.searchParams.get("intent") === "summary" && settings?.aiProvider) {
             try {
                 const { generateInsights } = await import("../services/ai.server");
                 const insightReviews = reviews.map(r => ({ body: r.body, rating: r.rating }));
                 const { summary } = await generateInsights({ provider: settings.aiProvider as any, apiKey: settings.aiApiKey || "" }, insightReviews, "quick");
                 const headers: any = corsHeaders(request);
-                headers["Cache-Control"] = "public, max-age=3600, s-maxage=3600"; // Cache summary for an hour
+                
+                // Dynamic caching based on merchant settings
+                const cacheParam = url.searchParams.get("cache") || "1h";
+                let cacheSeconds = 3600; // default 1 hour
+                if (cacheParam === "10m") cacheSeconds = 600;
+                else if (cacheParam === "1h") cacheSeconds = 3600;
+                else if (cacheParam === "1d") cacheSeconds = 86400;
+                else if (cacheParam === "1w") cacheSeconds = 604800;
+                
+                headers["Cache-Control"] = `public, max-age=${cacheSeconds}, s-maxage=${cacheSeconds}`;
                 return json({ summary }, { headers });
-            } catch (e) {
-                return json({ error: "Summary generation failed" }, { status: 500, headers: corsHeaders(request) });
+            } catch (e: any) {
+                console.error("AI Summary Error:", e);
+                return json({ error: e.message || "Summary generation failed" }, { status: 500, headers: corsHeaders(request) });
             }
         }
         

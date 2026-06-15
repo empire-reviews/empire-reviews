@@ -145,9 +145,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             borderRadius,
             aiProvider,
             aiApiKey,
-            enableFloatingTab,
-            floatingTabPosition,
-            enableAiSummary,
             enableFlow,
             enableGoogle,
             reviewRequestDelay,
@@ -176,23 +173,10 @@ export default function SettingsPage() {
     const [borderRadius, setBorderRadius] = useState((settings as any).borderRadius || "8px");
     const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
     const [senderEmail, setSenderEmail] = useState((settings as any).senderEmail || "");
-    
-    // Premium Widgets
-    const [enableFloatingTab, setEnableFloatingTab] = useState((settings as any).enableFloatingTab || false);
-    const [floatingTabPosition, setFloatingTabPosition] = useState((settings as any).floatingTabPosition || "left");
-    const [enableAiSummary, setEnableAiSummary] = useState((settings as any).enableAiSummary || false);
 
     const [isDirty, setIsDirty] = useState(false);
     const isMounted = useRef(false);
 
-    // Watch for changes to trigger Save Bar
-    useEffect(() => {
-        if (!isMounted.current) {
-            isMounted.current = true;
-            return;
-        }
-        setIsDirty(true);
-    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail, enableFloatingTab, floatingTabPosition, enableAiSummary]);
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
@@ -206,6 +190,15 @@ export default function SettingsPage() {
     const [aiTestLoading, setAiTestLoading] = useState(false);
     const [aiTestResult, setAiTestResult] = useState<string | null>(null);
     const [aiTestSuccess, setAiTestSuccess] = useState(false);
+
+    // Watch for changes to trigger Save Bar
+    useEffect(() => {
+        if (!isMounted.current) {
+            isMounted.current = true;
+            return;
+        }
+        setIsDirty(true);
+    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail, flowEnabled, klaviyoEnabled, klaviyoKey, googleShoppingEnabled, aiProvider, aiApiKey]);
 
     // Tip Rotation Logic
     const [tipIndex, setTipIndex] = useState(0);
@@ -233,9 +226,6 @@ export default function SettingsPage() {
                 borderRadius,
                 aiProvider,
                 aiApiKey,
-                enableFloatingTab: String(enableFloatingTab),
-                floatingTabPosition,
-                enableAiSummary: String(enableAiSummary),
                 enableFlow: String(flowEnabled),
                 enableKlaviyo: String(klaviyoEnabled),
                 klaviyoApiKey: klaviyoKey,
@@ -439,41 +429,6 @@ export default function SettingsPage() {
                                             <Select labelHidden label="Corner Style" options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
-                                    
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
-                                        <div style={{ flex: 1, paddingRight: '24px' }}>
-                                            <Text as="h3" variant="headingSm" fontWeight="medium">Floating Trust Tab</Text>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Show a sticky reviews tab on the side of the screen.</p>
-                                        </div>
-                                        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px', width: '220px' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <Select labelHidden label="Tab Position" options={[{ label: 'Left Side', value: 'left' }, { label: 'Right Side', value: 'right' }]} value={floatingTabPosition} onChange={setFloatingTabPosition} disabled={!enableFloatingTab} />
-                                            </div>
-                                            <Checkbox label="Enable" checked={enableFloatingTab} onChange={setEnableFloatingTab} />
-                                        </div>
-                                    </div>
-                                    
-                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
-                                    
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ flex: 1, paddingRight: '24px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Text as="h3" variant="headingSm" fontWeight="medium">AI Review Summary</Text>
-                                                <Badge tone="magic">PRO</Badge>
-                                            </div>
-                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Display an AI-generated summary snippet above the reviews widget.</p>
-                                        </div>
-                                        <div style={{ flexShrink: 0, width: '220px', display: 'flex', justifyContent: 'flex-end' }}>
-                                            <Checkbox label="Enable AI Summary" checked={enableAiSummary} onChange={(checked) => {
-                                                if (checked && !isPro) {
-                                                    shopify.toast.show("This feature requires Empire PRO");
-                                                } else {
-                                                    setEnableAiSummary(checked);
-                                                }
-                                            }} />
-                                        </div>
-                                    </div>
                                 </div>
                             </Card>
                         </BlockStack>
@@ -638,7 +593,10 @@ export default function SettingsPage() {
                                                 <BlockStack gap="300">
                                                     <Select labelHidden label="AI Provider" options={[{ label: 'Select a provider...', value: '' }, { label: 'Groq (100% Free)', value: 'groq' }, { label: 'OpenAI (GPT-4o Mini)', value: 'openai' }, { label: 'Google Gemini', value: 'gemini' }, { label: 'Anthropic Claude', value: 'claude' }, { label: 'DeepSeek', value: 'deepseek' }, { label: 'Ollama / Custom API', value: 'ollama' }]} value={aiProvider} onChange={setAiProvider} helpText={aiProvider === 'ollama' ? 'Requires Ngrok/Cloudflare Tunnel to connect Vercel to your local machine.' : 'Choose the AI model you prefer.'} />
                                                     {aiProvider && (
-                                                        <TextField labelHidden label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "Secret API Key"} value={aiApiKey} onChange={setAiApiKey} autoComplete="off" type={aiProvider === 'ollama' ? "text" : "password"} placeholder={aiProvider === 'ollama' ? "API Details" : "Secret Key"} helpText={aiProvider === 'openai' ? 'Get yours at platform.openai.com' : aiProvider === 'gemini' ? 'Get yours at aistudio.google.com' : aiProvider === 'claude' ? 'Get yours at console.anthropic.com' : aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com' : aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional.' : ''} />
+                                                        <TextField labelHidden label={aiProvider === 'ollama' ? "Model Name / Remote URL / API Key" : "Secret API Key"} value={aiApiKey} onChange={setAiApiKey} autoComplete="off" type={aiProvider === 'ollama' ? "text" : "password"} placeholder={aiProvider === 'ollama' ? "API Details" : "Secret Key"} helpText={
+                                                            (aiProvider === 'openai' ? 'Get yours at platform.openai.com. ' : aiProvider === 'gemini' ? 'Get yours at aistudio.google.com. ' : aiProvider === 'claude' ? 'Get yours at console.anthropic.com. ' : aiProvider === 'deepseek' ? 'Get yours at platform.deepseek.com. ' : aiProvider === 'ollama' ? 'Format: URL|Model|API_KEY (e.g. https://ollama.com|gpt-oss:120b|sk-123). URL and Key are optional. ' : '') +
+                                                            (settings.aiApiKey && aiApiKey === settings.aiApiKey ? `(Current key ends in ••••${settings.aiApiKey.slice(-4)})` : '')
+                                                        } />
                                                     )}
                                                     {aiProvider && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

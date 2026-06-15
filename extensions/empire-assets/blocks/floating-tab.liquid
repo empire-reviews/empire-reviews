@@ -1,122 +1,364 @@
-<div class="empire-floating-tab empire-position-{{ block.settings.position }}" 
-     id="empire-floating-tab-{{ block.id }}"
-     data-shop-domain="{{ shop.permanent_domain }}"
-     style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-text: {{ block.settings.text_color }};"
-     onclick="EmpireWidgets.openFloatingTab(this)">
-    <span class="empire-floating-icon">⭐</span>
-    <span class="empire-floating-text">Reviews</span>
-</div>
-
-<!-- The sliding panel -->
-<div class="empire-floating-panel" id="empire-floating-panel-{{ block.id }}">
-    <div class="empire-floating-header">
-        <h3>Store Reviews</h3>
-        <button onclick="EmpireWidgets.closeFloatingTab(this)">✕</button>
+<div class="empire-floating-widget-container" style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-text: {{ block.settings.text_color }};">
+    <div class="empire-floating-tab empire-position-{{ block.settings.position }}" 
+         id="empire-floating-tab-{{ block.id }}"
+         data-product-id="{{ product.id }}"
+         data-shop-domain="{{ shop.permanent_domain }}"
+         onclick="EmpireFloatingTab.open(this)">
+        <div class="empire-tab-inner">
+            <span class="empire-floating-text">Reviews</span>
+        </div>
     </div>
-    <div class="empire-floating-content">
-        <div class="empire-loading-spinner">Loading...</div>
+
+    <!-- The sliding panel -->
+    <div class="empire-floating-panel empire-panel-{{ block.settings.position }} empire-size-{{ block.settings.panel_size }}" id="empire-floating-panel-{{ block.id }}">
+        <div class="empire-floating-header">
+            <h3>Store Reviews</h3>
+            <button class="empire-close-btn" onclick="EmpireFloatingTab.close(this)">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="empire-floating-content">
+            <div class="empire-loading-spinner">
+                <div class="empire-spinner"></div>
+            </div>
+        </div>
+        <div class="empire-floating-footer">
+            <span>Powered by <strong>Empire</strong></span>
+        </div>
     </div>
 </div>
 
 <style>
+/* Clean Organic Aesthetic */
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&display=swap');
+
+.empire-floating-widget-container {
+    font-family: 'Inter', -apple-system, sans-serif;
+    --card-border: #f0f0f0;
+    --text-main: #2b2b2b;
+    --text-muted: #757575;
+    --pill-bg: #eaf8f1;
+    --pill-text: #2f9d61;
+}
+
+/* Floating Button */
 .empire-floating-tab {
     position: fixed;
     top: 50%;
     transform: translateY(-50%);
-    background-color: var(--empire-primary);
-    color: var(--empire-bg);
-    padding: 12px 16px;
-    border-radius: 8px 8px 0 0;
+    background: var(--empire-primary, #1e4b33);
+    color: #fff;
     cursor: pointer;
     z-index: 2147483646;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 1rem;
+    overflow: hidden;
+}
+.empire-position-right {
+    right: 0;
+    border-radius: 12px 0 0 12px;
+}
+.empire-position-left {
+    left: 0;
+    border-radius: 0 12px 12px 0;
+}
+.empire-tab-inner {
+    padding: 18px 6px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: transform 0.2s ease;
-    font-family: inherit;
-    font-weight: 600;
+    justify-content: center;
+    writing-mode: vertical-rl;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
 }
-.empire-position-left { left: -16px; transform: translateY(-50%) rotate(90deg); transform-origin: left bottom; }
-.empire-position-right { right: -16px; transform: translateY(-50%) rotate(-90deg); transform-origin: right bottom; }
+.empire-position-right .empire-tab-inner {
+    transform: rotate(180deg);
+}
+.empire-position-left .empire-tab-inner {
+    transform: rotate(180deg);
+}
 .empire-floating-tab:hover {
-    transform: translateY(-50%) rotate(90deg) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
-.empire-position-right:hover {
-    transform: translateY(-50%) rotate(-90deg) scale(1.05);
-}
+.empire-position-left:hover { transform: translateY(-50%) scale(1.03); transform-origin: left center; }
+.empire-position-right:hover { transform: translateY(-50%) scale(1.03); transform-origin: right center; }
 
+/* Slide Panel - Made smaller and floating */
 .empire-floating-panel {
     position: fixed;
-    top: 0;
-    width: 400px;
-    max-width: 90vw;
-    height: 100vh;
-    background: var(--empire-bg);
+    top: 24px; /* Margin from top */
+    height: calc(100vh - 48px); /* Not full height */
+    width: 380px; /* Narrower width */
+    max-width: calc(100vw - 32px); /* Mobile safety */
+    background: #fdfdfd;
+    color: var(--text-main);
     z-index: 2147483647;
-    box-shadow: 0 0 24px rgba(0,0,0,0.2);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border-radius: 20px; /* Rounded corners for floating feel */
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
     display: flex;
     flex-direction: column;
-    font-family: inherit;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
 }
-.empire-position-left ~ .empire-floating-panel { left: 0; transform: translateX(-100%); }
-.empire-position-right ~ .empire-floating-panel { right: 0; transform: translateX(100%); }
+
+/* Full Size Override */
+.empire-floating-panel.empire-size-full {
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    border-radius: 0;
+}
+
+.empire-panel-left { left: 24px; transform: translateX(-120%); }
+.empire-panel-right { right: 24px; transform: translateX(120%); }
 
 .empire-floating-panel.empire-open {
     transform: translateX(0) !important;
+    opacity: 1;
+    pointer-events: auto;
 }
 
+/* Header */
 .empire-floating-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 24px 28px;
+    background: #fdfdfd;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #f5f5f5;
 }
-.empire-floating-header h3 { margin: 0; font-size: 1.25rem; font-weight: bold; color: var(--empire-text); }
-.empire-floating-header button { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--empire-text); }
+.empire-floating-header h3 { 
+    margin: 0; 
+    font-family: 'Lora', serif;
+    font-size: 1.3rem; 
+    font-weight: 500; 
+    color: var(--text-main);
+}
+.empire-close-btn { 
+    background: #f5f5f5; 
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    border: none; 
+    cursor: pointer; 
+    color: var(--text-muted); 
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+}
+.empire-close-btn:hover { background: #e0e0e0; color: var(--text-main); }
 
+/* Content Area - Hide scrollbar */
 .empire-floating-content {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
-    color: var(--empire-text);
+    padding: 20px 24px;
+    background: #f8f9f6; /* Very subtle warm gray/green background behind cards */
+    scrollbar-width: none; /* Firefox */
+}
+.empire-floating-content::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+
+/* Review Card */
+.empire-review-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 1px solid var(--card-border);
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.015);
+}
+/* Force removal of any inherited left borders from the theme */
+.empire-review-card { border-left: 1px solid var(--card-border) !important; }
+
+.empire-card-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.empire-author-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; color: #fff; font-weight: 600;
+    flex-shrink: 0;
+}
+
+.empire-author-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.empire-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.empire-review-author {
+    font-family: 'Lora', serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1;
+}
+
+.empire-star-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--card-border);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background: #fff;
+    line-height: 1;
+}
+.empire-star-badge span {
+    color: #e57e33;
+    font-size: 0.85rem;
+}
+
+.empire-review-role {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+.empire-date-pill {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: var(--pill-bg);
+    color: var(--pill-text);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.empire-review-body {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #4a4a4a;
+}
+
+/* Footer */
+.empire-floating-footer {
+    padding: 16px;
+    text-align: center;
+    background: #fdfdfd;
+    font-size: 0.8rem;
+    color: #a0a0a0;
+    border-top: 1px solid #f5f5f5;
+}
+
+.empire-spinner {
+    width: 32px; height: 32px;
+    border: 2px solid #f0f0f0;
+    border-top: 2px solid #1e4b33;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 40px auto;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .empire-floating-panel {
+        width: calc(100vw - 32px);
+        height: 75vh;
+        top: auto;
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        border-radius: 20px;
+        max-width: 100vw;
+    }
+    .empire-floating-panel.empire-size-full {
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        border-radius: 0;
+    }
+    .empire-panel-left { transform: translateY(120%); }
+    .empire-panel-right { transform: translateY(120%); }
+    .empire-floating-panel.empire-open { transform: translateY(0) !important; }
 }
 </style>
 
 <script>
-    if (!window.EmpireWidgets) window.EmpireWidgets = {};
-    window.EmpireWidgets.openFloatingTab = function(btn) {
-        const panel = btn.nextElementSibling;
+    if (!window.EmpireFloatingTab) window.EmpireFloatingTab = {};
+    window.EmpireFloatingTab.open = function(btn) {
+        // The panel ID needs to be queried properly, we can use the ID explicitly 
+        const blockId = btn.id.replace('empire-floating-tab-', '');
+        const panel = document.getElementById('empire-floating-panel-' + blockId);
+        if (!panel) return;
+        
         panel.classList.add('empire-open');
         if (!panel.dataset.loaded) {
             const shop = btn.dataset.shopDomain;
-            const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://empire-reviews.com';
+            const host = 'https://empire-reviews.vercel.app';
             fetch(`${host}/api/reviews?shop=${shop}&limit=10`)
                 .then(res => res.json())
                 .then(data => {
                     const content = panel.querySelector('.empire-floating-content');
                     if(data.reviews && data.reviews.length > 0) {
-                        content.innerHTML = data.reviews.map(r => `
-                            <div style="margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 16px;">
-                                <div style="color: var(--empire-primary); margin-bottom: 4px;">${'★'.repeat(r.rating)}</div>
-                                <h4 style="margin: 0 0 8px 0; font-size: 1rem;">${r.title || ''}</h4>
-                                <p style="margin: 0; font-size: 0.9rem; opacity: 0.9;">${r.body || ''}</p>
-                                <small style="display: block; margin-top: 8px; font-weight: bold; opacity: 0.7;">- ${r.customerName}</small>
+                        
+                        const colors = ['#1a4931', '#d48a60', '#2a3b4c', '#5e4b3f', '#3b5c4a'];
+                        
+                        content.innerHTML = data.reviews.map((r, i) => {
+                            const name = r.customerName || 'Anonymous';
+                            const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            const color = colors[i % colors.length];
+                            
+                            const dateStr = new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || 'Recent';
+                            
+                            return `
+                            <div class="empire-review-card">
+                                <div class="empire-date-pill">${dateStr}</div>
+                                <div class="empire-card-top">
+                                    <div class="empire-author-avatar" style="background: ${color}">${initials}</div>
+                                    <div class="empire-author-info">
+                                        <div class="empire-name-row">
+                                            <h4 class="empire-review-author">${name}</h4>
+                                            <div class="empire-star-badge"><span>★</span> ${r.rating}.0</div>
+                                        </div>
+                                        <p class="empire-review-role">Verified Customer</p>
+                                    </div>
+                                </div>
+                                <p class="empire-review-body">${r.body || ''}</p>
                             </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     } else {
-                        content.innerHTML = '<p>No reviews yet.</p>';
+                        content.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0a0a0;">No reviews yet.</div>';
                     }
                     panel.dataset.loaded = 'true';
                 })
                 .catch(e => {
-                    panel.querySelector('.empire-floating-content').innerHTML = '<p>Failed to load reviews.</p>';
+                    panel.querySelector('.empire-floating-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Failed to load reviews.</div>';
                 });
         }
     };
-    window.EmpireWidgets.closeFloatingTab = function(btn) {
+    window.EmpireFloatingTab.close = function(btn) {
         btn.closest('.empire-floating-panel').classList.remove('empire-open');
     };
 </script>
@@ -137,22 +379,32 @@
       "default": "right"
     },
     {
+      "type": "select",
+      "id": "panel_size",
+      "label": "Panel Size",
+      "options": [
+        { "value": "floating", "label": "Floating Dialog (Half)" },
+        { "value": "full", "label": "Sidebar (Full Height)" }
+      ],
+      "default": "floating"
+    },
+    {
       "type": "color",
       "id": "primary_color",
-      "label": "Primary Color",
-      "default": "#f59e0b"
+      "label": "Button Color",
+      "default": "#1e4b33"
     },
     {
       "type": "color",
       "id": "bg_color",
       "label": "Background Color",
-      "default": "#ffffff"
+      "default": "#fdfdfd"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text Color",
-      "default": "#1e293b"
+      "default": "#2b2b2b"
     }
   ]
 }
