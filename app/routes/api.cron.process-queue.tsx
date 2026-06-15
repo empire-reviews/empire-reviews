@@ -45,22 +45,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         return json({ success: true, message: "No pending orders found." });
     }
 
-    // 3. Fetch Settings for these Shops to get Delays
+    // 3. Fetch Settings for these Shops to get Delays and verify PRO Plan
     const uniqueShops = [...new Set(pendingOrders.map(o => o.shop))];
     const shopSettings = await prisma.settings.findMany({
         where: { shop: { in: uniqueShops } },
-        select: { shop: true, reviewRequestDelay: true }
+        select: { shop: true, reviewRequestDelay: true, plan: true }
     });
 
     const delayMap: Record<string, number> = {};
+    const proShops = new Set<string>();
+
     shopSettings.forEach(s => {
         delayMap[s.shop] = s.reviewRequestDelay || CRON_CONFIG.DEFAULT_DELAY_DAYS;
+        if (s.plan === "EMPIRE_PRO") {
+            proShops.add(s.shop);
+        }
     });
 
-    console.log(`🔍 Analyzing ${pendingOrders.length} candidates across ${uniqueShops.length} shops.`);
+    console.log(`🔍 Analyzing ${pendingOrders.length} candidates. Found ${proShops.size} active PRO shops.`);
 
     // 4. Filter orders ready for sending based on fulfillment/delivery dates
     const readyOrders = pendingOrders.filter(order => {
+        // STRICT GATING: Only send emails for shops on the EMPIRE_PRO plan
+        if (!proShops.has(order.shop)) return false;
+
         if (!order.customerEmail) return false;
         if (!order.fulfilledAt && !order.deliveredAt) return false;
 

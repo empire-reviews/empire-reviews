@@ -319,7 +319,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const hasMore = reviews.length === limit;
         
         // Handle AI Summary intent
-        if (url.searchParams.get("intent") === "summary" && settings?.aiProvider) {
+        if (url.searchParams.get("intent") === "summary") {
+            if (!settings || settings.plan !== "EMPIRE_PRO") {
+                return json({ error: "Feature requires Empire Pro" }, { status: 403, headers: corsHeaders(request) });
+            }
+            if (!settings.aiProvider) {
+                return json({ error: "AI Provider not configured" }, { status: 400, headers: corsHeaders(request) });
+            }
             try {
                 const { generateInsights } = await import("../services/ai.server");
                 const insightReviews = reviews.map(r => ({ body: r.body, rating: r.rating }));

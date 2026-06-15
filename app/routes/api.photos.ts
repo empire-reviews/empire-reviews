@@ -31,6 +31,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
 
     try {
+        // Strict Billing Check
+        const settings = await prisma.settings.findUnique({
+            where: { shop: shop },
+            select: { plan: true }
+        });
+
+        if (!settings || settings.plan !== "EMPIRE_PRO") {
+            return json({ photos: [], error: "Feature requires Empire Pro" }, { status: 403, headers: corsHeaders(request) });
+        }
+
         const mediaRecords = await prisma.reviewMedia.findMany({
             where: {
                 review: {
