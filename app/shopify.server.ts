@@ -7,7 +7,7 @@ import {
   BillingReplacementBehavior,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import prisma from "./db.server";
+import prisma, { withRetry } from "./db.server";
 
 // Global sanitization for Vercel environment corruption
 process.env.SHOPIFY_API_KEY = (process.env.SHOPIFY_API_KEY || "").trim();
@@ -16,6 +16,26 @@ process.env.SHOPIFY_APP_URL = (process.env.SHOPIFY_APP_URL || "").trim();
 process.env.SCOPES = (process.env.SCOPES || "").trim();
 process.env.DATABASE_URL = (process.env.DATABASE_URL || "").trim();
 
+// A wrapper that lazily initializes PrismaSessionStorage and retries on cold starts
+class RetryablePrismaSessionStorage {
+  private storage: PrismaSessionStorage | null = null;
+
+  private async getStorage() {
+    if (!this.storage) {
+        // Warm up the DB connection with retries BEFORE letting PrismaSessionStorage run ensureReady()
+        await withRetry(() => prisma.session.count(), 5);
+        this.storage = new PrismaSessionStorage(prisma);
+    }
+    return this.storage;
+  }
+
+  async storeSession(session: any) { return (await this.getStorage()).storeSession(session); }
+  async loadSession(id: string) { return (await this.getStorage()).loadSession(id); }
+  async deleteSession(id: string) { return (await this.getStorage()).deleteSession(id); }
+  async deleteSessions(ids: string[]) { return (await this.getStorage()).deleteSessions(ids); }
+  async findSessionsByShop(shop: string) { return (await this.getStorage()).findSessionsByShop(shop); }
+}
+
 const shopify = shopifyApp({
   apiKey: (process.env.SHOPIFY_API_KEY || "").trim(),
   apiSecretKey: (process.env.SHOPIFY_API_SECRET || "").trim(),
@@ -23,7 +43,7 @@ const shopify = shopifyApp({
   // Scopes managed via shopify.app.toml (use_legacy_install_flow = false)
   appUrl: (process.env.SHOPIFY_APP_URL || "https://empire-reviews.vercel.app").trim(),
   authPathPrefix: "/auth",
-  sessionStorage: new PrismaSessionStorage(prisma),
+  sessionStorage: new RetryablePrismaSessionStorage() as any,
   distribution: AppDistribution.AppStore,
   billing: {
     "Empire Pro": {
@@ -57,20 +77,4 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
-
-// Override authenticate to add retry logic for transient Vercel cold-start DB timeouts
-export const authenticate = {
-  ...shopify.authenticate,
-  admin: async (request: Request) => {
-    try {
-      return await shopify.authenticate.admin(request);
-    } catch (error: any) {
-      if (error?.message?.includes("Prisma session table does not exist")) {
-        console.warn("[shopify] Caught transient session table error, retrying in 1s...");
-        await new Promise(r => setTimeout(r, 1000));
-        return await shopify.authenticate.admin(request);
-      }
-      throw error;
-    }
-  }
-};
+export const authenticate = shopify.authenticate;
