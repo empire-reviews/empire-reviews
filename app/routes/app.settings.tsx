@@ -126,7 +126,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     let enableGoogle = formData.get("enableGoogle") === "true";
 
     // Double check gating on server side
-    const isPro = await hasActivePayment(billing, session);
+    const { isPlanPro } = await import("../billing.server");
+    const isPro = await isPlanPro(session.shop);
     if (!isPro) {
         enableGoogle = false; // Force disable if not pro
         aiProvider = null; // Force disable AI if not pro

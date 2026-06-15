@@ -92,25 +92,25 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const batchResults = await sendWithRateLimit(
         readyOrders,
         async (order) => {
-            // IDEMPOTENCY: Check if we already sent for this order+campaign combo
             const activeCampaign = campaignMap[order.shop];
-            if (activeCampaign) {
-                const existingSend = await prisma.campaignSend.findFirst({
-                    where: {
-                        orderId: order.id,
-                        campaignId: activeCampaign.id
-                    }
-                });
+            const campaignId = activeCampaign ? activeCampaign.id : "default";
 
-                if (existingSend) {
-                    console.log(`⏭️ Skipping duplicate send for order ${order.id}`);
-                    // Mark as sent to avoid re-processing
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: { reviewRequestStatus: "sent" }
-                    });
-                    return { orderId: order.id, status: "skipped_duplicate" };
+            // IDEMPOTENCY: Check if we already sent for this order
+            const existingSend = await prisma.campaignSend.findFirst({
+                where: {
+                    orderId: order.id,
+                    customerEmail: order.customerEmail!
                 }
+            });
+
+            if (existingSend) {
+                console.log(`⏭️ Skipping duplicate send for order ${order.id}`);
+                // Mark as sent to avoid re-processing
+                await prisma.order.update({
+                    where: { id: order.id },
+                    data: { reviewRequestStatus: "sent" }
+                });
+                return { orderId: order.id, status: "skipped_duplicate" };
             }
 
             const subjectTemplate = activeCampaign?.subject || "How was your order from {{ store_name }}?";
@@ -137,17 +137,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 .replace(/{{ product_title }}/g, resolvedProductTitle);
 
             // A. Create CampaignSend record BEFORE sending (for idempotency)
-            let sendRecord = null;
-            if (activeCampaign) {
-                sendRecord = await prisma.campaignSend.create({
-                    data: {
-                        campaignId: activeCampaign.id,
-                        customerEmail: order.customerEmail!,
-                        orderId: order.id,
-                        sentAt: new Date()
-                    }
-                });
-            }
+            let sendRecord = await prisma.campaignSend.create({
+                data: {
+                    campaignId: campaignId,
+                    shop: order.shop,
+                    customerEmail: order.customerEmail!,
+                    orderId: order.id,
+                    status: "pending"
+                }
+            });
 
             // B. Send Email via Resend (with rate limiting + retries built-in)
             const emailResult = await sendCampaignEmail(

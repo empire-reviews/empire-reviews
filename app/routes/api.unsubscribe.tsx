@@ -64,3 +64,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         );
     }
 };
+
+export const action = async ({ request }: LoaderFunctionArgs) => {
+    if (request.method !== "POST") {
+        return new Response("Method Not Allowed", { status: 405 });
+    }
+
+    const url = new URL(request.url);
+    const email = url.searchParams.get("email");
+    const shop = url.searchParams.get("shop");
+    const token = url.searchParams.get("token");
+
+    if (!email || !shop || !token || !verifyUnsubscribeToken(email, shop, token)) {
+        return new Response("Invalid Request", { status: 400 });
+    }
+
+    try {
+        await prisma.unsubscriber.upsert({
+            where: { email_shop: { email, shop } },
+            update: {},
+            create: { email, shop }
+        });
+        return new Response("OK", { status: 200 });
+    } catch (error) {
+        console.error("POST Unsubscribe Error:", error);
+        return new Response("Server Error", { status: 500 });
+    }
+};

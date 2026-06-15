@@ -580,13 +580,15 @@ export default function ReviewsPage() {
                                     const pendingIds = reviews.filter(r => r.status === 'pending').map(r => r.id);
                                     fetcher.submit({ intent: 'bulk_approve_reviews', reviewIds: JSON.stringify(pendingIds) }, { method: 'post' });
                                 }}
+                                disabled={fetcher.state !== "idle"}
                                 style={{
                                     background: '#f59e0b', color: 'white', border: 'none', borderRadius: '8px',
-                                    padding: '8px 16px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                                    padding: '8px 16px', fontWeight: 700, cursor: fetcher.state !== "idle" ? 'wait' : 'pointer', whiteSpace: 'nowrap',
                                     fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(245,158,11,0.35)',
+                                    opacity: fetcher.state !== "idle" ? 0.7 : 1
                                 }}
                             >
-                                ✓ Approve All
+                                {fetcher.state !== "idle" ? "Approving..." : "✓ Approve All"}
                             </button>
                         </div>
                     )}
@@ -739,6 +741,7 @@ export default function ReviewsPage() {
                             content: "Delete Forever",
                             onAction: handleConfirmDelete,
                             destructive: true,
+                            loading: fetcher.state !== "idle",
                         }}
                         secondaryActions={[
                             {
@@ -772,6 +775,7 @@ export default function ReviewsPage() {
                             content: "Delete All Selected",
                             onAction: handleConfirmBulkDelete,
                             destructive: true,
+                            loading: fetcher.state !== "idle",
                         }}
                         secondaryActions={[
                             {

@@ -105,8 +105,34 @@ const EmpireWidgets = (function() {
         async submitReview(event) {
             if (event && event.preventDefault) event.preventDefault();
 
+            const showError = (msg) => {
+                let errEl = document.getElementById('empire-form-error');
+                if (!errEl) {
+                    errEl = document.createElement('div');
+                    errEl.id = 'empire-form-error';
+                    errEl.style.color = '#ef4444';
+                    errEl.style.fontSize = '0.85rem';
+                    errEl.style.marginBottom = '12px';
+                    errEl.style.textAlign = 'center';
+                    errEl.style.background = 'rgba(239, 68, 68, 0.1)';
+                    errEl.style.padding = '8px';
+                    errEl.style.borderRadius = '6px';
+                    const btn = document.getElementById('empire-submit-btn');
+                    if (btn && btn.parentNode) btn.parentNode.insertBefore(errEl, btn);
+                }
+                errEl.innerText = msg;
+                errEl.style.display = 'block';
+            };
+
+            const hideError = () => {
+                const errEl = document.getElementById('empire-form-error');
+                if (errEl) errEl.style.display = 'none';
+            };
+
+            hideError();
+
             if (currentRatingSelected === 0) {
-                alert("Please select a star rating first.");
+                showError("Please select a star rating first.");
                 return;
             }
 
@@ -158,10 +184,11 @@ const EmpireWidgets = (function() {
                         if (picker) picker.style.display = 'flex';
                     }, 2500);
                 } else {
-                    throw new Error("Server error");
+                    const resData = await response.json().catch(() => ({}));
+                    throw new Error(resData.error || "Server error");
                 }
             } catch (error) {
-                alert("Failed to submit review. Please try again.");
+                showError(error.message || "Failed to submit review. Please try again.");
                 submitBtn.innerText = originalText;
                 submitBtn.disabled = false;
             }
@@ -561,7 +588,7 @@ const EmpireWidgets = (function() {
                     const data = await res.json();
 
                     if (!data.reviews || data.reviews.length === 0) {
-                        track.innerHTML = '<div style="width:100%; text-align:center; padding: 40px; color:#64748b;">No featured reviews found.</div>';
+                        section.style.display = 'none'; // Gracefully hide instead of showing empty text
                         continue;
                     }
 
@@ -688,7 +715,7 @@ const EmpireWidgets = (function() {
 
                 } catch (e) {
                     console.error("Carousel render error:", e);
-                    track.innerHTML = '<div style="width:100%; text-align:center; padding: 40px; color:#ef4444;">Failed to load reviews.</div>';
+                    section.style.display = 'none'; // Gracefully hide instead of red error text
                 }
             }
         },

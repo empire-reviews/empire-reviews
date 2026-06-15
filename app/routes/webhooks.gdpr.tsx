@@ -24,11 +24,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     where: { customerEmail },
                     select: { id: true, totalPrice: true, createdAt: true },
                 });
-                console.log(`Customer data request for ${customerEmail}:`, {
+                console.log(`Customer data request processed for redacted email:`, {
                     reviewCount: reviews.length,
                     orderCount: orders.length,
-                    reviews,
-                    orders,
                 });
             }
         }
@@ -49,7 +47,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 const deletedOrders = await prisma.order.deleteMany({
                     where: { customerEmail },
                 });
-                console.log(`Customer redacted (${customerEmail}): ${deletedReviews.count} reviews, ${deletedSends.count} campaign sends, ${deletedOrders.count} orders deleted.`);
+                // Delete unsubscriber records
+                const deletedUnsubs = await prisma.unsubscriber.deleteMany({
+                    where: { email: customerEmail },
+                });
+                console.log(`Customer redacted: ${deletedReviews.count} reviews, ${deletedOrders.count} orders, ${deletedUnsubs.count} unsub records deleted.`);
             }
         }
 
@@ -88,6 +90,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
                 // 8. Delete settings
                 await prisma.settings.deleteMany({ where: { shop } });
+
+                // 8.5 Delete unsubscribers
+                await prisma.unsubscriber.deleteMany({ where: { shop } });
 
                 // 9. Delete sessions (last, since other operations may need them)
                 await prisma.session.deleteMany({ where: { shop } });
