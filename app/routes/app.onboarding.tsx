@@ -19,7 +19,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { requirePayment } from "../billing.server";
+// import { requirePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
@@ -68,7 +68,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     if (intent === "upgrade") {
-        return await requirePayment(billing);
+        // return await requirePayment(billing);
+        return redirect("/app?upgraded=true");
     }
 
     return redirect("/app");
