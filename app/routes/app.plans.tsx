@@ -54,6 +54,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ success: false, message: "Invalid access code." });
     }
 
+    if (intent === "downgrade") {
+        // 1. Cancel the active Shopify subscription (if any)
+        const { cancelPayment } = await import("../billing.server");
+        await cancelPayment(billing);
+
+        // 2. Immediately downgrade the user in our database
+        await prisma.settings.update({
+            where: { shop: session.shop },
+            data: { plan: "FREE" }
+        });
+
+        return json({ success: true, message: "Successfully switched to the Starter Plan." });
+    }
+
     // Billing upgrade flow
     try {
         return await requirePayment(billing);
@@ -635,9 +649,12 @@ export default function PlansPage() {
 
                         <button
                             className={`zenith-btn btn-starter ${isPro ? '' : 'btn-disabled'}`}
-                            disabled={!isPro}
+                            onClick={() => {
+                                if (isPro) fetcher.submit({ intent: 'downgrade' }, { method: 'POST' });
+                            }}
+                            disabled={!isPro || fetcher.state === 'submitting'}
                         >
-                            {isPro ? "Switch to Starter" : "Current Plan"}
+                            {isPro ? (fetcher.state === 'submitting' ? "Downgrading..." : "Switch to Starter") : "Current Plan"}
                         </button>
                     </div>
 

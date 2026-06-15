@@ -120,3 +120,26 @@ export async function requirePayment(
         returnUrl: `${appUrl}/app/settings`,
     });
 }
+
+export async function cancelPayment(
+    billing: Awaited<ReturnType<typeof authenticate.admin>>["billing"]
+) {
+    try {
+        const billingCheck = await billing.check({
+            plans: [MONTHLY_PLAN],
+            isTest: IS_TEST_CHARGE,
+        });
+
+        if (billingCheck.hasActivePayment && billingCheck.appSubscriptions.length > 0) {
+            await billing.cancel({
+                subscriptionId: billingCheck.appSubscriptions[0].id,
+                isTest: IS_TEST_CHARGE,
+                prorate: true,
+            });
+        }
+        return true;
+    } catch (error) {
+        console.error("Failed to cancel payment", error);
+        return false;
+    }
+}
