@@ -357,30 +357,63 @@ export default function Onboarding() {
             <style>{`
                 .onboarding-wrapper {
                     min-height: 100vh;
-                    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                    background: #f1f5f9;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     padding: 2rem;
                     font-family: 'Inter', sans-serif;
                 }
-                .onboarding-card {
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.8);
-                    border-radius: 32px;
-                    padding: 3.5rem;
+                .split-container {
+                    display: flex;
                     width: 100%;
-                    max-width: 800px;
-                    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1),
-                                0 0 0 1px rgba(255, 255, 255, 0.4) inset;
-                    transform-style: preserve-3d;
-                    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    max-width: 1200px;
+                    min-height: 750px;
+                    background: white;
+                    border-radius: 32px;
+                    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.15);
+                    overflow: hidden;
+                    position: relative;
                 }
-                .onboarding-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 50px 120px -20px rgba(0, 0, 0, 0.15),
-                                0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+                .brand-panel {
+                    flex: 0 0 40%;
+                    background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%);
+                    padding: 4rem;
+                    color: white;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    position: relative;
+                    overflow: hidden;
+                }
+                @media (max-width: 900px) {
+                    .split-container { flex-direction: column; }
+                    .brand-panel { flex: none; padding: 3rem 2rem; min-height: 300px; }
+                }
+                .brand-glow {
+                    position: absolute;
+                    top: -30%;
+                    left: -30%;
+                    width: 160%;
+                    height: 160%;
+                    background: radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 60%);
+                    animation: rotate 25s linear infinite;
+                    pointer-events: none;
+                }
+                @keyframes rotate {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .form-panel {
+                    flex: 1;
+                    padding: 4rem;
+                    display: flex;
+                    flex-direction: column;
+                    background: white;
+                    position: relative;
+                }
+                @media (max-width: 900px) {
+                    .form-panel { padding: 2rem; }
                 }
                 .progress-container {
                     margin-bottom: 3rem;
@@ -417,9 +450,8 @@ export default function Onboarding() {
                     gap: 2rem;
                     margin-top: 2rem;
                 }
-                @media (max-width: 768px) {
+                @media (max-width: 1024px) {
                     .plans-grid { grid-template-columns: 1fr; }
-                    .onboarding-card { padding: 2rem; }
                 }
                 .plan-card {
                     background: white;
@@ -455,10 +487,6 @@ export default function Onboarding() {
                     animation: rotate 15s linear infinite;
                     pointer-events: none;
                 }
-                @keyframes rotate {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
                 .nav-btn {
                     padding: 14px 28px;
                     border-radius: 12px;
@@ -492,25 +520,69 @@ export default function Onboarding() {
                 }
             `}</style>
 
-            <div className="onboarding-card">
-                <div className="progress-container">
-                    <div className="progress-bar-bg">
-                        <div className="progress-bar-fill" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+            <div className="split-container">
+                {/* BRAND PANEL */}
+                <div className="brand-panel">
+                    <div className="brand-glow"></div>
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '4rem' }}>
+                            <div style={{
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                width: '56px', height: '56px',
+                                borderRadius: '16px',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 10px 25px -5px rgba(16,185,129,0.5)'
+                            }}>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 19H21V21H3V19ZM12 4L16.5 12L21 6L19 17H5L3 6L7.5 12L12 4Z" fill="white"/>
+                                </svg>
+                            </div>
+                            <span style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.5px' }}>Empire</span>
+                        </div>
+                        
+                        <h1 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '1.5rem' }}>
+                            Build<br/>Your<br/><span style={{ color: '#34d399' }}>Empire.</span>
+                        </h1>
+                        <p style={{ fontSize: '1.25rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                            Collect powerful social proof, turn your customers into fierce advocates, and skyrocket your store's sales.
+                        </p>
+                    </div>
+                    
+                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex' }}>
+                            {[1,2,3,4,5].map(i => (
+                                <svg key={i} width="24" height="24" viewBox="0 0 24 24" fill="#fbbf24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 17.27L18.18 21L16.54 13.97L22 9.24L14.81 8.63L12 2L9.19 8.63L2 9.24L7.46 13.97L5.82 21L12 17.27Z" />
+                                </svg>
+                            ))}
+                        </div>
+                        <span style={{ color: '#cbd5e1', fontSize: '1rem', fontWeight: 600 }}>Trusted by premium brands</span>
                     </div>
                 </div>
-                
-                {renderStepContent()}
-                
-                {step < 6 && (
-                    <div style={{ marginTop: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        {step > 1 ? (
-                            <button className="nav-btn btn-back" onClick={handleBack}>← Back</button>
-                        ) : (
-                            <div />
-                        )}
-                        <button className="nav-btn btn-next" onClick={handleNext}>Next Step →</button>
+
+                {/* FORM PANEL */}
+                <div className="form-panel">
+                    <div className="progress-container">
+                        <div className="progress-bar-bg">
+                            <div className="progress-bar-fill" style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+                        </div>
                     </div>
-                )}
+                    
+                    <div style={{ flex: 1 }}>
+                        {renderStepContent()}
+                    </div>
+                    
+                    {step < 6 && (
+                        <div style={{ marginTop: '3.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            {step > 1 ? (
+                                <button className="nav-btn btn-back" onClick={handleBack}>← Back</button>
+                            ) : (
+                                <div />
+                            )}
+                            <button className="nav-btn btn-next" onClick={handleNext}>Next Step →</button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
