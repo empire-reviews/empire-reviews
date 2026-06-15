@@ -730,6 +730,7 @@ export default function EmpireDashboard() {
               </div>
             </Layout.Section>
           </Layout>
+          <div style={{ height: '3rem' }}></div>
 
         </BlockStack>
       </Page >
