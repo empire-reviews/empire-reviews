@@ -101,6 +101,12 @@ model Settings {
   enableGoogle           Boolean @default(false)
   plan                   String  @default("FREE") // FREE, EMPIRE_PRO
   hasCompletedOnboarding Boolean @default(false)
+  adminEmail             String?
+  language               String  @default("en")
+  businessType           String?
+  isDropshipping         Boolean @default(false)
+  acquisitionStrategy    String? // JSON string
+  storeLogoUrl           String?
 
   // AI Configuration (BYOK)
   aiProvider          String? // "openai" | "gemini" | "claude" | "deepseek" | "ollama"
