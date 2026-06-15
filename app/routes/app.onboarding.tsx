@@ -22,9 +22,9 @@ import prisma from "../db.server";
 // import { requirePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    // const { session } = await authenticate.admin(request);
     return json({
-        shop: session.shop,
+        shop: "alpha-testing-47.myshopify.com",
         extensionId: process.env.SHOPIFY_APP_EXTENSION_ID || "",
     });
 };

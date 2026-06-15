@@ -1,6 +1,6 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { Link, Outlet, useLoaderData, useRouteError, isRouteErrorResponse } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
@@ -40,9 +40,29 @@ export default function App() {
   );
 }
 
-// Shopify needs Remix to catch some thrown responses, so that their headers are included in the response.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+  let errorMessage = "Unknown error";
+  let errorStack = "";
+
+  if (error instanceof Error) {
+    errorMessage = error.message;
+    errorStack = error.stack || "";
+  } else if (isRouteErrorResponse(error)) {
+    errorMessage = `${error.status} ${error.statusText} - ${error.data}`;
+  } else {
+    errorMessage = String(error);
+  }
+
+  return (
+    <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
+      <h1 style={{ color: "red" }}>GLOBAL CRASH!</h1>
+      <p style={{ fontWeight: "bold" }}>{errorMessage}</p>
+      <pre style={{ background: "#eee", padding: "1rem", overflowX: "auto" }}>
+        {errorStack}
+      </pre>
+    </div>
+  );
 }
 
 export const headers: HeadersFunction = (headersArgs) => {
