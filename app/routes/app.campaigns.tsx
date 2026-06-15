@@ -389,7 +389,7 @@ export default function CampaignsPage() {
                                 <div className="prism-label"><span className="prism-spark" style={{ background: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>Reviews</div>
                                 <div className="prism-val">{stats.generatedReviews}</div>
                                 {stats.weeklySends > 0 && (
-                                    <Badge tone="attention">+{stats.weeklySends} This Week</Badge>
+                                    <Badge tone="attention">{`+${stats.weeklySends} This Week`}</Badge>
                                 )}
                             </div>
                         </div>

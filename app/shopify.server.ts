@@ -18,7 +18,7 @@ process.env.DATABASE_URL = (process.env.DATABASE_URL || "").trim();
 
 // A wrapper that lazily initializes PrismaSessionStorage and retries on cold starts
 class RetryablePrismaSessionStorage {
-  private storage: PrismaSessionStorage | null = null;
+  private storage: PrismaSessionStorage<any> | null = null;
 
   private async getStorage() {
     if (!this.storage) {
