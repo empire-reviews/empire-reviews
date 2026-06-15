@@ -467,7 +467,7 @@ export default function ImpactPage() {
                                         <Text as="p" variant="bodyMd" fontWeight="semibold">
                                             Product ID: {topProductId}
                                         </Text>
-                                        <Badge tone="success">{topProductAvg} ★</Badge>
+                                        <Badge tone="success">{`${topProductAvg} ★`}</Badge>
                                         <Text as="p" tone="subdued">
                                             ({topProductCount} {topProductCount === 1 ? "review" : "reviews"})
                                         </Text>

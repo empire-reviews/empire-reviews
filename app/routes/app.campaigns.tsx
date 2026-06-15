@@ -46,73 +46,81 @@ import { isPlanPro } from "../billing.server";
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { admin, session } = await authenticate.admin(request);
-    const isPro = await isPlanPro(session.shop);
+    try {
+        const { admin, session } = await authenticate.admin(request);
+        const isPro = await isPlanPro(session.shop);
 
-    // 1. Fetch campaigns from DB
-    const dbCampaigns = await prisma.campaign.findMany({
-        where: { shop: session.shop },
-        orderBy: { createdAt: 'desc' },
-        include: { metrics: true }
-    });
+        // 1. Fetch campaigns from DB
+        const dbCampaigns = await prisma.campaign.findMany({
+            where: { shop: session.shop },
+            orderBy: { createdAt: 'desc' },
+            include: { metrics: true }
+        });
 
-    // 2. Fetch True Audience Size & Live Mock Data
-    const audienceGroup = await prisma.order.groupBy({
-        by: ['customerEmail'],
-        where: { shop: session.shop, customerEmail: { not: null } }
-    });
-    const potentialAudience = audienceGroup.length;
+        // 2. Fetch True Audience Size & Live Mock Data
+        const audienceGroup = await prisma.order.groupBy({
+            by: ['customerEmail'],
+            where: { shop: session.shop, customerEmail: { not: null } }
+        });
+        const potentialAudience = audienceGroup.length;
 
-    const orderResponse = await admin.graphql(
-        `#graphql
-        query getLatestOrder {
-            orders(first: 1, reverse: true) {
-                nodes {
-                    customer { firstName }
-                    lineItems(first: 1) { nodes { product { title } } }
+        const orderResponse = await admin.graphql(
+            `#graphql
+            query getLatestOrder {
+                orders(first: 1, reverse: true) {
+                    nodes {
+                        customer { firstName }
+                        lineItems(first: 1) { nodes { product { title } } }
+                    }
                 }
+            }`
+        );
+        const orderData = await orderResponse.json();
+        const latestOrder = orderData.data?.orders?.nodes?.[0];
+        const mockCustomerName = latestOrder?.customer?.firstName || "Valued Customer";
+        const mockProductTitle = latestOrder?.lineItems?.nodes?.[0]?.product?.title || "Premium Item";
+
+        // 3. Calculate Aggregate Stats
+        const totalSent = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalSent || 0), 0);
+        const totalOpened = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalOpened || 0), 0);
+        const totalClicked = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalClicked || 0), 0);
+        const totalReviews = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalReviews || 0), 0);
+
+        // Avoid division by zero
+        const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+        const clickRate = totalSent > 0 ? Math.round((totalClicked / totalSent) * 100) : 0;
+
+        const thisWeekStarts = new Date();
+        thisWeekStarts.setDate(thisWeekStarts.getDate() - 7);
+        const weeklySends = await prisma.campaignSend.count({
+            where: { 
+                status: "SENT",
+                campaign: {
+                    shop: session.shop
+                },
+                sentAt: { gte: thisWeekStarts } 
             }
-        }`
-    );
-    const orderData = await orderResponse.json();
-    const latestOrder = orderData.data?.orders?.nodes?.[0];
-    const mockCustomerName = latestOrder?.customer?.firstName || "Valued Customer";
-    const mockProductTitle = latestOrder?.lineItems?.nodes?.[0]?.product?.title || "Premium Item";
+        });
 
-    // 3. Calculate Aggregate Stats
-    const totalSent = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalSent || 0), 0);
-    const totalOpened = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalOpened || 0), 0);
-    const totalClicked = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalClicked || 0), 0);
-    const totalReviews = dbCampaigns.reduce((acc: number, c: any) => acc + (c.metrics?.totalReviews || 0), 0);
-
-    // Avoid division by zero
-    const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
-    const clickRate = totalSent > 0 ? Math.round((totalClicked / totalSent) * 100) : 0;
-
-    const thisWeekStarts = new Date();
-    thisWeekStarts.setDate(thisWeekStarts.getDate() - 7);
-    const weeklySends = await prisma.campaignSend.count({
-        where: { 
-            status: "SENT",
-            campaign: {
-                shop: session.shop
-            },
-            sentAt: { gte: thisWeekStarts } 
-        }
-    });
-
-    return json({
-        stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience, weeklySends },
-        mockData: { customerName: mockCustomerName, productTitle: mockProductTitle, storeName: session.shop },
-        activeCampaigns: dbCampaigns.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            status: c.status,
-            sent: c.metrics?.totalSent || 0,
-            openRate: c.metrics?.openRate ? `${c.metrics.openRate.toFixed(1)}%` : "0%"
-        })),
-        isPro
-    });
+        return json({
+            stats: { openRate, clickRate, generatedReviews: totalReviews, potentialAudience, weeklySends },
+            mockData: { customerName: mockCustomerName, productTitle: mockProductTitle, storeName: session.shop },
+            activeCampaigns: dbCampaigns.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                status: c.status,
+                sent: c.metrics?.totalSent || 0,
+                openRate: c.metrics?.openRate ? `${c.metrics.openRate.toFixed(1)}%` : "0%"
+            })),
+            isPro
+        });
+    } catch (error) {
+        if (error instanceof Response) throw error;
+        console.error("[campaigns] Unhandled loader error:", error);
+        const msg = error instanceof Error ? error.message : String(error);
+        const stack = error instanceof Error ? error.stack : "";
+        throw new Response(stack || msg, { status: 500, statusText: "Loader Crash" });
+    }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
