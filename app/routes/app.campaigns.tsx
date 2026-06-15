@@ -92,7 +92,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const thisWeekStarts = new Date();
     thisWeekStarts.setDate(thisWeekStarts.getDate() - 7);
     const weeklySends = await prisma.campaignSend.count({
-        where: { shop: session.shop, sentAt: { gte: thisWeekStarts } }
+        where: { 
+            status: "SENT",
+            campaign: {
+                shop: session.shop
+            },
+            sentAt: { gte: thisWeekStarts } 
+        }
     });
 
     return json({
