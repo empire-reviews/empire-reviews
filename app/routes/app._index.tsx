@@ -375,7 +375,7 @@ export default function EmpireDashboard() {
                     {metrics.totalReviews === 0
                       ? "Launch a campaign to get your first review!"
                       : metrics.reviewTrend > 0
-                      ? `Your review generation is up by ${metrics.reviewTrend} this month. Keep it going!`
+                      ? `Your review generation is up by ${metrics.reviewTrend} this week. Keep it going!`
                       : "Steady progress. Launch a campaign to boost your collection rate!"}
                   </p>
                 </div>
@@ -707,12 +707,12 @@ export default function EmpireDashboard() {
                           {impact?.formatted || "$0.00"}
                         </div>
                         <p style={{ opacity: 0.8, fontSize: '0.8rem', marginTop: '4px' }}>
-                          Revenue affected by reviews
+                          Fulfilled order value tracked
                         </p>
                       </div>
                     ) : (
                       <>
-                        <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>AI-driven revenue correlation.</p>
+                        <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>See your weekly review trend, reply rate &amp; fulfillment conversion.</p>
                         <div className="blurred-preview" style={{ marginTop: '6px' }}>
                           <div style={{ height: '28px', display: 'flex', alignItems: 'flex-end', gap: '3px' }}>
                             {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
@@ -721,7 +721,7 @@ export default function EmpireDashboard() {
                           </div>
                         </div>
                         <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600 }}>
-                          Unlock Analytics →
+                          Unlock Impact Analytics →
                         </div>
                       </>
                     )}

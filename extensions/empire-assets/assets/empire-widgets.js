@@ -358,8 +358,6 @@ const EmpireWidgets = (function() {
         },
 
         async renderReviewLists() {
-            // ... omitting for brevity if I was fully rewriting but I MUST include it to not break it.
-            // Oh, I can just write the whole thing cleanly. Let's do it.
             const widgets = document.querySelectorAll('.empire-reviews-widget');
             if (!widgets.length) return;
 

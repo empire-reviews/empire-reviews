@@ -27,3 +27,9 @@ pnpm-lock.yaml
 
 # Claude Code agent worktrees
 .claude/
+
+# Throwaway / junk files
+*.zip
+check-db.*
+rewrite.cjs
+prisma/seed*.ts

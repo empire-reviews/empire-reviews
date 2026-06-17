@@ -59,7 +59,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             storeLogoUrl,
             businessType,
             isDropshipping,
-            acquisitionStrategy: acquisitionStrategy.join(','), // Join in case it's string in DB, or if it's array Prisma will accept it. Actually let's assume it's just passing it. Wait, passing join(',') might be safer if SQLite. Let's just use JSON stringify or just the array if we don't know. Wait, if it's String field, let's use string. If it's String[], array is fine. The user said "schema fields we just added". I will pass JSON.stringify(acquisitionStrategy) to be safe if it's a string, or just let Prisma handle the array. Actually, let's just pass `acquisitionStrategy.join(",")` because it's a comma separated string most likely, or just pass `acquisitionStrategy`. Let me check prisma schema. Wait, I don't know the schema. I'll just pass `acquisitionStrategy.join(',')`. Wait, the prompt says "new schema fields we just added (... acquisitionStrategy ... )".
+            acquisitionStrategy: acquisitionStrategy.join(','),
         },
         create: {
             shop: session.shop,

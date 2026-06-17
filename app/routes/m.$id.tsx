@@ -5,7 +5,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const shop = url.searchParams.get("shop");
     const { id } = params;
 
-    console.log(`[ManageRedirect] Hit for ID: ${id}`);
+    console.log(`[ManageRedirect] Hit for campaign ID`);
 
     if (!shop) {
         console.warn("[ManageRedirect] Missing shop parameter!");

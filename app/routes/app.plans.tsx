@@ -744,8 +744,8 @@ export default function PlansPage() {
                             <FeatureItem text="Custom Webhooks" />
                         </div>
 
-                        <button className="zenith-btn btn-starter btn-disabled" disabled>
-                            Join Waitlist
+                        <button className="zenith-btn btn-starter btn-disabled" disabled style={{ cursor: 'default' }}>
+                            Coming Soon
                         </button>
                     </div>
                 </div>

@@ -44,6 +44,12 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
         const physicalAddress = (shopSettings as any)?.physicalAddress;
 
+        // CAN-SPAM requirement: physical address is mandatory before sending
+        if (!physicalAddress) {
+            console.warn(`[email] Skipping email send to ${toEmail} for shop ${shopDomain}: physicalAddress not configured (CAN-SPAM requirement). Set it in Settings > Automation.`);
+            return { success: false, error: "physicalAddress not configured" };
+        }
+
         // CAN-SPAM compliant footer with actual physical address
         const footer = buildComplianceFooter(shopDomain, unsubscribeLink, physicalAddress);
 
@@ -132,6 +138,12 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
             select: { physicalAddress: true } as any
         });
         const physicalAddress = (shopSettings as any)?.physicalAddress;
+
+        // CAN-SPAM requirement: physical address is mandatory before sending
+        if (!physicalAddress) {
+            console.warn(`[email] Skipping campaign email to ${toEmail} for shop ${shopDomain}: physicalAddress not configured (CAN-SPAM requirement). Set it in Settings > Automation.`);
+            return { success: false, error: "physicalAddress not configured" };
+        }
 
         // CAN-SPAM compliant footer with actual physical address
         const footer = buildComplianceFooter(shopDomain, unsubscribeLink, physicalAddress);

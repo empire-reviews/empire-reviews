@@ -23,7 +23,7 @@ export function generateUnsubscribeToken(email: string, shop: string): string {
         .createHmac('sha256', getSecret())
         .update(data)
         .digest('hex')
-        .slice(0, 16); // First 16 chars for shorter URLs
+        .slice(0, 32); // 32 hex chars = 128 bits (minimum recommended token entropy)
 }
 
 /**
@@ -56,7 +56,7 @@ export function generateTrackingToken(sendId: string): string {
         .createHmac('sha256', getSecret())
         .update(`track:${sendId}`)
         .digest('hex')
-        .slice(0, 16);
+        .slice(0, 32); // 32 hex chars = 128 bits
 }
 
 /**

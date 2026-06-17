@@ -276,10 +276,10 @@ export default function ImpactPage() {
                         </div>
                         <BlockStack gap="400">
                             <h2 style={{ fontSize: '2.8rem', fontWeight: 900, color: 'white', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
-                                Business <br /> Impact Analytics 📊
+                                You're Flying <br /> Blind. 📊
                             </h2>
                             <p style={{ color: '#94a3b8', fontSize: '1.25rem', lineHeight: '1.6', maxWidth: '400px' }}>
-                                Unlock the "Secret ROI" of your customer reviews. Discover exactly how much revenue each 5-star review generates.
+                                Pro merchants see exactly where their reviews are growing, which customers respond, and what % of fulfilled orders actually turn into reviews. You're missing all of it.
                             </p>
                         </BlockStack>
 
@@ -300,16 +300,16 @@ export default function ImpactPage() {
                         <BlockStack gap="600">
                             <BlockStack gap="400">
                                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>🎯</div>
-                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>Revenue Attribution</span>
+                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>📈</div>
+                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>Are your reviews accelerating or stalling this week?</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>💎</div>
-                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>CLV Predictions</span>
+                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>💬</div>
+                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>See your reply rate — unanswered reviews silently kill sales</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>📉</div>
-                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>Churn Prevention</span>
+                                    <div style={{ color: '#10b981', fontSize: '2rem', filter: 'drop-shadow(0 4px 6px rgba(16, 185, 129, 0.2))' }}>📦</div>
+                                    <span style={{ fontWeight: 900, color: '#0f172a', fontSize: '1.3rem', letterSpacing: '-0.02em' }}>What % of your customers actually leave a review?</span>
                                 </div>
                             </BlockStack>
 
@@ -334,7 +334,7 @@ export default function ImpactPage() {
                                         gap: '10px'
                                     }}
                                 >
-                                    Start Growing — $9.99/mo →
+                                    See What You're Missing — $9.99/mo →
                                 </button>
                                 <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
                                     Risk-free • Cancel anytime

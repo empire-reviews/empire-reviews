@@ -231,7 +231,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const complexReviews = []; // Have media or replies
 
         for (const record of records) {
-            const rating = parseInt(record.rating || "5");
+            const rating = Math.min(5, Math.max(1, parseInt(record.rating, 10) || 3));
             const body = record.body || "No content";
             const customerName = record.customer || "Anonymous";
             const customerEmail = record.email || null;
@@ -380,7 +380,7 @@ export default function ImportPage() {
         if (text.includes('yotpo')) platforms.push('Yotpo');
         if (text.includes('loox')) platforms.push('Loox');
 
-        const avgRating = records.reduce((acc, curr) => acc + parseInt(curr.rating || "5"), 0) / (records.length || 1);
+        const avgRating = records.reduce((acc, curr) => acc + Math.min(5, Math.max(1, parseInt(curr.rating, 10) || 3)), 0) / (records.length || 1);
 
         setAuditData({
             count: records.length,

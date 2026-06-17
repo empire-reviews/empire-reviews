@@ -244,9 +244,7 @@ export default function ReviewsPage() {
     const progress = totalReviews === 0 ? 0 : Math.round((repliedCount / totalReviews) * 100);
     const isInboxZero = unrepliedCount === 0 && totalReviews > 0;
 
-    // Fake Streak Logic (Psychology: Loss Aversion)
-    // Only show streak if they are doing well (>50% replied)
-    const streak = Math.max(3, Math.floor(repliedCount / 5));
+    const streak = Math.floor(repliedCount / 5);
 
     // Confetti State
     const [showConfetti, setShowConfetti] = useState(false);
@@ -554,7 +552,7 @@ export default function ReviewsPage() {
                         <BlockStack gap="400">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>War Room 🛡️</h1>
-                                {streak >= 3 && (
+                                {streak > 0 && (
                                     <div style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         🔥 {streak} Day Streak
                                     </div>
