@@ -19,7 +19,6 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
 import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
 
@@ -355,35 +354,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ImportPage() {
     const { isPro, existingCount } = useLoaderData<typeof loader>();
     const fetcher = useFetcher<any>();
+    const exportFetcher = useFetcher<{ csv?: string; filename?: string; error?: string }>();
     const navigate = useNavigate();
-    const shopify = useAppBridge();
     const [file, setFile] = useState<File | null>(null);
-    const [exportState, setExportState] = useState<"idle" | "loading">("idle");
 
-    const handleExport = async () => {
-        setExportState("loading");
-        try {
-            const token = await shopify.idToken();
-            const res = await fetch("/app/export", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-            const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8;" });
+    // Watch export results and trigger download
+    useEffect(() => {
+        const d = exportFetcher.data;
+        if (!d) return;
+        if (d.error) {
+            alert(`Export failed: ${d.error}`);
+            return;
+        }
+        if (d.csv) {
+            const blob = new Blob([d.csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = data.filename;
+            a.download = d.filename ?? "reviews.csv";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error("Export failed:", err);
-        } finally {
-            setExportState("idle");
         }
-    };
+    }, [exportFetcher.data]);
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [auditData, setAuditData] = useState<{ count: number, rating: number, platforms: string[] } | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
@@ -861,22 +855,22 @@ export default function ImportPage() {
                             </p>
                         </div>
                         <button
-                            onClick={handleExport}
-                            disabled={exportState !== "idle"}
+                            onClick={() => exportFetcher.submit({}, { method: "post", action: "/app/export" })}
+                            disabled={exportFetcher.state !== "idle"}
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap',
                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                 color: 'white', padding: '1.1rem 2.5rem', borderRadius: '20px',
                                 fontWeight: 900, fontSize: '1.05rem', border: 'none',
-                                cursor: exportState !== "idle" ? 'wait' : 'pointer',
-                                opacity: exportState !== "idle" ? 0.7 : 1,
+                                cursor: exportFetcher.state !== "idle" ? 'wait' : 'pointer',
+                                opacity: exportFetcher.state !== "idle" ? 0.7 : 1,
                                 boxShadow: '0 20px 40px -10px rgba(99,102,241,0.55)',
                                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                             }}
                             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)'; e.currentTarget.style.boxShadow = '0 28px 50px -10px rgba(99,102,241,0.7)'; }}
                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(99,102,241,0.55)'; }}
                         >
-                            {exportState !== "idle" ? "Exporting..." : "⬇ Download CSV"}
+                            {exportFetcher.state !== "idle" ? "Exporting..." : "⬇ Download CSV"}
                         </button>
                     </div>
                 )}
