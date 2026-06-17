@@ -5,8 +5,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const shop = url.searchParams.get("shop");
     const { id } = params;
 
-    console.log(`[ManageRedirect] Hit for ID: ${id}, Shop: ${shop}`);
-    console.log(`[ManageRedirect] Full URL: ${request.url}`);
+    console.log(`[ManageRedirect] Hit for ID: ${id}`);
 
     if (!shop) {
         console.warn("[ManageRedirect] Missing shop parameter!");
@@ -22,7 +21,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     const targetUrl = `https://${shop}/admin/apps/${apiKey}/app/campaigns?highlight=${id}`;
 
-    console.log(`[ManageRedirect] Redirecting to: ${targetUrl}`);
+    console.log(`[ManageRedirect] Redirecting to admin for campaign ${id}`);
 
     return redirect(targetUrl);
 };

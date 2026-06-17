@@ -30,24 +30,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         // Take the first fulfillment date
         const firstFulfillment = order.fulfillments[0];
         if (firstFulfillment.created_at) {
-            fulfilledAt = new Date(firstFulfillment.created_at);
+            const d = new Date(firstFulfillment.created_at);
+            if (!Number.isNaN(d.getTime())) fulfilledAt = d;
         }
-        
+
         // Some carriers update the shipment_status directly on the fulfillment
         // Possible values: label_printed, label_purchased, attempted_delivery, ready_for_pickup, confirmed, in_transit, out_for_delivery, delivered, failure
         const deliveredFulfillment = order.fulfillments.find((f: any) => f.shipment_status === "delivered");
         if (deliveredFulfillment && deliveredFulfillment.updated_at) {
-            deliveredAt = new Date(deliveredFulfillment.updated_at);
+            const d = new Date(deliveredFulfillment.updated_at);
+            if (!Number.isNaN(d.getTime())) deliveredAt = d;
         }
     }
+
+    // Guard numeric/date parsing — order fields may be missing on partial payloads.
+    const parsedPrice = parseFloat(order.total_price);
+    const totalPrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+    const currency = order.currency ?? null;
+    const customerEmail = order.email || order.customer?.email || null;
+    const parsedCreatedAt = order.created_at ? new Date(order.created_at) : new Date();
+    const createdAt = Number.isNaN(parsedCreatedAt.getTime()) ? new Date() : parsedCreatedAt;
 
     try {
         await prisma.order.upsert({
             where: { id: orderId },
             update: {
-                totalPrice: parseFloat(order.total_price),
-                currency: order.currency,
-                customerEmail: order.email || order.customer?.email,
+                totalPrice,
+                currency,
+                customerEmail,
                 ...(productTitle && { productTitle }),
                 ...(productId && { productId }),
                 ...(fulfilledAt && { fulfilledAt }),
@@ -56,17 +66,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             create: {
                 id: orderId,
                 shop: shop,
-                totalPrice: parseFloat(order.total_price),
-                currency: order.currency,
-                createdAt: new Date(order.created_at),
-                customerEmail: order.email || order.customer?.email,
+                totalPrice,
+                currency,
+                createdAt,
+                customerEmail,
                 fulfilledAt,
                 deliveredAt
             }
         });
         console.log(`Updated tracking for order ${orderId} on shop ${shop}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error(`Error processing ${topic} webhook:`, error);
+        // Transient DB/connection errors (Prisma P1xxx) — return 500 so Shopify retries.
+        if (typeof error?.code === "string" && error.code.startsWith("P1")) {
+            return new Response("Database unavailable", { status: 500 });
+        }
+        // Expected/permanent failure (bad data, etc.) — ack with 200 to avoid retry loop.
     }
 
     return new Response();

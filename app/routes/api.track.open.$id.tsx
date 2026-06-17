@@ -1,10 +1,14 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { verifyTrackingToken } from "../utils/crypto.server";
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     const sendId = params.id;
+    const token = new URL(request.url).searchParams.get("t");
 
-    if (sendId) {
+    // IDOR protection: only record the open if the token verifies for this sendId.
+    // Always return the pixel either way so we don't leak validity.
+    if (sendId && verifyTrackingToken(sendId, token)) {
         try {
             // Use a transaction to prevent race conditions on concurrent opens
             await prisma.$transaction(async (tx) => {

@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import prisma from '../db.server';
-import { generateUnsubscribeToken } from '../utils/crypto.server';
+import { generateUnsubscribeToken, generateTrackingToken } from '../utils/crypto.server';
 import { Sentry } from '../utils/sentry.server';
 
 export const sendReviewRequest = async (toEmail: string, customerName: string, productTitle: string, reviewLink: string, shopDomain: string) => {
@@ -143,12 +143,21 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
         });
         const replyToEmail = shopSession?.email || "support@empirereviews.com";
 
+        // Signed open-tracking pixel. The token prevents anyone from inflating
+        // open/click metrics by hitting the tracking endpoints with a guessed sendId.
+        let trackingPixel = '';
+        if (trackingId) {
+            const trackingToken = generateTrackingToken(trackingId);
+            const pixelUrl = `${appUrl.trim()}/api/track/open/${encodeURIComponent(trackingId)}?t=${trackingToken}`;
+            trackingPixel = `<img src="${pixelUrl}" width="1" height="1" style="display:none" alt="" />`;
+        }
+
         const payload: any = {
             from: `${shopDomain} <reviews@${process.env.verified_domain || 'empirereviews.com'}>`,
             replyTo: replyToEmail,
             to: [toEmail],
             subject: subject,
-            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\\n/g, '<br/>')}</div>${footer}`,
+            html: `<div style="font-family: sans-serif; color: #333;">${bodyHtml.replace(/\\n/g, '<br/>')}</div>${footer}${trackingPixel}`,
             headers: {
                 'List-Unsubscribe': `<${unsubscribeLink}>`,
                 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'

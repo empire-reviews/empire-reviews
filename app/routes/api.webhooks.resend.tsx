@@ -10,23 +10,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
         const rawBody = await request.text();
         const signature = request.headers.get("svix-signature");
-        const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+        const webhookSecret = process.env.RESEND_WEBHOOK_SECRET?.trim();
 
-        // Signature Verification (Bypass only if no secret is set in local dev)
-        if (webhookSecret) {
-            if (!signature) {
-                return json({ error: "Missing signature" }, { status: 400 });
-            }
-            try {
-                const wh = new Webhook(webhookSecret);
-                const headers = Object.fromEntries(request.headers);
-                wh.verify(rawBody, headers);
-            } catch (err: any) {
-                console.error("Resend Webhook Signature failed:", err.message);
-                return json({ error: "Invalid signature" }, { status: 400 });
-            }
-        } else {
-            console.warn("⚠️ [DEV WARNING] RESEND_WEBHOOK_SECRET not set. Skipping signature verification.");
+        // SECURITY: Fail closed. Never accept events without a configured secret.
+        if (!webhookSecret) {
+            console.error("RESEND_WEBHOOK_SECRET not configured");
+            return json({ error: "Server misconfiguration" }, { status: 500 });
+        }
+
+        if (!signature) {
+            return json({ error: "Missing signature" }, { status: 400 });
+        }
+        try {
+            const wh = new Webhook(webhookSecret);
+            const headers = Object.fromEntries(request.headers);
+            wh.verify(rawBody, headers);
+        } catch (err: any) {
+            console.error("Resend Webhook Signature failed:", err.message);
+            return json({ error: "Invalid signature" }, { status: 400 });
         }
 
         const payload = JSON.parse(rawBody);

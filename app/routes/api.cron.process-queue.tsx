@@ -121,6 +121,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 return { orderId: order.id, status: "skipped_duplicate" };
             }
 
+            // HTML-escape every interpolated value to prevent email template injection.
+            const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
             const subjectTemplate = activeCampaign?.subject || "How was your order from {{ store_name }}?";
             const bodyTemplate = activeCampaign?.body || "Hi {{ name }},\n\nWe hope you're loving your new order!\n\nCould you spare 30 seconds to help a small business grow? It would mean the world to us.\n\n{{ review_link }}";
 
@@ -129,20 +132,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 : `https://${order.shop}/account`;
             const resolvedProductTitle = (order as any).productTitle || "your recent order";
 
-            const buttonHtml = `<div style="text-align: center; margin-top: 30px;"><a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; display: inline-block;">Write a Review</a></div>`;
+            const buttonHtml = `<div style="text-align: center; margin-top: 30px;"><a href="${esc(reviewLink)}" style="background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 14px; text-decoration: none; display: inline-block;">Write a Review</a></div>`;
 
             const personalizedBody = bodyTemplate
                 .replace(/\\\\n/g, '\\n')
                 .replace(/\\n/g, '<br/>')
                 .replace(/\n/g, '<br/>')
                 .replace(/{{ name }}/g, "Customer")
-                .replace(/{{ store_name }}/g, order.shop)
-                .replace(/{{ product_title }}/g, resolvedProductTitle)
+                .replace(/{{ store_name }}/g, esc(order.shop))
+                .replace(/{{ product_title }}/g, esc(resolvedProductTitle))
                 .replace(/{{ review_link }}/g, buttonHtml);
 
             const personalizedSubject = subjectTemplate
-                .replace(/{{ store_name }}/g, order.shop)
-                .replace(/{{ product_title }}/g, resolvedProductTitle);
+                .replace(/{{ store_name }}/g, esc(order.shop))
+                .replace(/{{ product_title }}/g, esc(resolvedProductTitle));
 
             // A. Create CampaignSend record BEFORE sending (for idempotency)
             let sendRecord = await prisma.campaignSend.create({

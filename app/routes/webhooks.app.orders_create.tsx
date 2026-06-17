@@ -25,32 +25,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const productTitle = primaryItem?.name || primaryItem?.title || "your recent order";
     const productId = primaryItem?.product_id ? `gid://shopify/Product/${primaryItem.product_id}` : null;
 
+    // Guard numeric/date parsing — order fields may be missing on partial payloads.
+    const parsedPrice = parseFloat(order.total_price);
+    const totalPrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+    const currency = order.currency ?? null;
+    const customerEmail = order.email || order.customer?.email || null;
+    const parsedCreatedAt = order.created_at ? new Date(order.created_at) : new Date();
+    const createdAt = Number.isNaN(parsedCreatedAt.getTime()) ? new Date() : parsedCreatedAt;
+
     try {
         // Upsert Order data
         await prisma.order.upsert({
             where: { id: orderId },
             update: {
-                totalPrice: parseFloat(order.total_price),
-                currency: order.currency,
-                customerEmail: order.email || order.customer?.email,
+                totalPrice,
+                currency,
+                customerEmail,
                 productTitle,
                 productId,
             },
             create: {
                 id: orderId,
                 shop: shop,
-                totalPrice: parseFloat(order.total_price), // String in JSON, float in DB
-                currency: order.currency, // e.g. "USD", "EUR"
-                createdAt: new Date(order.created_at),
-                customerEmail: order.email || order.customer?.email,
+                totalPrice, // String in JSON, float in DB
+                currency, // e.g. "USD", "EUR"
+                createdAt,
+                customerEmail,
                 productTitle,
                 productId,
             }
         });
         console.log(`Processed order ${orderId} for shop ${shop}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error processing order webhook:", error);
-        // Return 200 to acknowledge receipt even if processing fails, to prevent retries loop
+        // Transient DB/connection errors (Prisma P1xxx) — return 500 so Shopify retries.
+        if (typeof error?.code === "string" && error.code.startsWith("P1")) {
+            return new Response("Database unavailable", { status: 500 });
+        }
+        // Expected/permanent failure (bad data, etc.) — ack with 200 to avoid retry loop.
     }
 
     return new Response();
