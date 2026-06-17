@@ -52,9 +52,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         return Response.json({ csv, filename });
     } catch (err: unknown) {
+        // If authenticate.admin throws a redirect Response, re-throw it so
+        // Shopify's auth flow can complete (e.g. session expired mid-session).
+        if (err instanceof Response) throw err;
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[export] action error:", msg);
-        return Response.json({ error: "Export failed. Please refresh the page and try again." }, { status: 500 });
+        // Always return 200 — fetchers treat 4xx/5xx as ErrorBoundary triggers.
+        return Response.json({ error: `Export failed: ${msg}` });
     }
 };
 

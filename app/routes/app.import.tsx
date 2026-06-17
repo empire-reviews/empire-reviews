@@ -218,7 +218,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const records = parseCSV(text);
 
         if (records.length > 500) {
-            return json({ error: "Import file is too large. Please limit to 500 rows per file." }, { status: 400 });
+            return json({ success: false, message: "Import file is too large. Please limit to 500 rows per file." });
         }
 
         // 🚧 FREE-PLAN CAP — enforce the advertised 50-review limit server-side
@@ -238,7 +238,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     upgradeRequired: true,
                     remaining,
                     message: `Free plan limit: you can add ${remaining} more review${remaining === 1 ? "" : "s"} (50 total). Use "Import First ${remaining}" or upgrade to Empire Pro.`,
-                }, { status: 402 });
+                });
             }
         }
 
