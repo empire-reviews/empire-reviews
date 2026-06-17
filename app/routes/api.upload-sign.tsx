@@ -66,10 +66,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         return json({ error: "Upload service not configured" }, { status: 401, headers: corsHeaders(request) });
     }
 
-    // Photo uploads are EMPIRE_PRO only.
+    // Hybrid model: photo uploads are available on every plan; video uploads are Pro-only.
     const settings = await prisma.settings.findFirst({ where: { shop } });
-    if (settings?.plan !== "EMPIRE_PRO") {
-        return json({ error: "Photo uploads require Empire Pro" }, { status: 403, headers: corsHeaders(request) });
+    const isPro = settings?.plan === "EMPIRE_PRO";
+    const resourceType = (new URL(request.url).searchParams.get("type") || "image").toLowerCase();
+    if (resourceType === "video" && !isPro) {
+        return json({ error: "Video reviews require Empire Pro" }, { status: 403, headers: corsHeaders(request) });
     }
 
     // Scope every upload to a per-shop folder.

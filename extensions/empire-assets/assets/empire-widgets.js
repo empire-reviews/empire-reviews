@@ -56,15 +56,21 @@ const EmpireWidgets = (function() {
                 uploadContainer.innerHTML = ''; // reset
                 // Only render if PRO feature is unlocked by the backend
                 if (window.EmpireFeatures && window.EmpireFeatures.allowPhotoUploads === true) {
+                    // Hybrid: photos on every plan; video only when the backend unlocks it (Pro).
+                    var allowVideo = window.EmpireFeatures.allowVideoUploads === true;
+                    var acceptTypes = allowVideo
+                        ? "image/png, image/jpeg, image/webp, video/mp4, video/quicktime, video/webm"
+                        : "image/png, image/jpeg, image/webp";
+                    var helperText = allowVideo ? "Photos & video • up to 4 files" : "Max 4 photos, 10MB each";
                     uploadContainer.innerHTML = `
                         <div style="font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">Drag and Drop</div>
                         <div class="empire-photo-dropzone" id="empire-photo-dropzone">
                             <div class="empire-dropzone-clicker" id="empire-dropzone-clicker">
                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                <div>Drag & Drop or Click to upload<br><span style="font-size: 0.8rem; color: #64748b;">(Max 4 photos, 10MB each)</span></div>
+                                <div>Drag & Drop or Click to upload<br><span style="font-size: 0.8rem; color: #64748b;">(${helperText})</span></div>
                             </div>
                             <div class="empire-photo-previews" id="empire-photo-previews"></div>
-                            <input type="file" id="empire-photo-input" accept="image/png, image/jpeg, image/webp" multiple style="display:none;" />
+                            <input type="file" id="empire-photo-input" accept="${acceptTypes}" multiple style="display:none;" />
                         </div>
                     `;
                     this.initPhotoUploader();
@@ -239,12 +245,16 @@ const EmpireWidgets = (function() {
             for (let file of fileArray) {
                 // Instantly generate a temporary local URL for immediate visual feedback
                 const localUrl = URL.createObjectURL(file);
-                
+                const isVideoFile = file.type.startsWith('video/');
+
                 const prev = document.createElement('div');
                 prev.className = 'empire-photo-preview-item';
+                const previewMediaTag = isVideoFile
+                    ? `<video src="${localUrl}" class="empire-photo-preview-img" muted playsinline style="opacity:0.5; object-fit:cover; width:100%; height:100%;"></video>`
+                    : `<img src="${localUrl}" class="empire-photo-preview-img" style="opacity: 0.5;" />`;
                 prev.innerHTML = `
                     <div class="empire-uploading-shimmer" style="position: absolute; inset:0; background: rgba(255,255,255,0.5); display: flex; align-items:center; justify-content:center;"><div class="empire-spinner" style="width:16px; height:16px; border-width:2px;"></div></div>
-                    <img src="${localUrl}" class="empire-photo-preview-img" style="opacity: 0.5;" />
+                    ${previewMediaTag}
                     <button class="empire-photo-remove" disabled>✕</button>
                 `;
                 previewsContainer.appendChild(prev);
@@ -252,7 +262,7 @@ const EmpireWidgets = (function() {
                 try {
                     // 1. Ask our server for a short-lived signed upload signature
                     //    (no unsigned preset — server gates Pro + scopes to the shop folder).
-                    const signRes = await fetch(`${API_BASE}/api/upload-sign?shop=${encodeURIComponent(activeShopDomain || '')}`, {
+                    const signRes = await fetch(`${API_BASE}/api/upload-sign?shop=${encodeURIComponent(activeShopDomain || '')}${isVideoFile ? '&type=video' : ''}`, {
                         method: 'POST',
                     });
                     const sign = await signRes.json();
@@ -266,7 +276,7 @@ const EmpireWidgets = (function() {
                     formData.append('signature', sign.signature);
                     formData.append('folder', sign.folder);
 
-                    const response = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, {
+                    const response = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/${isVideoFile ? 'video' : 'image'}/upload`, {
                         method: 'POST',
                         body: formData
                     });
@@ -281,7 +291,8 @@ const EmpireWidgets = (function() {
                         
                         // Update UI to success state
                         prev.querySelector('.empire-uploading-shimmer').style.display = 'none';
-                        prev.querySelector('img').style.opacity = '1';
+                        const mediaEl = prev.querySelector('img, video');
+                        if (mediaEl) mediaEl.style.opacity = '1';
                         
                         const rmBtn = prev.querySelector('.empire-photo-remove');
                         rmBtn.disabled = false;

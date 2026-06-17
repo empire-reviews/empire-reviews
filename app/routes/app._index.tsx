@@ -484,11 +484,11 @@ export default function EmpireDashboard() {
                     background: 'linear-gradient(135deg, #10b981 0%, #0891b2 100%)',
                     boxShadow: '0 12px 24px -6px rgba(16,185,129,0.55)',
                   }}
-                >📸</div>
+                >🎥</div>
                 <div>
-                  <Text as="h3" variant="headingMd" fontWeight="semibold">Unlock Photo &amp; Video Reviews</Text>
+                  <Text as="h3" variant="headingMd" fontWeight="semibold">Unlock Video Reviews</Text>
                   <div style={{ marginTop: '0.3rem', maxWidth: 640 }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">Visual social proof can lift product conversion by up to 24%. Upgrade to EMPIRE Pro to switch on the photo &amp; video upload widget on your storefront.</Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">Photo reviews are free on your plan. Upgrade to EMPIRE Pro to also collect video reviews — the highest-converting social proof, shown to lift product conversion by up to 24%.</Text>
                   </div>
                 </div>
               </div>

@@ -120,9 +120,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             status = "approved";
         }
 
-        // Handle Media Creation (Strictly PRO Only)
+        // Handle Media Creation — hybrid model: photos on every plan, video Pro-only.
+        const mediaIsPro = settings?.plan === "EMPIRE_PRO";
         const mediaCreate: any[] = [];
-        if (mediaUrls && settings?.plan === "EMPIRE_PRO") {
+        if (mediaUrls) {
             try {
                 // Parse safely as JSON array
                 let urls = [];
@@ -131,9 +132,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
                 for (const url of urls) {
                     // Only allow Cloudinary HTTPS URLs — no data: URIs or arbitrary hosts
-                    if (url.startsWith("https://res.cloudinary.com/")) {
-                        mediaCreate.push({ url, type: 'image' });
-                    }
+                    if (typeof url !== 'string' || !url.startsWith("https://res.cloudinary.com/")) continue;
+                    const isVideo = /\/video\//.test(url) || /\.(mp4|mov|webm|m4v)$/i.test(url);
+                    // Video is Pro-only; silently drop video URLs from non-Pro shops.
+                    if (isVideo && !mediaIsPro) continue;
+                    mediaCreate.push({ url, type: isVideo ? 'video' : 'image' });
                 }
             } catch(e) { console.error("Media URL parsing error", e); }
         }
@@ -341,13 +344,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
              });
         }
         
+        // Hybrid model: photo reviews on every plan; video reviews are Pro-only.
+        const loaderIsPro = settings?.plan === "EMPIRE_PRO";
         const safeSettings = settings ? {
             primaryColor: settings.primaryColor,
             aiProvider: settings.aiProvider,
-            allowPhotoUploads: settings.plan === "EMPIRE_PRO"
+            allowPhotoUploads: true,
+            allowVideoUploads: loaderIsPro,
         } : null;
 
-        const allowPhotoUploads = settings?.plan === "EMPIRE_PRO";
+        const allowPhotoUploads = true;
+        const allowVideoUploads = loaderIsPro;
 
         // Return pagination metadata alongside data
         const hasMore = reviews.length === limit;
@@ -385,7 +392,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         const headers: any = corsHeaders(request);
         headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
         return json(
-            { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads }, settings: safeSettings },
+            { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads, allowVideoUploads }, settings: safeSettings },
             { headers }
         );
     } catch (e) {
