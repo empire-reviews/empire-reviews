@@ -52,7 +52,13 @@ The DB (`Settings.plan`) is the **source of truth**, not the Shopify billing API
 Storefront widgets call the app through the Shopify **App Proxy** (`shopify.app.toml`: subpath `empire-reviews`, prefix `apps` → `apps/empire-reviews`). The key public endpoints:
 - `api.reviews.tsx` — GET lists approved reviews (JSON) for widgets; POST accepts new review submissions from the storefront. `Settings.publishMode` (`none`/`five_star`/`all`) controls auto-approval.
 - `api.photos.ts`, `api.featured.ts`, `api.feed.xml.tsx` — media upload, featured carousel, Google Merchant feed.
-These receive **untrusted input** and `shop` is currently taken from request params — treat all storefront-facing routes as a trust boundary.
+- `api.upload-sign.tsx` — POST-only signed Cloudinary upload proxy (Pro-only). Returns SHA-1 signature params; the widget uploads directly to Cloudinary using them. Never use unsigned uploads.
+
+**Trust boundary rules for storefront routes:**
+- Always derive `shop` from the `x-shopify-shop-domain` header (set by the App Proxy, not spoofable). Fall back to `?shop=` query param for dev only.
+- Always validate shop with `isValidShopDomain()` (must match `*.myshopify.com`). Return 400 otherwise.
+- Never trust form fields or request body for `shop`.
+- Rate limiting applies to all IPs including unknown — never skip it.
 
 ### Email automation pipeline (review requests)
 `orders/*` webhooks → persist `Order` rows → cron drains the queue → Resend → tracking pixels:
@@ -64,15 +70,28 @@ These receive **untrusted input** and `shop` is currently taken from request par
 ### Multi-provider AI (BYOK)
 `app/services/ai.server.ts` is a unified adapter over OpenAI / Gemini / Claude / DeepSeek / Groq / Ollama. Merchants supply their own key (`Settings.aiProvider` + `Settings.aiApiKey`). Used for review-reply drafting and cached dashboard "insights" (`Settings.aiInsightsSummary` — the dashboard reads the cache read-only; generation happens on the Insights page).
 
+**`Settings.aiApiKey` is stored encrypted** (AES-256-GCM) via `app/utils/encryption.server.ts`. Always call `encrypt()` before writing to DB and `decrypt()` after reading. The `ENCRYPTION_KEY` env var must be 64 hex chars (32 bytes) — generate with `openssl rand -hex 32`.
+
 ### Conversion/analytics layer
 `app/config/conversion.ts` + `app/utils/analytics.server.ts` drive install-age "conversion phases" and upgrade-prompt timing (`Session.appInstalledAt`, `lastUpgradePrompt`, `upgradePromptCount`). `AnalyticsEvent` rows track internal events. `app/lib/campaign-templates.ts` holds the email-campaign template copy (reciprocity / altruism / scarcity).
 
 ## Data model notes
 - `Settings` is per-shop (`@unique shop`) and holds plan, widget theming, AI config, and email config. Many routes cast it `as any` because the Prisma client and DB schema have historically drifted — verify columns exist after schema changes.
-- Cascade deletes (`ReviewMedia`/`Reply` → `Review`) are declared in `schema.prisma`. Confirm the committed migration actually creates the FKs/tables before assuming integrity at the DB level.
+- Cascade deletes (`ReviewMedia`/`Reply` → `Review`) are declared in `schema.prisma` and are now enforced by real FK constraints (added in migration `20260616000001_complete_schema`).
+- `Unsubscriber` and `RateLimit` tables exist as of migration `20260616000001_complete_schema`.
 
 ## Pre-launch status
-**Not launch-ready.** A full audit of known bugs, security holes, and launch blockers lives in [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md) (severity-ranked, with `file:line` refs and checkboxes). Read it before starting fix work, and check items off there as they're resolved. Notable blockers: broken migration history, missing GDPR webhooks, storefront XSS, cross-tenant public review API, unenforced free-plan cap.
+**All CRITICAL blockers fixed (2026-06-16).** HIGH/MEDIUM items remain — see [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md). Read it before starting any fix work and check items off as resolved.
+
+### Security invariants established by the critical fixes — do not regress:
+- **No debug routes.** Never add unauthenticated endpoints that dump logs, sessions, or internal state.
+- **Storefront `shop` from header only.** `x-shopify-shop-domain` → validated → used. Never from form body.
+- **Media URLs: Cloudinary HTTPS only.** `https://res.cloudinary.com/` prefix required. No `data:` URIs.
+- **Cloudinary uploads: signed proxy only.** Use `api.upload-sign.tsx`; never unsigned presets.
+- **`aiApiKey` always encrypted.** Use `encrypt()`/`decrypt()` from `app/utils/encryption.server.ts` at every read/write.
+- **Free plan cap enforced.** 50-review limit checked in both `api.reviews.tsx` (POST) and `app.import.tsx` before any `prisma.review.create`.
+- **GDPR webhooks wired.** `shopify.app.toml` has `[webhooks.privacy_compliance]` pointing all three events at `/webhooks/gdpr`.
+- **All storefront dynamic output escaped.** Never use `innerHTML` with unescaped user data in `empire-widgets.js` or `.liquid` blocks.
 
 ## Repo notes
 - `README.md` / `CHANGELOG.md` are the **unmodified Shopify Remix template** and do not describe this app — don't trust them.

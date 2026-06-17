@@ -522,7 +522,8 @@ const EmpireWidgets = (function() {
             if (review.media && review.media.length > 0) {
                 mediaHtml = '<div class="empire-review-gallery">';
                 review.media.forEach(m => {
-                    mediaHtml += `<img src="${m.url}" class="empire-gallery-img" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
+                    const safeUrl = this.escapeHtml(m.url || '');
+                    mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" alt="Review Photo" loading="lazy" data-open-url="${safeUrl}" />`;
                 });
                 mediaHtml += '</div>';
             }
@@ -611,7 +612,8 @@ const EmpireWidgets = (function() {
                         if (rev.media && rev.media.length > 0) {
                             mediaHtml = '<div class="empire-review-gallery" style="margin-top:16px; display:flex; gap:8px;">';
                             rev.media.slice(0, 3).forEach(m => {
-                                mediaHtml += `<img src="${m.url}" class="empire-gallery-img" style="width:60px; height:60px; object-fit:cover; border-radius:6px; cursor:pointer;" alt="Review Photo" loading="lazy" onclick="window.open('${m.url}', '_blank')" />`;
+                                const safeUrl = EmpireWidgets.escapeHtml(m.url || '');
+                                mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" style="width:60px; height:60px; object-fit:cover; border-radius:6px; cursor:pointer;" alt="Review Photo" loading="lazy" data-open-url="${safeUrl}" />`;
                             });
                             mediaHtml += '</div>';
                         }
@@ -846,6 +848,18 @@ const EmpireWidgets = (function() {
                 });
             });
         });
+    });
+
+    // Delegated handler for gallery images (replaces inline onclick)
+    document.addEventListener('click', function(e) {
+        const target = /** @type {HTMLElement} */ (e.target);
+        if (target && target.dataset && target.dataset.openUrl) {
+            const url = target.dataset.openUrl;
+            // Only open https:// URLs
+            if (url.startsWith('https://')) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+        }
     });
 
     return API;

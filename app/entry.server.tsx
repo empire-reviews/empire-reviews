@@ -57,12 +57,6 @@ export default async function handleRequest(
         onError(error: unknown) {
           responseStatusCode = 500;
           console.error(error);
-          try {
-            const fs = require('fs');
-            const msg = error instanceof Error ? error.stack || error.message : String(error);
-            fs.appendFileSync('/tmp/error.log', new Date().toISOString() + ': ' + msg + '\n');
-          } catch (e) {}
-
           // Send error to Sentry
           Sentry.captureException(error);
         },

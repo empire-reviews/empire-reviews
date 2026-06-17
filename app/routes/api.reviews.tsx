@@ -6,15 +6,18 @@ import { checkRateLimit } from "../utils/rateLimit.server";
 // 🛡️ CORS HELPER — restrict to Shopify storefronts
 function getAllowedOrigin(request: Request): string {
     const origin = request.headers.get("Origin") || "";
-    // Allow any *.myshopify.com storefront and custom domains via Shopify proxy
     if (origin.endsWith(".myshopify.com") || origin.endsWith(".shopify.com")) {
         return origin;
     }
-    // Allow localhost for development
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
         return origin;
     }
-    return origin || "*"; // Allow all origins for public storefront API
+    // Reject unknown origins — do not fall back to wildcard
+    return "null";
+}
+
+function isValidShopDomain(shop: string | null | undefined): shop is string {
+    return typeof shop === "string" && /^[a-zA-Z0-9-]+\.myshopify\.com$/.test(shop);
 }
 
 function corsResponse(request: Request) {
@@ -45,9 +48,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // 🛡️ DATABASE-BACKED RATE LIMITING (persists across Vercel cold starts)
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
 
-    if (ip !== "unknown") {
+    {
         const rateCheck = await checkRateLimit(ip, 10, 60 * 60 * 1000); // 10 requests per hour
 
         if (!rateCheck.allowed) {
@@ -82,12 +85,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const title = formData.get("title") as string;
         const mediaUrls = formData.get("media_urls") as string;
 
-        const shop = (formData.get("shop") as string)
-            || request.headers.get("x-shopify-shop-domain")
+        // Derive shop from the App Proxy header (set by Shopify, not spoofable by the storefront).
+        // Fall back to query param for dev/test only — always validate the domain format.
+        const shop = request.headers.get("x-shopify-shop-domain")
             || new URL(request.url).searchParams.get("shop");
 
         if (!rating || !shop) {
             return json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders(request) });
+        }
+
+        if (!isValidShopDomain(shop)) {
+            return json({ error: "Invalid shop" }, { status: 400, headers: corsHeaders(request) });
         }
 
         // Input Validation (Issue 13)
@@ -123,8 +131,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 else urls = mediaUrls.split(',').map((u: string) => u.trim()); // Legacy fallback
 
                 for (const url of urls) {
-                    // Ensure URLs are secure HTTPS or Base64 images to prevent XSS
-                    if (url.startsWith("https://") || url.startsWith("data:image/")) {
+                    // Only allow Cloudinary HTTPS URLs — reject data: URIs and arbitrary hosts
+                    if (typeof url === "string" && url.startsWith("https://res.cloudinary.com/")) {
                         mediaCreate.push({ url, type: 'image' });
                     }
                 }
@@ -229,7 +237,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     const url = new URL(request.url);
     const productId = url.searchParams.get("productId");
-    const shop = url.searchParams.get("shop");
+    const rawShop = request.headers.get("x-shopify-shop-domain") || url.searchParams.get("shop");
+    const shop = isValidShopDomain(rawShop) ? rawShop : null;
     const minRating = url.searchParams.get("minRating") ? parseInt(url.searchParams.get("minRating")!) : undefined;
     const limit = url.searchParams.get("limit") ? parseInt(url.searchParams.get("limit")!) : 20; // smaller default limit for infinite scroll
     const page = url.searchParams.get("page") ? parseInt(url.searchParams.get("page")!) : 1;

@@ -306,6 +306,9 @@
 
 <script>
     if (!window.EmpireFloatingTab) window.EmpireFloatingTab = {};
+    function _efEscape(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
     window.EmpireFloatingTab.open = function(btn) {
         // The panel ID needs to be queried properly, we can use the ID explicitly 
         const blockId = btn.id.replace('empire-floating-tab-', '');
@@ -325,12 +328,12 @@
                         const colors = ['#1a4931', '#d48a60', '#2a3b4c', '#5e4b3f', '#3b5c4a'];
                         
                         content.innerHTML = data.reviews.map((r, i) => {
-                            const name = r.customerName || 'Anonymous';
-                            const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            const name = _efEscape(r.customerName || 'Anonymous');
+                            const initials = name.replace(/&[^;]+;/g,'').substring(0,2).toUpperCase() || '?';
                             const color = colors[i % colors.length];
-                            
+
                             const dateStr = new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) || 'Recent';
-                            
+
                             return `
                             <div class="empire-review-card">
                                 <div class="empire-date-pill">${dateStr}</div>
@@ -339,12 +342,12 @@
                                     <div class="empire-author-info">
                                         <div class="empire-name-row">
                                             <h4 class="empire-review-author">${name}</h4>
-                                            <div class="empire-star-badge"><span>★</span> ${r.rating}.0</div>
+                                            <div class="empire-star-badge"><span>★</span> ${Number(r.rating).toFixed(1)}</div>
                                         </div>
                                         <p class="empire-review-role">Verified Customer</p>
                                     </div>
                                 </div>
-                                <p class="empire-review-body">${r.body || ''}</p>
+                                <p class="empire-review-body">${_efEscape(r.body || '')}</p>
                             </div>
                             `;
                         }).join('');

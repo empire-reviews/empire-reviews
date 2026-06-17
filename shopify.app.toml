@@ -31,6 +31,11 @@ api_version = "2024-10"
   topics = [ "orders/updated" ]
   uri = "/webhooks/app/orders_updated"
 
+[webhooks.privacy_compliance]
+  customer_data_request_url = "/webhooks/gdpr"
+  customer_deletion_url = "/webhooks/gdpr"
+  shop_deletion_url = "/webhooks/gdpr"
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_orders,write_orders,write_products"
