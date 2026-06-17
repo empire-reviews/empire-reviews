@@ -8,7 +8,7 @@ description = "Triggers when a new review is submitted"
 [settings]
   [[settings.fields]]
   key = "rating"
-  type = "number_integer"
+  type = "single_line_text_field"
   description = "Review Rating (1-5)"
 
   [[settings.fields]]
