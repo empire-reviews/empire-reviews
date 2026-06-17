@@ -22,6 +22,7 @@ import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
 import { generateInsights } from "../services/ai.server";
 import type { AIProvider } from "../services/ai.server";
+import { decrypt } from "../utils/encryption.server";
 
 export const action = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -48,7 +49,7 @@ export const action = async ({ request }: LoaderFunctionArgs) => {
     });
 
     try {
-      const config = { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" };
+      const config = { provider: settings.aiProvider as AIProvider, apiKey: decrypt(settings.aiApiKey || "") };
       const { summary } = await generateInsights(config, reviews, reportType);
 
       await prisma.settings.update({
@@ -82,10 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { shop: session.shop },
     include: { replies: true }
   });
-  // ... rest of logic ...
   const positive = reviews.filter(r => r.rating >= 4).length;
-  // ... (Abbreviated for tool call, assuming standard logic remains if !locked)
-  // Re-implementing the stats logic for the ELSE block
   const neutral = reviews.filter(r => r.rating === 3).length;
   const negative = reviews.filter(r => r.rating <= 2).length;
   const total = reviews.length;

@@ -29,6 +29,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
 import { callAIForCampaign } from "../services/ai.server";
+import { decrypt } from "../utils/encryption.server";
 import { useState, useCallback, useEffect } from "react";
 import {
     ArrowLeftIcon,
@@ -190,7 +191,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (settings?.aiProvider && settings?.aiApiKey && aiPrompt) {
             try {
                 const generated = await callAIForCampaign(
-                    { provider: settings.aiProvider as any, apiKey: settings.aiApiKey },
+                    { provider: settings.aiProvider as any, apiKey: decrypt(settings.aiApiKey) },
                     aiPrompt
                 );
                 subject = generated.subject;
@@ -273,8 +274,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }
     });
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     return json({ success: true, campaignId: campaign.id });
 };
 
@@ -290,6 +289,13 @@ export default function CampaignsPage() {
     const [renameModalOpen, setRenameModalOpen] = useState(false);
     const [renameId, setRenameId] = useState("");
     const [renameValue, setRenameValue] = useState("");
+
+    // Launch confirmation Modal state
+    const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
+
+    // Delete confirmation Modal state
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteId, setDeleteId] = useState("");
 
     // Email Builder State
     const [subject, setSubject] = useState("How did we do? 🌟");
@@ -341,9 +347,7 @@ export default function CampaignsPage() {
     };
 
     const handleLaunchConfirm = () => {
-        if (confirm("Set this as your active background sequence for all future orders?")) {
-            handleLaunch();
-        }
+        setLaunchConfirmOpen(true);
     };
 
     return (
@@ -441,9 +445,8 @@ export default function CampaignsPage() {
                                                             setRenameModalOpen(true);
                                                         }} />
                                                         <Button variant="plain" tone="critical" onClick={() => {
-                                                            if(confirm("Are you sure you want to delete this campaign and all its history?")) {
-                                                                fetcher.submit({ intent: "delete", campaignId: c.id }, { method: "post" });
-                                                            }
+                                                            setDeleteId(c.id);
+                                                            setDeleteConfirmOpen(true);
                                                         }}>Delete</Button>
                                                     </InlineStack>
                                                 </div>
@@ -644,6 +647,43 @@ export default function CampaignsPage() {
                 >
                     <Modal.Section>
                         <TextField label="Campaign Name" value={renameValue} onChange={setRenameValue} autoComplete="off" />
+                    </Modal.Section>
+                </Modal>
+
+                <Modal
+                    open={launchConfirmOpen}
+                    onClose={() => setLaunchConfirmOpen(false)}
+                    title="Activate this campaign?"
+                    primaryAction={{
+                        content: 'Activate',
+                        onAction: () => {
+                            setLaunchConfirmOpen(false);
+                            handleLaunch();
+                        },
+                    }}
+                    secondaryActions={[{ content: 'Cancel', onAction: () => setLaunchConfirmOpen(false) }]}
+                >
+                    <Modal.Section>
+                        <Text as="p">Set this as your active background sequence for all future orders?</Text>
+                    </Modal.Section>
+                </Modal>
+
+                <Modal
+                    open={deleteConfirmOpen}
+                    onClose={() => setDeleteConfirmOpen(false)}
+                    title="Delete this campaign?"
+                    primaryAction={{
+                        content: 'Delete',
+                        destructive: true,
+                        onAction: () => {
+                            fetcher.submit({ intent: "delete", campaignId: deleteId }, { method: "post" });
+                            setDeleteConfirmOpen(false);
+                        },
+                    }}
+                    secondaryActions={[{ content: 'Cancel', onAction: () => setDeleteConfirmOpen(false) }]}
+                >
+                    <Modal.Section>
+                        <Text as="p">Are you sure you want to delete this campaign and all its history? This cannot be undone.</Text>
                     </Modal.Section>
                 </Modal>
             </Page>

@@ -21,6 +21,7 @@ import { hasActivePayment, getPlanDetails } from "../billing.server";
 import prisma from "../db.server";
 import { useState, useEffect, useRef } from "react";
 import { testAIConnection, type AIProvider } from "../services/ai.server";
+import { encrypt, decrypt } from "../utils/encryption.server";
 import { ThemeIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 
@@ -74,6 +75,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     } else if (isEmailConfigured || isAiConfigured) {
        systemHealth = "Good";
        healthColor = "#f59e0b"; // yellow
+    }
+
+    // Decrypt the stored AI key for display/editing in the UI.
+    // Stored encrypted at rest; the form sends it back and we re-encrypt on save.
+    if (settings.aiApiKey) {
+        const plain = decrypt(settings.aiApiKey);
+        settings = { ...settings, aiApiKey: plain || settings.aiApiKey };
     }
 
     return json({ settings, isPro, subscription, systemHealth, healthColor, shop: session.shop });
@@ -134,6 +142,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         aiApiKey = null;
     }
 
+    // Encrypt the AI key at rest (AES-256-GCM). Empty/null stays as-is.
+    const aiApiKeyEncrypted = aiApiKey ? encrypt(aiApiKey) : aiApiKey;
+
     const settings = await prisma.settings.update({
         where: { shop },
         data: {
@@ -145,7 +156,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             starColor,
             borderRadius,
             aiProvider,
-            aiApiKey,
+            aiApiKey: aiApiKeyEncrypted,
             enableFlow,
             enableGoogle,
             reviewRequestDelay,
@@ -160,6 +171,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function SettingsPage() {
     const { settings, isPro, subscription, systemHealth, healthColor, shop } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
+    const aiTestFetcher = useFetcher();
     const navigate = useNavigate();
 
     // Optimistic UI state
@@ -188,9 +200,25 @@ export default function SettingsPage() {
     // AI Configuration States
     const [aiProvider, setAiProvider] = useState(settings.aiProvider || "");
     const [aiApiKey, setAiApiKey] = useState(settings.aiApiKey || "");
-    const [aiTestLoading, setAiTestLoading] = useState(false);
     const [aiTestResult, setAiTestResult] = useState<string | null>(null);
     const [aiTestSuccess, setAiTestSuccess] = useState(false);
+    const aiTestLoading = aiTestFetcher.state !== "idle";
+
+    // Reflect the REAL test_ai result from the server (no fake timer).
+    useEffect(() => {
+        if (aiTestFetcher.state === "idle" && aiTestFetcher.data) {
+            const data = aiTestFetcher.data as any;
+            if (typeof data.aiTestResult === "string") {
+                setAiTestResult(data.aiTestResult);
+                setAiTestSuccess(!!data.success);
+            }
+        }
+    }, [aiTestFetcher.state, aiTestFetcher.data]);
+
+    const handleTestAiConnection = () => {
+        setAiTestResult(null);
+        aiTestFetcher.submit({ intent: "test_ai", aiProvider, aiApiKey }, { method: "post" });
+    };
 
     // Watch for changes to trigger Save Bar
     useEffect(() => {
@@ -601,7 +629,7 @@ export default function SettingsPage() {
                                                     )}
                                                     {aiProvider && (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                            <Button onClick={() => { setAiTestLoading(true); setAiTestResult(null); fetcher.submit({ intent: 'test_ai', aiProvider, aiApiKey }, { method: 'post' }); setTimeout(() => { setAiTestLoading(false); const data = fetcher.data as any; if (data?.aiTestResult) { setAiTestResult(data.aiTestResult); setAiTestSuccess(data.success); } else { setAiTestResult('Test sent — check result after save.'); setAiTestSuccess(true); } }, 4000); }} loading={aiTestLoading} disabled={aiTestLoading || !aiApiKey} size="micro">Test Connection</Button>
+                                                            <Button onClick={handleTestAiConnection} loading={aiTestLoading} disabled={aiTestLoading || !aiApiKey} size="micro">Test Connection</Button>
                                                             {aiTestResult && <div style={{ marginTop: '0px' }}><Badge tone={aiTestSuccess ? 'success' : 'critical'}>{aiTestResult}</Badge></div>}
                                                         </div>
                                                     )}

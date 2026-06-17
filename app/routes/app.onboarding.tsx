@@ -19,7 +19,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-// import { requirePayment } from "../billing.server";
+import { requirePayment } from "../billing.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     try {
@@ -75,8 +75,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
 
     if (intent === "upgrade") {
-        // return await requirePayment(billing);
-        return redirect("/app?upgraded=true");
+        // Initiate the Shopify managed-billing flow. requirePayment calls
+        // billing.request(), which redirects the merchant to Shopify's
+        // subscription confirmation page (honoring the app-level trialDays),
+        // then returns them to the app. This actually starts the trial — the
+        // previous redirect to /app just silently dropped them on the free plan.
+        return await requirePayment(billing);
     }
 
     return redirect("/app");

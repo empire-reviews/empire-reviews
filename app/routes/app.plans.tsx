@@ -46,9 +46,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             .filter(Boolean);
 
         if (validCodes.length > 0 && validCodes.includes(code)) {
-            await prisma.settings.update({
+            await prisma.settings.upsert({
                 where: { shop: session.shop },
-                data: { plan: "EMPIRE_PRO" }
+                update: { plan: "EMPIRE_PRO" },
+                create: { shop: session.shop, plan: "EMPIRE_PRO" }
             });
             return json({ success: true, message: "VIP Access Granted: Empire Pro Unlocked 💎" });
         }
@@ -56,11 +57,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     if (intent === "downgrade") {
-        // 1. Cancel the active Shopify subscription (if any)
+        // 1. Cancel the active Shopify subscription (if any).
+        //    Only proceed to demote the DB if Shopify confirms the cancellation —
+        //    otherwise we'd strip access while still being billed.
         const { cancelPayment } = await import("../billing.server");
-        await cancelPayment(billing);
+        const cancelled = await cancelPayment(billing);
 
-        // 2. Immediately downgrade the user in our database
+        if (!cancelled) {
+            const err = new Error(
+                `[downgrade] Shopify subscription cancellation failed for shop ${session.shop}; aborting DB downgrade.`
+            );
+            console.error(err.message);
+            const { Sentry } = await import("../utils/sentry.server");
+            Sentry.captureException(err);
+            return json(
+                { success: false, message: "We couldn't confirm cancellation with Shopify. Your plan was not changed — please try again." },
+                { status: 502 }
+            );
+        }
+
+        // 2. Cancellation confirmed — downgrade the user in our database.
         await prisma.settings.update({
             where: { shop: session.shop },
             data: { plan: "FREE" }

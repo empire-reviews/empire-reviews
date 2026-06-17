@@ -1,7 +1,6 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, DataTable, Text, Badge, InlineStack, Button } from "@shopify/polaris";
-import { ArrowLeftIcon } from "@shopify/polaris-icons";
+import { Page, Card, BlockStack, Text, Badge, InlineStack, Button } from "@shopify/polaris";
 import { BackButton } from "../components/BackButton";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -32,14 +31,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 export default function CampaignDetailsPage() {
     const { campaign } = useLoaderData<typeof loader>();
     const navigate = useNavigate();
-
-    const rows = campaign.sends.map((send: any) => [
-        send.customerName,
-        send.customerEmail,
-        new Date(send.sentAt).toLocaleString(),
-        send.opened ? <Badge tone="success">Opened</Badge> : <Badge tone="info">Sent</Badge>,
-        send.clicked ? <Badge tone="success">Clicked</Badge> : <Badge>No</Badge>
-    ]);
 
     return (
         <Page 

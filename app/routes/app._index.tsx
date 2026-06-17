@@ -129,7 +129,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           withRetry(() => prisma.order.aggregate({ _sum: { totalPrice: true }, where: { shop: session.shop } })),
           withRetry(() => prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } })),
         ]);
-        const totalRevenue = orderAgg._sum.totalPrice || 0;
+        // totalPrice is a Decimal column; Prisma returns a Prisma.Decimal (or null) for the sum.
+        const totalRevenue = orderAgg._sum.totalPrice ? orderAgg._sum.totalPrice.toNumber() : 0;
         const currency = latestOrder?.currency || "USD";
         impact = {
           formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),

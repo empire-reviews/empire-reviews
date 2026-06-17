@@ -1,5 +1,5 @@
 import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
+import { useLoaderData, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -28,6 +28,7 @@ import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, 
 import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
+import { decrypt } from "../utils/encryption.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
@@ -36,9 +37,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
     const statusFilter = url.searchParams.get("status");
     const ratingFilter = url.searchParams.get("rating");
+    const searchQuery = (url.searchParams.get("search") || "").trim();
     const whereClause: any = { shop: session.shop };
     if (statusFilter) whereClause.status = statusFilter;
     if (ratingFilter) whereClause.rating = parseInt(ratingFilter, 10);
+    if (searchQuery) {
+        whereClause.OR = [
+            { customerName: { contains: searchQuery, mode: "insensitive" } },
+            { body: { contains: searchQuery, mode: "insensitive" } },
+        ];
+    }
 
     const page = parseInt(url.searchParams.get("page") || "1", 10);
     const PAGE_SIZE = 50;
@@ -60,7 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const pendingCount = await prisma.review.count({ where: { shop: session.shop, status: 'pending' } });
     const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
     
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page, statusFilter });
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page, statusFilter, ratingFilter, searchQuery });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -102,7 +110,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         try {
             const aiReply = await generateReply(
-                { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" },
+                { provider: settings.aiProvider as AIProvider, apiKey: decrypt(settings.aiApiKey || "") },
                 reviewBody,
                 rating,
                 customerName
@@ -126,7 +134,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return json({ success: false, error: "AI not configured" });
         }
 
-        const config = { provider: settings.aiProvider as AIProvider, apiKey: settings.aiApiKey || "" };
+        const config = { provider: settings.aiProvider as AIProvider, apiKey: decrypt(settings.aiApiKey || "") };
         let repliedCount = 0;
 
         for (const reviewId of reviewIds) {
@@ -206,9 +214,22 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+
+    // Build a URL string preserving existing search params with overrides applied.
+    // Passing a value of null/"" removes that param.
+    const buildUrl = (overrides: Record<string, string | null>) => {
+        const params = new URLSearchParams(searchParams);
+        for (const [key, value] of Object.entries(overrides)) {
+            if (value === null || value === "") params.delete(key);
+            else params.set(key, value);
+        }
+        const qs = params.toString();
+        return qs ? `?${qs}` : "?";
+    };
     const aiFetcher = useFetcher();
 
     // AI Loading State
@@ -230,14 +251,23 @@ export default function ReviewsPage() {
     // Confetti State
     const [showConfetti, setShowConfetti] = useState(false);
 
-    // Search State
-    const [queryValue, setQueryValue] = useState("");
-    const filteredReviews = queryValue
-        ? reviews.filter(r => 
-            (r.customerName || "").toLowerCase().includes(queryValue.toLowerCase()) ||
-            (r.body || "").toLowerCase().includes(queryValue.toLowerCase())
-          )
-        : reviews;
+    // Search State — server-side. queryValue is the input draft; submitting
+    // navigates with ?search= so the loader filters across ALL pages, not just
+    // the current in-memory page.
+    const [queryValue, setQueryValue] = useState(searchQuery || "");
+
+    // Keep the input in sync if the URL changes (e.g. clear, back/forward).
+    useEffect(() => {
+        setQueryValue(searchQuery || "");
+    }, [searchQuery]);
+
+    const submitSearch = (value: string) => {
+        // Reset to page 1 whenever the search term changes.
+        navigate(buildUrl({ search: value.trim() || null, page: null }));
+    };
+
+    // Reviews already filtered server-side; render them directly.
+    const filteredReviews = reviews;
 
     // Table Setup
     const resourceName = { singular: "review", plural: "reviews" };
@@ -599,17 +629,19 @@ export default function ReviewsPage() {
                                 {/* TOOLBAR */}
                                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                                     <div style={{ width: '300px' }}>
-                                        <TextField
-                                            label="Search"
-                                            labelHidden
-                                            value={queryValue}
-                                            onChange={setQueryValue}
-                                            autoComplete="off"
-                                            placeholder="Search reviews..."
-                                            prefix={<SearchIcon style={{ width: 16, color: '#94a3b8' }} />}
-                                            clearButton
-                                            onClearButtonClick={() => setQueryValue("")}
-                                        />
+                                        <form onSubmit={(e) => { e.preventDefault(); submitSearch(queryValue); }}>
+                                            <TextField
+                                                label="Search"
+                                                labelHidden
+                                                value={queryValue}
+                                                onChange={setQueryValue}
+                                                autoComplete="off"
+                                                placeholder="Search reviews... (press Enter)"
+                                                prefix={<SearchIcon style={{ width: 16, color: '#94a3b8' }} />}
+                                                clearButton
+                                                onClearButtonClick={() => { setQueryValue(""); submitSearch(""); }}
+                                            />
+                                        </form>
                                     </div>
                                     <div style={{ width: '150px' }}>
                                         <Select
@@ -621,7 +653,7 @@ export default function ReviewsPage() {
                                                 { label: 'Approved', value: 'approved' }
                                             ]}
                                             value={statusFilter || ''}
-                                            onChange={(value) => navigate(value ? `?status=${value}` : '?')}
+                                            onChange={(value) => navigate(buildUrl({ status: value || null, page: null }))}
                                         />
                                     </div>
                                 </div>
@@ -672,9 +704,9 @@ export default function ReviewsPage() {
                                 <div style={{ display: 'flex', justifyContent: 'center', padding: '16px' }}>
                                     <Pagination
                                         hasPrevious={page > 1}
-                                        onPrevious={() => navigate(`?page=${page - 1}`)}
+                                        onPrevious={() => navigate(buildUrl({ page: String(page - 1) }))}
                                         hasNext={page * 50 < totalCount}
-                                        onNext={() => navigate(`?page=${page + 1}`)}
+                                        onNext={() => navigate(buildUrl({ page: String(page + 1) }))}
                                     />
                                 </div>
                             </Card>

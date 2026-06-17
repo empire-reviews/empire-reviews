@@ -207,6 +207,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return json({ error: "Import file is too large. Please limit to 500 rows per file." }, { status: 400 });
         }
 
+        // 🚧 FREE-PLAN CAP — enforce the advertised 50-review limit server-side (C8)
+        const settings = await prisma.settings.findFirst({ where: { shop } });
+        if ((settings as any)?.plan !== "EMPIRE_PRO") {
+            const existingCount = await prisma.review.count({ where: { shop } });
+            if (existingCount + records.length > 50) {
+                const remaining = Math.max(0, 50 - existingCount);
+                return json({
+                    success: false,
+                    upgradeRequired: true,
+                    message: `Review limit reached. The free plan allows up to 50 reviews and you can import ${remaining} more. Upgrade to Empire Pro for unlimited reviews.`,
+                }, { status: 402 });
+            }
+        }
+
         const allIdentifiers = records.map((r: any) => ({ handle: r.handle, title: r.product_title }));
         const productMap = await resolveProductsSmartly(admin, allIdentifiers);
 
