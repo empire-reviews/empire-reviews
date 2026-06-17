@@ -8,6 +8,23 @@ declare global {
 
 let prisma: PrismaClient;
 
+/**
+ * DATABASE_URL vs DIRECT_URL — two distinct connection strings:
+ *
+ * - DATABASE_URL: the Supabase/Neon PgBouncer **pooler** URL (port 6543), with
+ *   `?pgbouncer=true&connection_limit=1` appended. Used for all runtime queries
+ *   from the Vercel serverless functions. The pooler is required because each
+ *   serverless invocation opens its own connection and the pooler multiplexes
+ *   them; `connection_limit=1` keeps a single short-lived connection per
+ *   invocation so we don't exhaust the pool during cold-start storms.
+ * - DIRECT_URL: the **direct** Postgres connection (port 5432, no PgBouncer).
+ *   Used by Prisma for migrations only (`prisma migrate deploy`). PgBouncer in
+ *   transaction-pooling mode does not support the prepared statements /
+ *   advisory locks that migrations need, so migrations must bypass the pooler.
+ *   Configured via `directUrl = env("DIRECT_URL")` in schema.prisma.
+ *
+ * Runtime queries here intentionally use DATABASE_URL (the pooler).
+ */
 const DB_URL = (process.env.DATABASE_URL || "").trim();
 
 if (process.env.NODE_ENV === "production") {

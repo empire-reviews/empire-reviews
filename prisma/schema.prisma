@@ -149,6 +149,7 @@ model CampaignSend {
   clickedAt     DateTime?
   reviewId      String?
 
+  @@unique([orderId, customerEmail])  // Prevent duplicate sends at the DB level
   @@index([campaignId])
   @@index([customerEmail])
   @@index([sentAt])    // For time-series analytics
@@ -188,7 +189,7 @@ model AnalyticsEvent {
 model Order {
   id            String   @id // Shopify Order Admin GraphQL ID (gid://shopify/Order/123)
   shop          String
-  totalPrice    Float
+  totalPrice    Decimal?
   currency      String
   createdAt     DateTime
   fulfilledAt   DateTime? // When order was shipped

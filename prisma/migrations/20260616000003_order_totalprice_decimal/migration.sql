@@ -1,0 +1,1 @@
+ALTER TABLE "Order" ALTER COLUMN "totalPrice" TYPE DECIMAL(10,2);

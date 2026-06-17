@@ -45,3 +45,33 @@ export function verifyUnsubscribeToken(
         return false;
     }
 }
+
+/**
+ * Generate a signed HMAC token for email tracking (open/click) links.
+ * Binds the token to a specific CampaignSend id so attackers can't inflate
+ * open/click metrics by hitting tracking URLs with arbitrary ids.
+ */
+export function generateTrackingToken(sendId: string): string {
+    return crypto
+        .createHmac('sha256', getSecret())
+        .update(`track:${sendId}`)
+        .digest('hex')
+        .slice(0, 16);
+}
+
+/**
+ * Verify a tracking token using timing-safe comparison.
+ */
+export function verifyTrackingToken(sendId: string, token: string): boolean {
+    try {
+        if (!sendId || !token) return false;
+        const expectedToken = generateTrackingToken(sendId);
+        if (token.length !== expectedToken.length) return false;
+        return crypto.timingSafeEqual(
+            Buffer.from(token),
+            Buffer.from(expectedToken)
+        );
+    } catch {
+        return false;
+    }
+}

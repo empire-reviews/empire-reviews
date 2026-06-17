@@ -15,6 +15,13 @@ const REQUIRED_ENV_VARS = [
 
 const PRODUCTION_RECOMMENDED = [
     'verified_domain',
+    // Required for storefront photo uploads (Pro feature). Used by
+    // app/routes/api.upload-sign.tsx to generate signed Cloudinary uploads.
+    // If missing, photo upload requests return 401 instead of exposing a
+    // shared unsigned upload preset (Bug C6).
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET',
 ] as const;
 
 export function validateEnvironment() {
@@ -32,6 +39,15 @@ export function validateEnvironment() {
                 console.warn(`⚠️ Recommended env var missing: ${varName}`);
             }
         });
+    }
+
+    // ENCRYPTION_KEY secures at-rest secrets (e.g. merchant AI keys).
+    // Must be 32 bytes / 64 hex chars (generate with `openssl rand -hex 32`).
+    const encKey = (process.env.ENCRYPTION_KEY || '').trim();
+    if (!encKey) {
+        console.warn('⚠️ ENCRYPTION_KEY is missing — stored AI keys cannot be encrypted/decrypted. Generate one with `openssl rand -hex 32`.');
+    } else if (encKey.length < 64) {
+        console.warn(`⚠️ ENCRYPTION_KEY is too short (${encKey.length} hex chars; need 64 = 32 bytes). Regenerate with \`openssl rand -hex 32\`.`);
     }
 
     if (missing.length > 0) {
@@ -61,8 +77,12 @@ export function sanitizeEnvironment() {
         'RESEND_API_KEY',
         'CRON_SECRET',
         'UNSUBSCRIBE_SECRET',
+        'ENCRYPTION_KEY',
         'SENTRY_DSN',
         'verified_domain',
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
     ];
 
     varsToSanitize.forEach(varName => {
