@@ -25,7 +25,25 @@ let prisma: PrismaClient;
  *
  * Runtime queries here intentionally use DATABASE_URL (the pooler).
  */
-const DB_URL = (process.env.DATABASE_URL || "").trim();
+// Ensure connection_limit=1 is always set for serverless — prevents EMAXCONNSESSION
+// on Supabase/Neon poolers when DATABASE_URL doesn't include it already.
+function buildDbUrl(raw: string): string {
+  if (!raw) return raw;
+  try {
+    const u = new URL(raw);
+    if (!u.searchParams.has("connection_limit")) {
+      u.searchParams.set("connection_limit", "1");
+    }
+    if (!u.searchParams.has("pool_timeout")) {
+      u.searchParams.set("pool_timeout", "10");
+    }
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
+
+const DB_URL = buildDbUrl((process.env.DATABASE_URL || "").trim());
 
 if (process.env.NODE_ENV === "production") {
   prisma = new PrismaClient({
