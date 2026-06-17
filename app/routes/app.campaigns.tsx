@@ -182,7 +182,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (templateType === "ai") {
         const isPro = await isPlanPro(session.shop);
         if (!isPro) {
-            return json({ error: "AI Features require Empire Pro." }, { status: 403 });
+            return json({ error: "AI Features require Empire Pro." });
         }
 
         const aiPrompt = formData.get("aiPrompt") as string;

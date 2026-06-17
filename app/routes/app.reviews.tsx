@@ -72,6 +72,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page, statusFilter, ratingFilter, searchQuery });
 };
 
+// Safely parse the JSON-stringified reviewIds field from a bulk action.
+// Returns [] for missing/malformed input instead of throwing (which would
+// otherwise bubble to the route ErrorBoundary and crash the whole page).
+function parseReviewIds(formData: FormData): string[] {
+    try {
+        const parsed = JSON.parse((formData.get("reviewIds") as string) || "[]");
+        return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+    } catch {
+        return [];
+    }
+}
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { billing, session } = await authenticate.admin(request);
     const formData = await request.formData();
@@ -93,7 +105,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const body = formData.get("body") as string;
         
         const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
-        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+        if (!review) return json({ success: false, error: "Unauthorized" });
 
         const existingReply = await prisma.reply.findFirst({ where: { reviewId } });
 
@@ -139,7 +151,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return json({ success: false, error: "AI Features require the Empire Pro plan." });
         }
 
-        const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
+        const reviewIds = parseReviewIds(formData);
+        if (reviewIds.length === 0) return json({ success: false, error: "No reviews selected." });
 
         const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
         if (!settings?.aiProvider || !settings?.aiApiKey) {
@@ -172,7 +185,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             include: { review: { select: { shop: true } } }
         });
         if (!media || media.review.shop !== session.shop) {
-            return json({ error: "Unauthorized" }, { status: 403 });
+            return json({ success: false, error: "Unauthorized" });
         }
         await prisma.reviewMedia.delete({ where: { id: mediaId } });
         return json({ success: true, message: "Photo deleted" });
@@ -182,7 +195,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const reviewId = formData.get("reviewId") as string;
         
         const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
-        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+        if (!review) return json({ success: false, error: "Unauthorized" });
 
         await prisma.review.delete({ where: { id: reviewId } });
         return json({ success: true, message: "Review deleted permanently" });
@@ -191,13 +204,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "approve_review") {
         const reviewId = formData.get("reviewId") as string;
         const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
-        if (!review) return json({ error: "Unauthorized" }, { status: 403 });
+        if (!review) return json({ success: false, error: "Unauthorized" });
         await prisma.review.update({ where: { id: reviewId }, data: { status: "approved" } });
         return json({ success: true, message: "Review approved" });
     }
 
     if (intent === "bulk_approve_reviews") {
-        const reviewIds = JSON.parse(formData.get("reviewIds") as string) as string[];
+        const reviewIds = parseReviewIds(formData);
+        if (reviewIds.length === 0) return json({ success: false, error: "No reviews selected." });
         await prisma.review.updateMany({
             where: { id: { in: reviewIds }, shop: session.shop },
             data: { status: "approved" }
@@ -208,9 +222,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (intent === "bulk_delete_reviews") {
         const isPro = await isPlanPro(session.shop);
         if (!isPro) {
-            return json({ error: "Bulk delete is a Pro feature" }, { status: 403 });
+            return json({ success: false, error: "Bulk delete is a Pro feature" });
         }
-        const reviewIds = JSON.parse(formData.get("reviewIds") as string);
+        const reviewIds = parseReviewIds(formData);
+        if (reviewIds.length === 0) return json({ success: false, error: "No reviews selected." });
         await prisma.review.deleteMany({ where: { id: { in: reviewIds }, shop: session.shop } });
         return json({ success: true, message: "Reviews deleted permanently" });
     }

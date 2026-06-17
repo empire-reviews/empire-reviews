@@ -147,14 +147,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 .replace(/{{ store_name }}/g, esc(order.shop))
                 .replace(/{{ product_title }}/g, esc(resolvedProductTitle));
 
-            // A. Create CampaignSend record BEFORE sending (for idempotency)
+            // A. Create CampaignSend record BEFORE sending (for idempotency).
+            // NOTE: CampaignSend has no `shop`/`status` columns (see schema.prisma);
+            // campaign linkage is via campaignId and idempotency via @@unique([orderId, customerEmail]).
             let sendRecord = await prisma.campaignSend.create({
                 data: {
                     campaignId: campaignId,
-                    shop: order.shop,
                     customerEmail: order.customerEmail!,
                     orderId: order.id,
-                    status: "pending"
                 }
             });
 

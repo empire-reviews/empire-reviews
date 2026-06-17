@@ -250,12 +250,23 @@ const EmpireWidgets = (function() {
                 previewsContainer.appendChild(prev);
 
                 try {
+                    // 1. Ask our server for a short-lived signed upload signature
+                    //    (no unsigned preset — server gates Pro + scopes to the shop folder).
+                    const signRes = await fetch(`${API_BASE}/api/upload-sign?shop=${encodeURIComponent(activeShopDomain || '')}`, {
+                        method: 'POST',
+                    });
+                    const sign = await signRes.json();
+                    if (!signRes.ok) throw new Error(sign.error || "Upload not permitted");
+
+                    // 2. Upload directly to Cloudinary using the signed params.
                     const formData = new FormData();
                     formData.append('file', file);
-                    formData.append('upload_preset', 'empire reviews');
-                    formData.append('cloud_name', 'doefkcth6');
+                    formData.append('api_key', sign.apiKey);
+                    formData.append('timestamp', sign.timestamp);
+                    formData.append('signature', sign.signature);
+                    formData.append('folder', sign.folder);
 
-                    const response = await fetch('https://api.cloudinary.com/v1_1/doefkcth6/image/upload', {
+                    const response = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`, {
                         method: 'POST',
                         body: formData
                     });

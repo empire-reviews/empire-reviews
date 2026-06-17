@@ -35,7 +35,7 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
         // Fetch the store owner's email and physical address
         const shopSettings = await prisma.settings.findFirst({
             where: { shop: shopDomain },
-            select: { email: true, physicalAddress: true } as any
+            select: { physicalAddress: true } as any
         });
         const shopSession = await prisma.session.findFirst({
             where: { shop: shopDomain },

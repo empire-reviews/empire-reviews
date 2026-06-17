@@ -245,8 +245,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const limitParam = formData.get("limit");
             const limit = limitParam ? parseInt(String(limitParam), 10) : null;
             if (limit !== null && limit > 0) {
-                // Slice to what they requested (still capped at remaining)
-                records.splice(limit);
+                // Keep at most `remaining` rows — never trust the client number
+                // past the cap (prevents exceeding the 50-review free limit).
+                records.splice(remaining);
             } else if (existingCount + records.length > 50) {
                 return json({
                     success: false,
@@ -272,7 +273,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             const customerName = record.customer || "Anonymous";
             const customerEmail = record.email || null;
             const title = record.review_title || null;
-            const createdAt = record.date ? new Date(record.date) : new Date();
+            let createdAt = record.date ? new Date(record.date) : new Date();
+            if (isNaN(createdAt.getTime())) createdAt = new Date(); // guard against Invalid Date from bad CSV
 
             let productId = record.product_id;
             if (!productId && record.handle) productId = productMap.get(record.handle);
@@ -404,6 +406,7 @@ export default function ImportPage() {
         setFile(droppedFile);
         setHasSubmitted(false); // Reset submission state
 
+      try {
         // Instant Audit & Preview
         const text = await droppedFile.text();
         const records = parseCSV(text);
@@ -417,6 +420,7 @@ export default function ImportPage() {
         // But better to use the keys from the first record? No, keys are normalized.
         // Let's use the same logic as the parser.
         const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length === 0) { setFile(null); alert("That file appears to be empty. Please choose a CSV with at least one review."); return; }
         const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')); // Display friendly
 
         // check first 3 records
@@ -452,6 +456,11 @@ export default function ImportPage() {
             platforms: platforms.length > 0 ? platforms : ['Standard CSV']
         });
         setStep(2);
+      } catch (err) {
+        console.error("[import] failed to read file:", err);
+        setFile(null);
+        alert("Sorry — we couldn't read that file. Please make sure it's a valid CSV and try again.");
+      }
     }, []);
 
     const handleImport = (limit?: number) => {
@@ -952,7 +961,7 @@ export default function ImportPage() {
                                                     </div>
                                                 </td>
                                                 {/* Show RAW values for debugging */}
-                                                {previewData.rawSamples[i].map((cell: string, ci: number) => (
+                                                {(previewData.rawSamples[i] ?? []).map((cell: string, ci: number) => (
                                                     <td key={ci} style={{ padding: '12px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {cell}
                                                     </td>
