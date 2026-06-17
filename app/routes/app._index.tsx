@@ -571,31 +571,53 @@ export default function EmpireDashboard() {
                   </BlockStack>
                 </div>
 
-                {/* IMPORT CARD */}
+                {/* IMPORT / EXPORT CARD */}
                 <div
-                  onClick={() => navigate("/app/import")}
                   style={{
                     background: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
                     padding: '0.75rem',
                     borderRadius: '10px',
                     color: 'white',
                     height: '100%',
-                    cursor: 'pointer',
                     minHeight: '90px',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    gap: '8px',
                   }}
                 >
-                  <BlockStack gap="200">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>📥</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Import Reviews</h3>
-                    </div>
-                    <p style={{ opacity: 0.9, fontSize: '0.9rem' }}>Migrate from CSV</p>
-                    <div style={{ marginTop: 'auto', fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Upload CSV →</div>
-                  </BlockStack>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>📦</span>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Reviews Data</h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                    <button
+                      onClick={() => navigate("/app/import")}
+                      style={{
+                        flex: 1, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)',
+                        color: 'white', borderRadius: '8px', padding: '6px 0', fontWeight: 700,
+                        fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.28)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+                    >
+                      📥 Import
+                    </button>
+                    <a
+                      href="/app/export"
+                      style={{
+                        flex: 1, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.3)',
+                        color: 'white', borderRadius: '8px', padding: '6px 0', fontWeight: 700,
+                        fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s',
+                        textDecoration: 'none', textAlign: 'center', display: 'block',
+                      }}
+                      onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.28)')}
+                      onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.18)')}
+                    >
+                      ⬇ Export
+                    </a>
+                  </div>
                 </div>
 
                 {/* CONFIGURATION CARD */}
