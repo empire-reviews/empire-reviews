@@ -8,6 +8,7 @@ function escapeCSV(val: unknown): string {
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+    try {
     const { session } = await authenticate.admin(request);
     const shop = session.shop;
 
@@ -52,4 +53,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Return JSON so Remix fetcher can call this without Shopify auth redirect loop.
     // The client converts csv string → Blob → object URL → download.
     return Response.json({ csv, filename });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[export] loader error:", msg);
+        return Response.json({ error: msg }, { status: 500 });
+    }
 };

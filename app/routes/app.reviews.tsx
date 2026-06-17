@@ -221,12 +221,17 @@ export default function ReviewsPage() {
 
     // Trigger CSV download when exportFetcher returns data
     useEffect(() => {
-        if (exportFetcher.data?.csv) {
-            const blob = new Blob([exportFetcher.data.csv], { type: "text/csv;charset=utf-8;" });
+        const d = exportFetcher.data as any;
+        if (d?.error) {
+            console.error("Export failed:", d.error);
+            return;
+        }
+        if (d?.csv) {
+            const blob = new Blob([d.csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = exportFetcher.data.filename;
+            a.download = d.filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
