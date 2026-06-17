@@ -49,12 +49,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const csv = [headers.join(","), ...rows].join("\r\n");
     const filename = `empire-reviews-${shop.replace(".myshopify.com", "")}-${new Date().toISOString().split("T")[0]}.csv`;
 
-    return new Response(csv, {
-        status: 200,
-        headers: {
-            "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": `attachment; filename="${filename}"`,
-            "Cache-Control": "no-store",
-        },
-    });
+    // Return JSON so Remix fetcher can call this without Shopify auth redirect loop.
+    // The client converts csv string → Blob → object URL → download.
+    return Response.json({ csv, filename });
 };

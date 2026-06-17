@@ -335,8 +335,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function ImportPage() {
     const fetcher = useFetcher<any>();
+    const exportFetcher = useFetcher<{ csv: string; filename: string }>();
     const navigate = useNavigate();
     const [file, setFile] = useState<File | null>(null);
+
+    useEffect(() => {
+        if (exportFetcher.data?.csv) {
+            const blob = new Blob([exportFetcher.data.csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = exportFetcher.data.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    }, [exportFetcher.data]);
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [auditData, setAuditData] = useState<{ count: number, rating: number, platforms: string[] } | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
@@ -812,27 +827,24 @@ export default function ImportPage() {
                                 Compatible with Judge.me, Loox, Yotpo &amp; all major apps · Free on all plans
                             </p>
                         </div>
-                        <a
-                            href="/app/export"
+                        <button
+                            onClick={() => exportFetcher.load("/app/export")}
+                            disabled={exportFetcher.state !== "idle"}
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap',
                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                 color: 'white', padding: '1.1rem 2.5rem', borderRadius: '20px',
-                                fontWeight: 900, fontSize: '1.05rem', textDecoration: 'none',
+                                fontWeight: 900, fontSize: '1.05rem', border: 'none',
+                                cursor: exportFetcher.state !== "idle" ? 'wait' : 'pointer',
+                                opacity: exportFetcher.state !== "idle" ? 0.7 : 1,
                                 boxShadow: '0 20px 40px -10px rgba(99,102,241,0.55)',
                                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                             }}
-                            onMouseEnter={e => {
-                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-3px) scale(1.03)';
-                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 28px 50px -10px rgba(99,102,241,0.7)';
-                            }}
-                            onMouseLeave={e => {
-                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0) scale(1)';
-                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 20px 40px -10px rgba(99,102,241,0.55)';
-                            }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px) scale(1.03)'; e.currentTarget.style.boxShadow = '0 28px 50px -10px rgba(99,102,241,0.7)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = '0 20px 40px -10px rgba(99,102,241,0.55)'; }}
                         >
-                            ⬇ Download CSV
-                        </a>
+                            {exportFetcher.state !== "idle" ? "Exporting..." : "⬇ Download CSV"}
+                        </button>
                     </div>
                 )}
 

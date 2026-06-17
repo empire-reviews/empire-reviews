@@ -216,7 +216,23 @@ function daysAgo(dateStr: string) {
 export default function ReviewsPage() {
     const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
+    const exportFetcher = useFetcher<{ csv: string; filename: string }>();
     const navigate = useNavigate();
+
+    // Trigger CSV download when exportFetcher returns data
+    useEffect(() => {
+        if (exportFetcher.data?.csv) {
+            const blob = new Blob([exportFetcher.data.csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = exportFetcher.data.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    }, [exportFetcher.data]);
     const [searchParams] = useSearchParams();
 
     // Build a URL string preserving existing search params with overrides applied.
@@ -627,48 +643,39 @@ export default function ReviewsPage() {
                                 {/* TOOLBAR */}
                                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                        <a
-                                            href="/app/import"
+                                        <button
+                                            onClick={() => navigate("/app/import")}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                                 padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
-                                                fontSize: '0.85rem', textDecoration: 'none', color: 'white',
+                                                fontSize: '0.85rem', color: 'white', border: 'none', cursor: 'pointer',
                                                 background: 'linear-gradient(135deg, #047857, #059669)',
                                                 boxShadow: '0 4px 14px rgba(5,150,105,0.4)',
                                                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                                             }}
-                                            onMouseEnter={e => {
-                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
-                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 20px rgba(5,150,105,0.55)';
-                                            }}
-                                            onMouseLeave={e => {
-                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 14px rgba(5,150,105,0.4)';
-                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(5,150,105,0.55)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(5,150,105,0.4)'; }}
                                         >
                                             ⬆ Import CSV
-                                        </a>
-                                        <a
-                                            href="/app/export"
+                                        </button>
+                                        <button
+                                            onClick={() => exportFetcher.load("/app/export")}
+                                            disabled={exportFetcher.state !== "idle"}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                                 padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
-                                                fontSize: '0.85rem', textDecoration: 'none', color: 'white',
+                                                fontSize: '0.85rem', color: 'white', border: 'none',
+                                                cursor: exportFetcher.state !== "idle" ? 'wait' : 'pointer',
                                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                                 boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
                                                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                                opacity: exportFetcher.state !== "idle" ? 0.7 : 1,
                                             }}
-                                            onMouseEnter={e => {
-                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
-                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)';
-                                            }}
-                                            onMouseLeave={e => {
-                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)';
-                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)'; }}
                                         >
-                                            ⬇ Export CSV
-                                        </a>
+                                            {exportFetcher.state !== "idle" ? "Exporting..." : "⬇ Export CSV"}
+                                        </button>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <div style={{ width: '300px' }}>
