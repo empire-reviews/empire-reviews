@@ -193,6 +193,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const shop = session.shop;
 
     try {
+        const shopSettings = await prisma.settings.findUnique({ where: { shop }, select: { publishMode: true } as any });
+        const publishMode: string = (shopSettings as any)?.publishMode ?? "none";
+
         const uploadHandler = unstable_createMemoryUploadHandler({ maxPartSize: 5_000_000 });
         const formData = await unstable_parseMultipartFormData(request, uploadHandler);
         const file = formData.get("file") as File;
@@ -252,6 +255,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 const hasMedia = record.images && record.images.length > 0;
                 const hasReply = !!record.reply;
 
+                const autoApprove =
+                    publishMode === "all" ||
+                    (publishMode === "five_star" && rating === 5);
+
                 const reviewData = {
                     productId: productId || null,
                     rating,
@@ -261,6 +268,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     customerEmail,
                     shop,
                     createdAt,
+                    status: autoApprove ? "approved" : "pending",
                     sentiment: rating >= 4 ? "positive" : rating === 3 ? "neutral" : "negative",
                     verified: true,
                 };

@@ -626,27 +626,50 @@ export default function ReviewsPage() {
                             <Card padding="0">
                                 {/* TOOLBAR */}
                                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                    <a
-                                        href="/app/export"
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                            padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
-                                            fontSize: '0.85rem', textDecoration: 'none', color: 'white',
-                                            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                            boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
-                                            transform: 'translateY(0)', transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                        }}
-                                        onMouseEnter={e => {
-                                            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
-                                            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)';
-                                        }}
-                                        onMouseLeave={e => {
-                                            (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                                            (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)';
-                                        }}
-                                    >
-                                        ⬇ Export CSV
-                                    </a>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <a
+                                            href="/app/import"
+                                            style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
+                                                fontSize: '0.85rem', textDecoration: 'none', color: 'white',
+                                                background: 'linear-gradient(135deg, #047857, #059669)',
+                                                boxShadow: '0 4px 14px rgba(5,150,105,0.4)',
+                                                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                            }}
+                                            onMouseEnter={e => {
+                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
+                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 20px rgba(5,150,105,0.55)';
+                                            }}
+                                            onMouseLeave={e => {
+                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 14px rgba(5,150,105,0.4)';
+                                            }}
+                                        >
+                                            ⬆ Import CSV
+                                        </a>
+                                        <a
+                                            href="/app/export"
+                                            style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
+                                                fontSize: '0.85rem', textDecoration: 'none', color: 'white',
+                                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                                boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                                                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                                            }}
+                                            onMouseEnter={e => {
+                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)';
+                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)';
+                                            }}
+                                            onMouseLeave={e => {
+                                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
+                                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)';
+                                            }}
+                                        >
+                                            ⬇ Export CSV
+                                        </a>
+                                    </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <div style={{ width: '300px' }}>
                                         <form onSubmit={(e) => { e.preventDefault(); submitSearch(queryValue); }}>
