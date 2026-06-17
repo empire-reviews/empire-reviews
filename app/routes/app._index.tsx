@@ -1,4 +1,4 @@
-import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, redirect, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate, useRouteError, isRouteErrorResponse } from "@remix-run/react";
 import {
   Page,
@@ -15,6 +15,9 @@ import { ArrowRightIcon, ArrowUpIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
 import { CONVERSION_CONFIG } from "../config/conversion";
 import { generateInsights, type AIProvider } from "../services/ai.server";
+import empireTheme from "../styles/empire-theme.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 // No shouldRevalidate export = Remix default behaviour: re-run the loader
 // every time the user navigates to this route. This is intentional — the
@@ -130,7 +133,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           withRetry(() => prisma.order.findFirst({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, select: { currency: true } })),
         ]);
         // totalPrice is a Decimal column; Prisma returns a Prisma.Decimal (or null) for the sum.
-        const totalRevenue = orderAgg._sum.totalPrice ? orderAgg._sum.totalPrice.toNumber() : 0;
+        const totalRevenue = orderAgg._sum.totalPrice ? Number(orderAgg._sum.totalPrice) : 0;
         const currency = latestOrder?.currency || "USD";
         impact = {
           formatted: new Intl.NumberFormat("en-US", { style: "currency", currency }).format(totalRevenue),
@@ -357,17 +360,33 @@ export default function EmpireDashboard() {
         `}</style>
 
       <Page fullWidth>
+        <div className="empire-void">
         <BlockStack gap="600">
 
           {/* 🎨 PREMIUM HERO HEADER */}
-          <div className="hero-banner">
-            <div className="hero-decoration"></div>
+          <div className="hero-banner empire-rise empire-rise-1">
+            <div className="hero-decoration empire-float"></div>
+            <span className="empire-sparkle" style={{ top: '22%', left: '18%' }}></span>
+            <span className="empire-sparkle" style={{ top: '60%', left: '42%', animationDelay: '0.8s' }}></span>
+            <span className="empire-sparkle" style={{ top: '34%', right: '28%', animationDelay: '1.5s' }}></span>
             <div className="hero-content">
               <BlockStack gap="400">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '0.5rem' }}>
                     <img src="/logo-icon.png" alt="Empire Icon" style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }} />
-                    <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>
+                    <h1
+                      className="empire-title"
+                      style={{
+                        fontSize: '2rem',
+                        fontWeight: 800,
+                        margin: 0,
+                        // hero is dark — use a light gradient so the title stays readable
+                        background: 'linear-gradient(135deg, #ffffff 0%, #c7d2fe 55%, #a5b4fc 100%)',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}
+                    >
                       Empire Command Center 🚀
                     </h1>
                   </div>
@@ -375,7 +394,7 @@ export default function EmpireDashboard() {
                     {metrics.totalReviews === 0
                       ? "Launch a campaign to get your first review!"
                       : metrics.reviewTrend > 0
-                      ? `Your review generation is up by ${metrics.reviewTrend} this week. Keep it going!`
+                      ? `Your review generation is up by ${metrics.reviewTrend}% this week. Keep it going!`
                       : "Steady progress. Launch a campaign to boost your collection rate!"}
                   </p>
                 </div>
@@ -421,10 +440,9 @@ export default function EmpireDashboard() {
               </InlineStack>
               <div className="usage-bar-container">
                 <div
-                  className="usage-bar-fill"
+                  className={`usage-bar-fill empire-bar empire-shimmer ${metrics.totalReviews > 40 ? 'empire-card-rose' : metrics.totalReviews > 25 ? 'empire-card-amber' : 'empire-card-emerald'}`}
                   style={{
                     width: `${Math.min(100, (metrics.totalReviews / 50) * 100)}%`,
-                    background: metrics.totalReviews > 40 ? '#ef4444' : metrics.totalReviews > 25 ? '#f59e0b' : '#10b981'
                   }}
                 ></div>
               </div>
@@ -474,16 +492,16 @@ export default function EmpireDashboard() {
             <Layout.Section>
               <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
                 {/* Card 1: Velocity (Growth Mindset) */}
-                <div className="stat-card">
+                <div className={`stat-card empire-card empire-rise empire-rise-2 ${metrics.reviewTrend >= 0 ? 'empire-card-emerald' : 'empire-card-rose'}`}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="stat-label">Growth Velocity</div>
+                      <div className="stat-label empire-label">Growth Velocity</div>
                       <div className="trend-badge" style={{ background: metrics.reviewTrend >= 0 ? '#dcfce7' : '#fee2e2', color: metrics.reviewTrend >= 0 ? '#166534' : '#991b1b' }}>
                         {metrics.reviewTrend >= 0 ? <ArrowUpIcon style={{ width: 14 }} /> : null}
                         {metrics.reviewTrend >= 0 ? '+' : ''}{metrics.reviewTrend}%
                       </div>
                     </div>
-                    <div className="stat-value">+{metrics.reviewsThisWeek}</div>
+                    <div className="stat-value empire-stat">+{metrics.reviewsThisWeek}</div>
                     <p style={{ color: '#64748b', fontSize: '0.9rem' }}>New reviews this week</p>
                   </div>
                   <div style={{ width: '100%', height: '4px', background: '#e2e8f0', marginTop: '1rem', borderRadius: '2px' }}>
@@ -492,11 +510,11 @@ export default function EmpireDashboard() {
                 </div>
 
                 {/* Card 2: Trust Score (Social Proof) */}
-                <div className="stat-card">
+                <div className="stat-card empire-card empire-card-amber empire-rise empire-rise-3">
                   <div>
-                    <div className="stat-label">Trust Score</div>
+                    <div className="stat-label empire-label">Trust Score</div>
                     <div className="stat-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {metrics.averageRating.toFixed(1)}
+                      <span className="empire-stat">{metrics.averageRating.toFixed(1)}</span>
                       <span style={{ fontSize: '1rem', color: '#f59e0b' }}>★</span>
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Based on {metrics.totalReviews} total reviews</p>
@@ -511,15 +529,15 @@ export default function EmpireDashboard() {
                 </div>
 
                 {/* Card 3: Action Queue (Completion Bias) */}
-                <div className="stat-card" style={{ borderColor: metrics.unrepliedCount > 0 ? '#fca5a5' : '#e2e8f0' }}>
+                <div className={`stat-card empire-card empire-rise empire-rise-4 ${metrics.unrepliedCount > 0 ? 'empire-card-rose' : 'empire-card-emerald'}`} style={{ borderColor: metrics.unrepliedCount > 0 ? '#fca5a5' : '#e2e8f0' }}>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="stat-label">Action Queue</div>
+                      <div className="stat-label empire-label">Action Queue</div>
                       <div className="trend-badge" style={{ background: '#f1f5f9', color: '#64748b' }}>
-                        📦 {metrics.awaitingDeliveryCount} Awaiting Delivery
+                        ✉️ {metrics.awaitingDeliveryCount} Pending Email Request
                       </div>
                     </div>
-                    <div className="stat-value" style={{ color: metrics.unrepliedCount > 0 ? '#ef4444' : '#10b981' }}>
+                    <div className="stat-value empire-stat">
                       {metrics.unrepliedCount}
                     </div>
                     <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Reviews waiting for reply</p>
@@ -679,6 +697,7 @@ export default function EmpireDashboard() {
 
                 {/* BUSINESS IMPACT CARD */}
                 <div
+                  className="empire-row empire-shimmer empire-rise empire-rise-5"
                   onClick={() => navigate("/app/impact")}
                   style={{
                     background: 'linear-gradient(135deg, #6d28d9 0%, #9333ea 100%)',
@@ -703,7 +722,7 @@ export default function EmpireDashboard() {
 
                     {planName === "EMPIRE_PRO" ? (
                       <div>
-                        <div style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1, position: 'relative', zIndex: 1 }}>
                           {impact?.formatted || "$0.00"}
                         </div>
                         <p style={{ opacity: 0.8, fontSize: '0.8rem', marginTop: '4px' }}>
@@ -734,6 +753,7 @@ export default function EmpireDashboard() {
           <div style={{ height: '3rem' }}></div>
 
         </BlockStack>
+        </div>
       </Page >
     </div >
   );

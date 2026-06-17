@@ -62,7 +62,7 @@ export function generateTrackingToken(sendId: string): string {
 /**
  * Verify a tracking token using timing-safe comparison.
  */
-export function verifyTrackingToken(sendId: string, token: string): boolean {
+export function verifyTrackingToken(sendId: string, token: string | null): boolean {
     try {
         if (!sendId || !token) return false;
         const expectedToken = generateTrackingToken(sendId);

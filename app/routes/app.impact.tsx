@@ -1,109 +1,201 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import {
     Page,
     Layout,
-    Card,
     BlockStack,
     Text,
     InlineGrid,
     Badge,
+    Button,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { LockIcon } from "@shopify/polaris-icons";
 import { isPlanPro } from "../billing.server";
 import { BackButton } from "../components/BackButton";
+import empireTheme from "../styles/empire-theme.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface WeekBucket {
+    weekLabel: string;
+    count: number;
+}
+
+interface TopProduct {
+    productId: string;
+    avg: number;
+    count: number;
+    title: string;
+    imageUrl: string | null;
+    onlineStoreUrl: string | null;
+}
+
+interface ProStats {
+    // Funnel
+    sent: number;
+    opened: number;
+    clicked: number;
+    reviewed: number;
+    openRate: number;
+    clickRate: number;
+    reviewRate: number;
+    // Do This Next
+    ordersAwaitingRequest: number;
+    unansweredNegative: number;
+    productsWithoutReviewsCount: number;
+    // Revenue
+    totalRevenue: number;
+    revenueFromReviewedProducts: number;
+    currency: string;
+    // Trend
+    weeklyTrend: WeekBucket[];
+    // Top product
+    topProduct: TopProduct | null;
+    // Summary
+    totalOrders: number;
+    totalReviews: number;
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
     const isPro = await isPlanPro(session.shop);
 
-    // GATE: Business Impact is PRO Only
     if (!isPro) {
         return json({ locked: true, stats: null });
     }
 
     const shop = session.shop;
-
-    // ── Date helpers ────────────────────────────────────────────────────────
     const now = new Date();
-    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const twelveWeeksAgo = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000);
 
-    // ── Parallel DB queries ─────────────────────────────────────────────────
+    // ── 1. EMAIL FUNNEL ───────────────────────────────────────────────────────
+    // Count CampaignSend rows joined via campaign.shop
     const [
-        allReviews,
-        approvedReviews,
-        totalOrders,
-        sentOrders,
-        reviewsThisMonth,
-        reviewsLastMonth,
+        sentCount,
+        openedCount,
+        clickedCount,
+        reviewedCount,
     ] = await Promise.all([
-        // All reviews for this shop
-        prisma.review.findMany({
-            where: { shop },
-            select: { rating: true, productId: true },
-        }),
+        prisma.campaignSend.count({ where: { campaign: { shop } } }),
+        prisma.campaignSend.count({ where: { campaign: { shop }, openedAt: { not: null } } }),
+        prisma.campaignSend.count({ where: { campaign: { shop }, clickedAt: { not: null } } }),
+        prisma.campaignSend.count({ where: { campaign: { shop }, reviewId: { not: null } } }),
+    ]);
 
-        // Approved/published reviews
-        prisma.review.count({
-            where: { shop, status: "approved" },
-        }),
+    const openRate = sentCount > 0 ? Math.round((openedCount / sentCount) * 1000) / 10 : 0;
+    const clickRate = sentCount > 0 ? Math.round((clickedCount / sentCount) * 1000) / 10 : 0;
+    const reviewRate = sentCount > 0 ? Math.round((reviewedCount / sentCount) * 1000) / 10 : 0;
 
-        // Total orders synced for this shop
-        prisma.order.count({ where: { shop } }),
-
-        // Orders where a review request was actually sent
+    // ── 2. DO THIS NEXT ───────────────────────────────────────────────────────
+    const [
+        ordersAwaitingRequest,
+        negativeReviewsWithReplies,
+        totalOrders,
+    ] = await Promise.all([
+        // Orders fulfilled but request not yet sent
         prisma.order.count({
-            where: { shop, reviewRequestStatus: "sent" },
+            where: { shop, fulfilledAt: { not: null }, reviewRequestStatus: "pending" },
         }),
-
-        // Reviews created this calendar month
-        prisma.review.count({
-            where: { shop, createdAt: { gte: startOfThisMonth } },
+        // Negative reviews (rating ≤ 2) with replies included so we can filter
+        prisma.review.findMany({
+            where: { shop, rating: { lte: 2 } },
+            select: { id: true, replies: { select: { id: true } } },
         }),
+        prisma.order.count({ where: { shop } }),
+    ]);
 
-        // Reviews created last calendar month
-        prisma.review.count({
-            where: {
-                shop,
-                createdAt: { gte: startOfLastMonth, lt: startOfThisMonth },
-            },
+    const unansweredNegative = negativeReviewsWithReplies.filter(
+        (r) => r.replies.length === 0
+    ).length;
+
+    // Products without reviews: distinct productIds in Orders minus those in Reviews
+    const [orderedProductIds, reviewedProductIds] = await Promise.all([
+        prisma.order.findMany({
+            where: { shop, productId: { not: null } },
+            select: { productId: true },
+            distinct: ["productId"],
+        }),
+        prisma.review.findMany({
+            where: { shop, productId: { not: null } },
+            select: { productId: true },
+            distinct: ["productId"],
         }),
     ]);
 
-    const totalReviews = allReviews.length;
+    const reviewedSet = new Set(reviewedProductIds.map((r) => r.productId));
+    const productsWithoutReviewsCount = orderedProductIds.filter(
+        (o) => o.productId && !reviewedSet.has(o.productId)
+    ).length;
 
-    // Average rating (avoid divide-by-zero)
-    const avgRating =
-        totalReviews > 0
-            ? allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
-            : 0;
+    // ── 3. REVENUE ────────────────────────────────────────────────────────────
+    const allOrders = await prisma.order.findMany({
+        where: { shop },
+        select: { totalPrice: true, currency: true, productId: true },
+    });
 
-    // Review conversion rate: reviews / orders (as %)
-    const conversionRate =
-        totalOrders > 0
-            ? Math.round((totalReviews / totalOrders) * 100 * 10) / 10
-            : 0;
+    let totalRevenue = 0;
+    let revenueFromReviewedProducts = 0;
+    const currencyCount: Record<string, number> = {};
 
-    // Review request success rate: of orders where request was sent, how many
-    // resulted in any review (rough proxy: total reviews / sent requests)
-    const requestSuccessRate =
-        sentOrders > 0
-            ? Math.round((totalReviews / sentOrders) * 100 * 10) / 10
-            : 0;
+    for (const order of allOrders) {
+        const price = order.totalPrice ? Number(order.totalPrice) : 0;
+        totalRevenue += price;
+        if (order.productId && reviewedSet.has(order.productId)) {
+            revenueFromReviewedProducts += price;
+        }
+        if (order.currency) {
+            currencyCount[order.currency] = (currencyCount[order.currency] || 0) + 1;
+        }
+    }
 
-    // Monthly trend delta (reviews this month vs last month)
-    const monthlyDelta = reviewsThisMonth - reviewsLastMonth;
+    // Pick most common currency
+    let currency = "USD";
+    let maxCurrencyCount = 0;
+    for (const [cur, cnt] of Object.entries(currencyCount)) {
+        if (cnt > maxCurrencyCount) {
+            maxCurrencyCount = cnt;
+            currency = cur;
+        }
+    }
 
-    // Top-rated product by average rating (need ≥1 review to qualify)
-    type ProductAccum = Record<string, { total: number; count: number }>;
-    const byProduct = allReviews.reduce<ProductAccum>((acc, r) => {
-        if (!r.productId) return acc;
-        if (!acc[r.productId]) acc[r.productId] = { total: 0, count: 0 };
-        acc[r.productId].total += r.rating;
-        acc[r.productId].count += 1;
+    // ── 4. 12-WEEK TREND ─────────────────────────────────────────────────────
+    const recentReviews = await prisma.review.findMany({
+        where: { shop, createdAt: { gte: twelveWeeksAgo } },
+        select: { createdAt: true },
+    });
+
+    // Build 12 weekly buckets (oldest first)
+    const weeklyTrend: WeekBucket[] = [];
+    for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        const count = recentReviews.filter(
+            (r) => r.createdAt >= weekStart && r.createdAt < weekEnd
+        ).length;
+        const month = weekEnd.toLocaleString("default", { month: "short" });
+        const day = weekEnd.getDate();
+        weeklyTrend.push({ weekLabel: `${month} ${day}`, count });
+    }
+
+    // ── 5. TOTAL REVIEWS ─────────────────────────────────────────────────────
+    const totalReviews = await prisma.review.count({ where: { shop } });
+
+    // ── 6. TOP PRODUCT (≥3 reviews, highest avg rating) ──────────────────────
+    const reviewsByProduct = await prisma.review.findMany({
+        where: { shop, productId: { not: null } },
+        select: { productId: true, rating: true },
+    });
+
+    type ProductAcc = Record<string, { total: number; count: number }>;
+    const byProduct = reviewsByProduct.reduce<ProductAcc>((acc, r) => {
+        const pid = r.productId!;
+        if (!acc[pid]) acc[pid] = { total: 0, count: 0 };
+        acc[pid].total += r.rating;
+        acc[pid].count += 1;
         return acc;
     }, {});
 
@@ -111,6 +203,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let topProductAvg = 0;
     let topProductCount = 0;
     for (const [pid, data] of Object.entries(byProduct)) {
+        if (data.count < 3) continue;
         const avg = data.total / data.count;
         if (avg > topProductAvg) {
             topProductAvg = avg;
@@ -119,24 +212,66 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
     }
 
-    return json({
-        locked: false,
-        stats: {
-            totalReviews,
-            approvedReviews,
-            avgRating: Math.round(avgRating * 10) / 10,
-            totalOrders,
-            sentOrders,
-            conversionRate,
-            requestSuccessRate,
-            reviewsThisMonth,
-            reviewsLastMonth,
-            monthlyDelta,
-            topProductId,
-            topProductAvg: Math.round(topProductAvg * 10) / 10,
-            topProductCount,
-        },
-    });
+    let topProduct: TopProduct | null = null;
+    if (topProductId) {
+        let title = topProductId;
+        let imageUrl: string | null = null;
+        let onlineStoreUrl: string | null = null;
+        try {
+            const { unauthenticated } = await import("../shopify.server");
+            const { admin } = await unauthenticated.admin(shop);
+            const result = await admin.graphql(
+                `#graphql
+                query getProduct($id: ID!) {
+                    product(id: $id) {
+                        title
+                        featuredImage { url }
+                        onlineStoreUrl
+                    }
+                }`,
+                { variables: { id: topProductId } }
+            );
+            const data = await result.json();
+            const p = (data as any)?.data?.product;
+            if (p) {
+                title = p.title || topProductId;
+                imageUrl = p.featuredImage?.url || null;
+                onlineStoreUrl = p.onlineStoreUrl || null;
+            }
+        } catch (e) {
+            console.error("⚠️ Failed to fetch top product from Shopify GraphQL:", e);
+        }
+        topProduct = {
+            productId: topProductId,
+            avg: Math.round(topProductAvg * 10) / 10,
+            count: topProductCount,
+            title,
+            imageUrl,
+            onlineStoreUrl,
+        };
+    }
+
+    const stats: ProStats = {
+        sent: sentCount,
+        opened: openedCount,
+        clicked: clickedCount,
+        reviewed: reviewedCount,
+        openRate,
+        clickRate,
+        reviewRate,
+        ordersAwaitingRequest,
+        unansweredNegative,
+        productsWithoutReviewsCount,
+        totalRevenue: Math.round(totalRevenue * 100) / 100,
+        revenueFromReviewedProducts: Math.round(revenueFromReviewedProducts * 100) / 100,
+        currency,
+        weeklyTrend,
+        topProduct,
+        totalOrders,
+        totalReviews,
+    };
+
+    return json({ locked: false, stats });
 };
 
 // ── Small inline stat card ────────────────────────────────────────────────────
@@ -159,22 +294,27 @@ function StatCard({
     };
     const color = tone ? subColor[tone] : "#6b7280";
 
+    // Map Polaris tone → empire accent variant
+    const accentClass: Record<string, string> = {
+        success: "empire-card-emerald",
+        caution: "empire-card-amber",
+        critical: "empire-card-rose",
+        info: "empire-card-indigo",
+    };
+    const cardAccent = tone ? accentClass[tone] : "empire-card-violet";
+
     return (
-        <Card>
+        <div className={`empire-card ${cardAccent}`}>
             <BlockStack gap="200">
-                <Text as="p" variant="bodySm" tone="subdued">
-                    {label}
-                </Text>
-                <Text as="p" variant="headingXl" fontWeight="bold">
-                    {value}
-                </Text>
+                <span className="empire-label">{label}</span>
+                <span className="empire-stat">{value}</span>
                 {sub && (
                     <span style={{ fontSize: "0.8rem", color, fontWeight: 600 }}>
                         {sub}
                     </span>
                 )}
             </BlockStack>
-        </Card>
+        </div>
     );
 }
 
@@ -357,135 +497,335 @@ export default function ImpactPage() {
     if (!stats) return null;
 
     const {
-        totalReviews,
-        approvedReviews,
-        avgRating,
+        sent,
+        opened,
+        clicked,
+        reviewed,
+        openRate,
+        clickRate,
+        reviewRate,
+        ordersAwaitingRequest,
+        unansweredNegative,
+        productsWithoutReviewsCount,
+        totalRevenue,
+        revenueFromReviewedProducts,
+        currency,
+        weeklyTrend,
+        topProduct,
         totalOrders,
-        sentOrders,
-        conversionRate,
-        requestSuccessRate,
-        reviewsThisMonth,
-        monthlyDelta,
-        topProductId,
-        topProductAvg,
-        topProductCount,
+        totalReviews,
     } = stats;
 
-    const trendLabel =
-        monthlyDelta === 0
-            ? "Same as last month"
-            : monthlyDelta > 0
-            ? `▲ ${monthlyDelta} vs last month`
-            : `▼ ${Math.abs(monthlyDelta)} vs last month`;
+    // Bar chart max for scaling
+    const trendMax = Math.max(...weeklyTrend.map((w) => w.count), 1);
 
-    const trendTone: "success" | "critical" | "info" =
-        monthlyDelta > 0 ? "success" : monthlyDelta < 0 ? "critical" : "info";
+    const fmt = (n: number) =>
+        new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
 
-    const starDisplay = "★".repeat(Math.round(avgRating)) + "☆".repeat(5 - Math.round(avgRating));
+    // Funnel step accent variants (progressing indigo → cyan → emerald → emerald)
+    const funnelSteps = [
+        { label: "Sent", count: sent, pct: 100, accent: "empire-card-indigo", barAccent: "#4f46e5", rise: "empire-rise-1" },
+        { label: "Opened", count: opened, pct: sent > 0 ? Math.round((opened / sent) * 1000) / 10 : 0, accent: "empire-card-cyan", barAccent: "#0891b2", rise: "empire-rise-2" },
+        { label: "Clicked", count: clicked, pct: sent > 0 ? Math.round((clicked / sent) * 1000) / 10 : 0, accent: "empire-card-emerald", barAccent: "#059669", rise: "empire-rise-3" },
+        { label: "Reviewed", count: reviewed, pct: sent > 0 ? Math.round((reviewed / sent) * 1000) / 10 : 0, accent: "empire-card-emerald", barAccent: "#059669", rise: "empire-rise-4" },
+    ];
 
     return (
-        <Page>
-            <BackButton />
-            <Layout>
-                {/* ── Header ── */}
+        <div className="empire-void" style={{ borderRadius: "16px" }}>
+            <Page>
+                <BackButton />
+                <Layout>
+                    {/* ── Header ── */}
+                    <Layout.Section>
+                        <BlockStack gap="200">
+                            <h1 className="empire-title empire-rise" style={{ fontSize: "2rem", margin: 0 }}>
+                                Business Impact Analytics 📊
+                            </h1>
+                            <Text as="p" tone="subdued">
+                                Live data across {totalOrders.toLocaleString()} synced orders and{" "}
+                                {totalReviews.toLocaleString()} reviews.
+                            </Text>
+                        </BlockStack>
+                    </Layout.Section>
+
+                    {/* ── Email Funnel ── */}
+                    <Layout.Section>
+                        <div className="empire-card empire-card-indigo empire-rise empire-rise-1" style={{ position: "relative" }}>
+                            {/* scattered sparkles in the hero */}
+                            <span className="empire-sparkle" style={{ top: "18%", left: "12%" }} />
+                            <span className="empire-sparkle" style={{ top: "30%", right: "20%", animationDelay: "0.8s" }} />
+                            <span className="empire-sparkle" style={{ bottom: "24%", left: "40%", animationDelay: "1.4s" }} />
+                            <span className="empire-sparkle" style={{ top: "60%", right: "10%", animationDelay: "0.4s" }} />
+                            <BlockStack gap="400">
+                                <Text as="h2" variant="headingMd">
+                                    📧 Email Conversion Funnel
+                                </Text>
+                                <Text as="p" tone="subdued" variant="bodySm">
+                                    Aggregate across all campaigns for this store.
+                                </Text>
+                                <div style={{ display: "flex", gap: "8px", alignItems: "stretch", overflowX: "auto", position: "relative", zIndex: 1 }}>
+                                    {funnelSteps.map((step, idx) => (
+                                        <div key={step.label} style={{ flex: 1, minWidth: 110 }}>
+                                            {idx > 0 && (
+                                                <div style={{ height: "4px", background: "linear-gradient(90deg, transparent, #cbd5e1, transparent)", borderRadius: "2px", margin: "20px 0 16px" }} />
+                                            )}
+                                            <div
+                                                className={`empire-bar ${step.accent} ${step.rise}`}
+                                                style={{
+                                                    ["--empire-accent" as any]: step.barAccent,
+                                                    padding: "18px 16px",
+                                                    color: "white",
+                                                }}
+                                            >
+                                                <div style={{ fontSize: "1.5rem", fontWeight: 800, lineHeight: 1 }}>
+                                                    {step.count.toLocaleString()}
+                                                </div>
+                                                <div style={{ fontSize: "0.85rem", opacity: 0.92, marginTop: 6 }}>
+                                                    {step.label}
+                                                </div>
+                                                <div style={{ fontSize: "0.78rem", opacity: 0.78, marginTop: 4 }}>
+                                                    {idx === 0 ? "100%" : `${step.pct}% of sent`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+                                    <StatCard label="Open Rate" value={`${openRate}%`} tone={openRate >= 20 ? "success" : openRate >= 10 ? "caution" : "critical"} />
+                                    <StatCard label="Click Rate" value={`${clickRate}%`} tone={clickRate >= 5 ? "success" : clickRate >= 2 ? "caution" : "critical"} />
+                                    <StatCard label="Review Rate" value={`${reviewRate}%`} tone={reviewRate >= 2 ? "success" : reviewRate >= 1 ? "caution" : "info"} />
+                                </InlineGrid>
+                            </BlockStack>
+                        </div>
+                    </Layout.Section>
+
+                {/* ── Do This Next ── */}
                 <Layout.Section>
-                    <BlockStack gap="200">
-                        <Text as="h1" variant="headingXl">
-                            Business Impact Analytics 📊
-                        </Text>
-                        <Text as="p" tone="subdued">
-                            Live data across {totalOrders.toLocaleString()} synced orders
-                            and {totalReviews.toLocaleString()} reviews.
-                        </Text>
-                    </BlockStack>
+                    <div className="empire-card empire-card-violet empire-rise empire-rise-2">
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                ⚡ Do This Next
+                            </Text>
+                            <BlockStack gap="300">
+                                {/* Awaiting request */}
+                                <div className={`empire-row ${ordersAwaitingRequest > 0 ? "empire-card-amber" : "empire-card-emerald"}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: ordersAwaitingRequest > 0 ? "rgba(217, 119, 6, 0.08)" : "rgba(5, 150, 105, 0.08)", border: ordersAwaitingRequest > 0 ? "1px solid rgba(217, 119, 6, 0.2)" : "1px solid rgba(5, 150, 105, 0.2)", flexWrap: "wrap", gap: "8px" }}>
+                                    <BlockStack gap="100">
+                                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                            {ordersAwaitingRequest > 0
+                                                ? `${ordersAwaitingRequest} fulfilled orders haven't been sent a review request yet`
+                                                : "All fulfilled orders have been contacted"}
+                                        </Text>
+                                        {ordersAwaitingRequest > 0 && (
+                                            <Text as="p" variant="bodySm" tone="subdued">
+                                                Start a campaign to capture reviews from recent buyers.
+                                            </Text>
+                                        )}
+                                    </BlockStack>
+                                    {ordersAwaitingRequest > 0 ? (
+                                        <Button onClick={() => navigate("/app/campaigns")} variant="primary" size="slim">
+                                            Start Campaign
+                                        </Button>
+                                    ) : (
+                                        <Badge tone="success">All caught up</Badge>
+                                    )}
+                                </div>
+
+                                {/* Unanswered negatives */}
+                                <div className={`empire-row ${unansweredNegative > 0 ? "empire-card-rose" : "empire-card-emerald"}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: unansweredNegative > 0 ? "rgba(225, 29, 72, 0.08)" : "rgba(5, 150, 105, 0.08)", border: unansweredNegative > 0 ? "1px solid rgba(225, 29, 72, 0.2)" : "1px solid rgba(5, 150, 105, 0.2)", flexWrap: "wrap", gap: "8px" }}>
+                                    <BlockStack gap="100">
+                                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                            {unansweredNegative > 0
+                                                ? `${unansweredNegative} negative review${unansweredNegative === 1 ? "" : "s"} with no reply`
+                                                : "No unanswered negative reviews"}
+                                        </Text>
+                                        {unansweredNegative > 0 && (
+                                            <Text as="p" variant="bodySm" tone="subdued">
+                                                Unanswered 1–2 star reviews erode buyer trust. Reply to show you care.
+                                            </Text>
+                                        )}
+                                    </BlockStack>
+                                    {unansweredNegative > 0 ? (
+                                        <Button onClick={() => navigate("/app/reviews")} variant="primary" size="slim" tone="critical">
+                                            Reply Now
+                                        </Button>
+                                    ) : (
+                                        <Badge tone="success">All caught up</Badge>
+                                    )}
+                                </div>
+
+                                {/* Products without reviews */}
+                                <div className={`empire-row ${productsWithoutReviewsCount > 0 ? "empire-card-indigo" : "empire-card-emerald"}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: productsWithoutReviewsCount > 0 ? "rgba(79, 70, 229, 0.08)" : "rgba(5, 150, 105, 0.08)", border: productsWithoutReviewsCount > 0 ? "1px solid rgba(79, 70, 229, 0.2)" : "1px solid rgba(5, 150, 105, 0.2)", flexWrap: "wrap", gap: "8px" }}>
+                                    <BlockStack gap="100">
+                                        <Text as="p" variant="bodyMd" fontWeight="semibold">
+                                            {productsWithoutReviewsCount > 0
+                                                ? `~${productsWithoutReviewsCount} product${productsWithoutReviewsCount === 1 ? "" : "s"} in your orders have no reviews yet`
+                                                : "All ordered products have at least one review"}
+                                        </Text>
+                                        {productsWithoutReviewsCount > 0 && (
+                                            <Text as="p" variant="bodySm" tone="subdued">
+                                                Products with no reviews are harder to sell. Target them in your next campaign.
+                                            </Text>
+                                        )}
+                                    </BlockStack>
+                                    {productsWithoutReviewsCount > 0 ? (
+                                        <Button onClick={() => navigate("/app/reviews")} size="slim">
+                                            View Reviews
+                                        </Button>
+                                    ) : (
+                                        <Badge tone="success">All caught up</Badge>
+                                    )}
+                                </div>
+                            </BlockStack>
+                        </BlockStack>
+                    </div>
                 </Layout.Section>
 
-                {/* ── Four KPI cards ── */}
+                {/* ── Revenue ── */}
                 <Layout.Section>
-                    <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
-                        <StatCard
-                            label="Review Conversion Rate"
-                            value={`${conversionRate}%`}
-                            sub={`${totalReviews} reviews / ${totalOrders} orders`}
-                            tone={conversionRate >= 10 ? "success" : conversionRate >= 5 ? "caution" : "critical"}
-                        />
-                        <StatCard
-                            label="Reviews This Month"
-                            value={String(reviewsThisMonth)}
-                            sub={trendLabel}
-                            tone={trendTone}
-                        />
-                        <StatCard
-                            label="Average Rating"
-                            value={`${avgRating} / 5`}
-                            sub={starDisplay}
-                            tone={avgRating >= 4 ? "success" : avgRating >= 3 ? "caution" : "critical"}
-                        />
-                        <StatCard
-                            label="Request Success Rate"
-                            value={`${requestSuccessRate}%`}
-                            sub={`${sentOrders} requests sent`}
-                            tone={requestSuccessRate >= 20 ? "success" : requestSuccessRate >= 10 ? "caution" : "info"}
-                        />
+                    <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
+                        <div className="empire-card empire-card-cyan empire-rise empire-rise-3" style={{ position: "relative" }}>
+                            <span className="empire-float" style={{ position: "absolute", top: "1.25rem", right: "1.5rem", fontSize: "2rem", opacity: 0.85, filter: "drop-shadow(0 6px 10px rgba(8,145,178,0.25))" }}>💰</span>
+                            <BlockStack gap="200">
+                                <span className="empire-label">Total Revenue (all synced orders)</span>
+                                <span className="empire-stat">{fmt(totalRevenue)}</span>
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                    Across {totalOrders.toLocaleString()} orders tracked in Empire Reviews.
+                                </Text>
+                            </BlockStack>
+                        </div>
+                        <div className="empire-card empire-card-emerald empire-rise empire-rise-4" style={{ position: "relative" }}>
+                            <span className="empire-float" style={{ position: "absolute", top: "1.25rem", right: "1.5rem", fontSize: "2rem", opacity: 0.85, filter: "drop-shadow(0 6px 10px rgba(5,150,105,0.25))", animationDelay: "1.2s" }}>⭐</span>
+                            <BlockStack gap="200">
+                                <span className="empire-label">Revenue from orders of products that have reviews</span>
+                                <span className="empire-stat">{fmt(revenueFromReviewedProducts)}</span>
+                                <Text as="p" variant="bodySm" tone="subdued">
+                                    Orders whose product also has a review in your store. This does not imply reviews caused these sales.
+                                </Text>
+                            </BlockStack>
+                        </div>
                     </InlineGrid>
                 </Layout.Section>
 
-                {/* ── Secondary stats row ── */}
+                {/* ── 12-Week Trend ── */}
                 <Layout.Section>
-                    <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
-                        <StatCard
-                            label="Approved Reviews"
-                            value={String(approvedReviews)}
-                            sub={totalReviews > 0 ? `${Math.round((approvedReviews / totalReviews) * 100)}% approval rate` : "—"}
-                            tone="info"
-                        />
-                        <StatCard
-                            label="Total Orders Tracked"
-                            value={totalOrders.toLocaleString()}
-                            sub="Synced from Shopify"
-                            tone="info"
-                        />
-                        <StatCard
-                            label="Review Requests Sent"
-                            value={sentOrders.toLocaleString()}
-                            sub={totalOrders > 0 ? `${Math.round((sentOrders / totalOrders) * 100)}% of orders` : "—"}
-                            tone="info"
-                        />
-                    </InlineGrid>
+                    <div className="empire-card empire-card-indigo empire-rise empire-rise-4">
+                        <BlockStack gap="400">
+                            <Text as="h2" variant="headingMd">
+                                📅 12-Week Review Trend
+                            </Text>
+                            <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "120px", padding: "0 4px" }}>
+                                {weeklyTrend.map((week) => (
+                                    <div
+                                        key={week.weekLabel}
+                                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", height: "100%" }}
+                                    >
+                                        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+                                            {week.count > 0 ? (
+                                                <div
+                                                    className="empire-bar empire-card-indigo"
+                                                    style={{
+                                                        width: "100%",
+                                                        height: `${Math.max(4, Math.round((week.count / trendMax) * 100))}%`,
+                                                        ["--empire-accent" as any]: "#4f46e5",
+                                                        borderRadius: "6px 6px 0 0",
+                                                    }}
+                                                    title={`${week.weekLabel}: ${week.count} review${week.count === 1 ? "" : "s"}`}
+                                                />
+                                            ) : (
+                                                <div
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "4px",
+                                                        background: "#e5e7eb",
+                                                        borderRadius: "4px 4px 0 0",
+                                                    }}
+                                                    title={`${week.weekLabel}: ${week.count} review${week.count === 1 ? "" : "s"}`}
+                                                />
+                                            )}
+                                        </div>
+                                        <span style={{ fontSize: "0.6rem", color: "#9ca3af", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", textAlign: "center" }}>
+                                            {week.weekLabel}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            <Text as="p" variant="bodySm" tone="subdued">
+                                Each bar = one week. Hover for exact count.
+                            </Text>
+                        </BlockStack>
+                    </div>
                 </Layout.Section>
 
-                {/* ── Top product card ── */}
+                {/* ── Top Product ── */}
                 <Layout.Section>
-                    <Card>
+                    <div className="empire-card empire-card-amber empire-rise empire-rise-5">
                         <BlockStack gap="300">
                             <Text as="h2" variant="headingMd">
                                 🏆 Top Rated Product
                             </Text>
-                            {topProductId ? (
-                                <BlockStack gap="200">
-                                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+                            {topProduct ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap" }}>
+                                    {topProduct.imageUrl && (
+                                        <img
+                                            src={topProduct.imageUrl}
+                                            alt={topProduct.title}
+                                            style={{ width: 84, height: 84, objectFit: "cover", borderRadius: "14px", border: "1px solid rgba(255,255,255,0.85)", boxShadow: "0 12px 28px -10px rgba(217,119,6,0.35)", transition: "transform 0.35s cubic-bezier(0.175,0.885,0.32,1.275)" }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.08)"; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                                        />
+                                    )}
+                                    <BlockStack gap="200">
                                         <Text as="p" variant="bodyMd" fontWeight="semibold">
-                                            Product ID: {topProductId}
+                                            {topProduct.onlineStoreUrl ? (
+                                                <a
+                                                    href={topProduct.onlineStoreUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="empire-title"
+                                                    style={{ fontSize: "1.15rem", textDecoration: "none" }}
+                                                >
+                                                    {topProduct.title}
+                                                </a>
+                                            ) : (
+                                                topProduct.title
+                                            )}
                                         </Text>
-                                        <Badge tone="success">{`${topProductAvg} ★`}</Badge>
-                                        <Text as="p" tone="subdued">
-                                            ({topProductCount} {topProductCount === 1 ? "review" : "reviews"})
+                                        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                                            <span
+                                                className="empire-glow"
+                                                style={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    gap: "4px",
+                                                    padding: "4px 12px",
+                                                    borderRadius: "999px",
+                                                    fontWeight: 800,
+                                                    color: "#fff",
+                                                    background: "linear-gradient(135deg, #d97706, #f59e0b)",
+                                                    boxShadow: "0 6px 16px -6px rgba(217,119,6,0.5)",
+                                                }}
+                                            >
+                                                {`${topProduct.avg} ★`}
+                                            </span>
+                                            <Text as="p" tone="subdued">
+                                                {topProduct.count} {topProduct.count === 1 ? "review" : "reviews"}
+                                            </Text>
+                                        </div>
+                                        <Text as="p" tone="subdued" variant="bodySm">
+                                            Highest average rating among products with 3+ reviews.
                                         </Text>
-                                    </div>
-                                    <Text as="p" tone="subdued" variant="bodySm">
-                                        Based on average rating across all reviews for this product.
-                                    </Text>
-                                </BlockStack>
+                                    </BlockStack>
+                                </div>
                             ) : (
                                 <Text as="p" tone="subdued">
-                                    No product-linked reviews yet. Reviews will appear here once customers
-                                    submit them via the widget or email requests.
+                                    No product has 3 or more reviews yet. Keep collecting reviews — your top product will appear here once it hits the threshold.
                                 </Text>
                             )}
                         </BlockStack>
-                    </Card>
+                    </div>
                 </Layout.Section>
-            </Layout>
-        </Page>
+                </Layout>
+            </Page>
+        </div>
     );
 }

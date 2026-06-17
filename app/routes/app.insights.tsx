@@ -1,5 +1,6 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
+import empireTheme from "../styles/empire-theme.css?url";
 import { useState } from "react";
 import {
   Page,
@@ -23,6 +24,8 @@ import { isPlanPro } from "../billing.server";
 import { generateInsights } from "../services/ai.server";
 import type { AIProvider } from "../services/ai.server";
 import { decrypt } from "../utils/encryption.server";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 export const action = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -225,12 +228,18 @@ export default function InsightsPage() {
                 Unlock AI <br /> Intelligence 🧠
               </h2>
               <p style={{ color: '#94a3b8', fontSize: '1.2rem', lineHeight: '1.5' }}>
-                Don't leave revenue on the table. AI has identified <strong>critical trends</strong> in your customer feedback.
+                Don't leave revenue on the table. Unlock AI-powered analysis to surface <strong>critical trends</strong> in your customer feedback.
               </p>
             </BlockStack>
 
             {/* FLOATING DECORATION */}
             <div style={{ position: 'absolute', bottom: '-20px', right: '-20px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+
+            {/* TWINKLING SPARKLES */}
+            <span className="empire-sparkle" style={{ top: '12%', right: '18%' }}></span>
+            <span className="empire-sparkle" style={{ top: '34%', right: '8%', animationDelay: '0.8s' }}></span>
+            <span className="empire-sparkle" style={{ bottom: '22%', left: '12%', animationDelay: '1.4s' }}></span>
+            <span className="empire-sparkle" style={{ bottom: '38%', right: '28%', animationDelay: '2s' }}></span>
           </div>
 
           {/* RIGHT: CONVERSION CONTENT */}
@@ -309,7 +318,7 @@ export default function InsightsPage() {
 
 
   return (
-    <div className="empire-insights">
+    <div className="empire-insights empire-void">
       <style>{`
             .empire-insights {
                 --empire-primary: #0f172a;
@@ -347,7 +356,7 @@ export default function InsightsPage() {
         <BlockStack gap="600">
           <BackButton />
           {/* HERO */}
-          <div className="insight-hero">
+          <div className="insight-hero empire-shimmer">
             <BlockStack gap="400">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -379,9 +388,9 @@ export default function InsightsPage() {
 
           <Layout>
             <Layout.Section>
-              <div className="insight-card" style={{ borderTop: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
+              <div className="insight-card empire-card empire-card-violet empire-shimmer empire-glow empire-rise empire-rise-1" style={{ borderTop: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
                 <InlineStack align="space-between">
-                  <Text as="h3" variant="headingMd">🧠 Deep AI Analysis</Text>
+                  <Text as="h3" variant="headingMd"><span className="empire-title">🧠 Deep AI Analysis</span></Text>
                   {aiInsightsUpdatedAt && (
                     <Text as="p" tone="subdued">Last updated: {new Date(aiInsightsUpdatedAt).toLocaleString()}</Text>
                   )}
@@ -462,14 +471,14 @@ export default function InsightsPage() {
 
             {/* LEFT: VISUALIZATION */}
             <Layout.Section>
-              <div className="insight-card">
-                <Text as="h3" variant="headingMd">Sentiment Distribution</Text>
+              <div className="insight-card empire-card empire-card-emerald empire-rise empire-rise-2">
+                <Text as="h3" variant="headingMd"><span className="empire-title">Sentiment Distribution</span></Text>
 
                 {/* THE BIG BAR */}
                 <div className="sentiment-bar">
-                  <div className="sentiment-segment" style={{ width: `${posPct}%`, background: '#22c55e' }}></div>
-                  <div className="sentiment-segment" style={{ width: `${neuPct}%`, background: '#f59e0b' }}></div>
-                  <div className="sentiment-segment" style={{ width: `${negPct}%`, background: '#ef4444' }}></div>
+                  <div className="sentiment-segment empire-bar empire-card-emerald" style={{ width: `${posPct}%` }}></div>
+                  <div className="sentiment-segment empire-bar empire-card-amber" style={{ width: `${neuPct}%` }}></div>
+                  <div className="sentiment-segment empire-bar empire-card-rose" style={{ width: `${negPct}%` }}></div>
                 </div>
 
                 {/* LEGEND */}
@@ -499,7 +508,7 @@ export default function InsightsPage() {
             {/* RIGHT: URGENT ISSUES */}
             <Layout.Section variant="oneThird">
               <BlockStack gap="400">
-                <div className="insight-card" style={{ borderTop: '4px solid #f43f5e' }}>
+                <div className="insight-card empire-card empire-card-rose empire-rise empire-rise-3" style={{ borderTop: '4px solid #f43f5e' }}>
                   <Text as="h3" variant="headingMd" tone="critical">🔥 Firefighting (Urgent)</Text>
                   <Box paddingBlockStart="400">
                     {safeReviews.length === 0 ? (
@@ -510,7 +519,7 @@ export default function InsightsPage() {
                       </div>
                     ) : (
                       safeReviews.map(r => (
-                        <div key={r?.id} className="urgent-item">
+                        <div key={r?.id} className="urgent-item empire-row">
                           <BlockStack gap="200">
                             <InlineStack align="space-between">
                               <Text as="span" fontWeight="bold">{r?.customerName || "Customer"}</Text>

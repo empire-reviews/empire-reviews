@@ -1,9 +1,16 @@
-import { json, type LoaderFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import { Page, Card, BlockStack, Text, Badge, InlineStack, Button } from "@shopify/polaris";
 import { BackButton } from "../components/BackButton";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import campaignStyles from "../styles/campaigns.css?url";
+import empireTheme from "../styles/empire-theme.css?url";
+
+export const links: LinksFunction = () => [
+    { rel: "stylesheet", href: campaignStyles },
+    { rel: "stylesheet", href: empireTheme },
+];
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const { admin, session } = await authenticate.admin(request);
@@ -95,19 +102,23 @@ export default function CampaignDetailsPage() {
                 </InlineStack>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '3rem' }}>
-                    <div className="prism-card">
+                    <div className="prism-card empire-card empire-card-violet empire-rise empire-rise-1" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+                        <span className="empire-sparkle" style={{ top: '16px', right: '20px' }}></span>
                         <div className="metric-value">{campaign.metrics?.totalSent || 0}</div>
                         <div className="metric-label">Transmissions Sent</div>
                     </div>
-                    <div className="prism-card">
+                    <div className="prism-card empire-card empire-card-indigo empire-rise empire-rise-2" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+                        <span className="empire-sparkle" style={{ top: '20px', right: '24px', animationDelay: '0.5s' }}></span>
                         <div className="metric-value">{campaign.metrics?.totalOpened || 0}</div>
                         <div className="metric-label">Emails Opened</div>
                     </div>
-                    <div className="prism-card">
+                    <div className="prism-card empire-card empire-card-cyan empire-rise empire-rise-3" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+                        <span className="empire-sparkle" style={{ top: '18px', right: '22px', animationDelay: '1s' }}></span>
                         <div className="metric-value">{campaign.metrics?.totalClicked || 0}</div>
                         <div className="metric-label">Review Links Clicked</div>
                     </div>
-                    <div className="prism-card" style={{ boxShadow: '0 0 30px rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+                    <div className="prism-card empire-card empire-card-emerald empire-glow empire-rise empire-rise-4" style={{ background: 'rgba(255, 255, 255, 0.02)', boxShadow: '0 0 30px rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.2)' }}>
+                        <span className="empire-sparkle" style={{ top: '16px', right: '20px', animationDelay: '0.3s' }}></span>
                         <div className="metric-value" style={{ background: 'linear-gradient(to right, #fff, #34d399)', WebkitBackgroundClip: 'text' }}>{campaign.metrics?.totalReviews || 0}</div>
                         <div className="metric-label" style={{ color: '#34d399' }}>Reviews Generated</div>
                     </div>
@@ -133,19 +144,19 @@ export default function CampaignDetailsPage() {
                                     </thead>
                                     <tbody>
                                         {campaign.sends.map((send: any) => (
-                                            <tr key={send.id}>
+                                            <tr key={send.id} className="empire-row">
                                                 <td style={{ fontWeight: 600 }}>{send.customerName}</td>
                                                 <td style={{ color: '#94a3b8' }}>{send.customerEmail}</td>
                                                 <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{new Date(send.sentAt).toLocaleString()}</td>
                                                 <td>
-                                                    {send.opened 
-                                                        ? <span className="status-badge active">Opened</span> 
+                                                    {send.openedAt
+                                                        ? <span className="status-badge active" style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.45)' }}>Opened</span>
                                                         : <span className="status-badge" style={{ background: 'rgba(255,255,255,0.05)' }}>Delivered</span>
                                                     }
                                                 </td>
                                                 <td>
-                                                    {send.clicked 
-                                                        ? <span className="status-badge active">Clicked</span> 
+                                                    {send.clickedAt
+                                                        ? <span className="status-badge active" style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.45)' }}>Clicked</span>
                                                         : <span style={{ color: '#64748b' }}>-</span>
                                                     }
                                                 </td>

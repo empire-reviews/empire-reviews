@@ -1,4 +1,4 @@
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
 import {
     Page,
@@ -13,7 +13,6 @@ import {
     TextField,
     Modal,
     Text,
-    ProgressBar,
     Tooltip,
     BlockStack,
     Spinner,
@@ -30,6 +29,9 @@ import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
 import { decrypt } from "../utils/encryption.server";
 import { buildReviewsCsv } from "../utils/export.server";
+import empireTheme from "../styles/empire-theme.css?url";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
@@ -53,7 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const PAGE_SIZE = 50;
     const skip = (page - 1) * PAGE_SIZE;
 
-    const [reviews, totalCount] = await Promise.all([
+    const [reviews, totalCount, shopTotalReviews, shopRepliedReviews] = await Promise.all([
         prisma.review.findMany({
             where: whereClause,
             orderBy: { createdAt: "desc" },
@@ -61,7 +63,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             take: PAGE_SIZE,
             skip: skip
         }),
-        prisma.review.count({ where: whereClause })
+        prisma.review.count({ where: whereClause }),
+        // Shop-wide counts for the header "Reply Health" stats (NOT filtered/paginated).
+        prisma.review.count({ where: { shop: session.shop } }),
+        prisma.review.count({ where: { shop: session.shop, replies: { some: {} } } })
     ]);
 
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
@@ -69,7 +74,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const pendingCount = await prisma.review.count({ where: { shop: session.shop, status: 'pending' } });
     const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
     
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, page, statusFilter, ratingFilter, searchQuery });
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, page, statusFilter, ratingFilter, searchQuery });
 };
 
 // Safely parse the JSON-stringified reviewIds field from a bulk action.
@@ -241,7 +246,7 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const exportFetcher = useFetcher<{ csv?: string; filename?: string; error?: string }>();
     const navigate = useNavigate();
@@ -286,13 +291,16 @@ export default function ReviewsPage() {
     const [bulkAiModalOpen, setBulkAiModalOpen] = useState(false);
     const [bulkAiLoading, setBulkAiLoading] = useState(false);
 
-    // Stats for Gamification
-    const totalReviews = reviews.length;
-    const repliedCount = reviews.filter(r => r.replies.length > 0).length;
-    const unrepliedCount = totalReviews - repliedCount;
-    const progress = totalReviews === 0 ? 0 : Math.round((repliedCount / totalReviews) * 100);
+    // Stats for Gamification — SHOP-WIDE, not just the current paginated page.
+    // These come from dedicated shop-scoped counts in the loader so the header
+    // "Reply Health" reflects the whole shop, not the up-to-50 rows on this page.
+    const totalReviews = shopTotalReviews;
+    const repliedCount = shopRepliedReviews;
+    const unrepliedCount = Math.max(0, totalReviews - repliedCount);
+    const progress = totalReviews > 0 ? Math.round((repliedCount / totalReviews) * 100) : 0;
     const isInboxZero = unrepliedCount === 0 && totalReviews > 0;
 
+    // "streak" here is a reply-count milestone badge (1 per 5 replies), not a calendar streak.
     const streak = Math.floor(repliedCount / 5);
 
     // Confetti State
@@ -497,7 +505,7 @@ export default function ReviewsPage() {
                     </InlineStack>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                    <div style={{ maxWidth: "400px", whiteSpace: "normal" }}>
+                    <div className="empire-row" style={{ maxWidth: "400px", whiteSpace: "normal", padding: "4px 8px" }}>
                         <Text as="p" variant="bodyMd">{body}</Text>
                         {isReplied && (
                             <Box paddingBlockStart="200">
@@ -552,7 +560,7 @@ export default function ReviewsPage() {
     });
 
     return (
-        <div className="empire-reviews-page">
+        <div className="empire-reviews-page empire-void">
             <style>{`
                 .empire-reviews-page { --empire-primary: #0f172a; }
                 .reviews-header {
@@ -600,10 +608,10 @@ export default function ReviewsPage() {
                     <div className="reviews-header">
                         <BlockStack gap="400">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }}>War Room 🛡️</h1>
+                                <h1 className="empire-title" style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 70%, #67e8f9 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>War Room 🛡️</h1>
                                 {streak > 0 && (
-                                    <div style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        🔥 {streak} Day Streak
+                                    <div className="empire-glow" style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        🔥 {streak * 5}+ Replies
                                     </div>
                                 )}
                             </div>
@@ -615,20 +623,25 @@ export default function ReviewsPage() {
                                     <Text as="span" variant="bodySm" fontWeight="bold"><span style={{ color: 'white' }}>{progress}%</span></Text>
                                 </InlineStack>
                                 <Box paddingBlockStart="200">
-                                    <ProgressBar progress={progress} size="small" tone="success" />
+                                    <div style={{ position: 'relative', height: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.18)', overflow: 'hidden' }}>
+                                        <div
+                                            className="empire-bar empire-shimmer empire-card-emerald"
+                                            style={{ height: '100%', width: `${progress}%`, transition: 'width 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}
+                                        />
+                                    </div>
                                 </Box>
                                 <div style={{ opacity: 0.7, fontSize: '0.8rem', marginTop: '4px' }}>Target: 100% to boost SEO</div>
                             </div>
                         </BlockStack>
 
                         {isInboxZero ? (
-                            <div className="inbox-zero-badge">
+                            <div className="inbox-zero-badge empire-glow">
                                 <CheckIcon style={{ width: 18 }} /> INBOX ZERO REACHED
                             </div>
                         ) : (
-                            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px 25px', borderRadius: '12px', backdropFilter: 'blur(4px)', textAlign: 'center' }}>
-                                <Text as="h2" variant="heading2xl" fontWeight="bold"><span style={{ color: 'white' }}>{unrepliedCount}</span></Text>
-                                <Text as="p" variant="bodySm" fontWeight="bold"><span style={{ color: '#fda4af' }}>ACTION REQUIRED</span></Text>
+                            <div className="empire-card empire-card-rose empire-float" style={{ padding: '15px 25px', textAlign: 'center', minWidth: '120px' }}>
+                                <div className="empire-stat">{unrepliedCount}</div>
+                                <div className="empire-label" style={{ justifyContent: 'center', marginTop: '6px' }}>Action Required</div>
                             </div>
                         )}
                     </div>
@@ -677,35 +690,29 @@ export default function ReviewsPage() {
                                 <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <button
+                                            className="empire-btn"
                                             onClick={() => navigate("/app/import")}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
-                                                fontSize: '0.85rem', color: 'white', border: 'none', cursor: 'pointer',
+                                                padding: '8px 16px', fontSize: '0.85rem',
                                                 background: 'linear-gradient(135deg, #047857, #059669)',
                                                 boxShadow: '0 4px 14px rgba(5,150,105,0.4)',
-                                                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                                             }}
-                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(5,150,105,0.55)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(5,150,105,0.4)'; }}
                                         >
                                             ⬆ Import CSV
                                         </button>
                                         <button
+                                            className="empire-btn"
                                             onClick={() => exportFetcher.submit({ intent: "export" }, { method: "post" })}
                                             disabled={exportFetcher.state !== "idle"}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                                padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
-                                                fontSize: '0.85rem', color: 'white', border: 'none',
+                                                padding: '8px 16px', fontSize: '0.85rem',
                                                 cursor: exportFetcher.state !== "idle" ? 'wait' : 'pointer',
                                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                                 boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
-                                                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                                                 opacity: exportFetcher.state !== "idle" ? 0.7 : 1,
                                             }}
-                                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)'; }}
-                                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)'; }}
                                         >
                                             {exportFetcher.state !== "idle" ? "Exporting..." : "⬇ Export CSV"}
                                         </button>

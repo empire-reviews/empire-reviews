@@ -1,9 +1,11 @@
 import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
 import campaignStyles from "../styles/campaigns.css?url";
+import empireTheme from "../styles/empire-theme.css?url";
 import { CAMPAIGN_TEMPLATES } from "../lib/campaign-templates";
 
 export const links: LinksFunction = () => [
-    { rel: "stylesheet", href: campaignStyles }
+    { rel: "stylesheet", href: campaignStyles },
+    { rel: "stylesheet", href: empireTheme },
 ];
 import { useLoaderData, useFetcher, useNavigate, Link } from "@remix-run/react";
 import {
@@ -372,26 +374,30 @@ export default function CampaignsPage() {
                 {selectedTab === 0 && (
                     <>
                         <div className="prism-grid">
-                            <div className="prism-card">
+                            <div className="prism-card empire-card empire-card-violet empire-shimmer empire-rise empire-rise-1">
+                                <span className="empire-sparkle" style={{ top: '14px', right: '18px' }}></span>
                                 <div className="prism-label"><span className="prism-spark"></span>Audience Size</div>
-                                <div className="prism-val">{stats.potentialAudience.toLocaleString()}</div>
-                                <Badge tone="info">Shopify Customers</Badge>
+                                <div className="prism-val empire-stat">{stats.potentialAudience.toLocaleString()}</div>
+                                <Badge tone="info">Synced Order Contacts</Badge>
                             </div>
-                            <div className="prism-card">
+                            <div className="prism-card empire-card empire-card-rose empire-rise empire-rise-2">
+                                <span className="empire-sparkle" style={{ top: '20px', right: '24px', animationDelay: '0.6s' }}></span>
                                 <div className="prism-label"><span className="prism-spark" style={{ background: '#ec4899', boxShadow: '0 0 8px #ec4899' }}></span>Open Rate</div>
-                                <div className="prism-val">{stats.openRate}%</div>
+                                <div className="prism-val empire-stat">{stats.openRate}%</div>
                                 <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '10px' }}>
-                                    <div style={{ height: '100%', width: `${stats.openRate}%`, background: '#ec4899', borderRadius: '2px' }}></div>
+                                    <div className="empire-bar" style={{ height: '100%', width: `${stats.openRate}%`, background: '#ec4899', borderRadius: '2px' }}></div>
                                 </div>
                             </div>
-                            <div className="prism-card">
+                            <div className="prism-card empire-card empire-card-emerald empire-rise empire-rise-3">
+                                <span className="empire-sparkle" style={{ top: '16px', right: '20px', animationDelay: '1.1s' }}></span>
                                 <div className="prism-label"><span className="prism-spark" style={{ background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>Click Rate</div>
-                                <div className="prism-val">{stats.clickRate}%</div>
+                                <div className="prism-val empire-stat">{stats.clickRate}%</div>
                                 <Badge tone="success">High Intent</Badge>
                             </div>
-                            <div className="prism-card">
+                            <div className="prism-card empire-card empire-card-amber empire-rise empire-rise-4">
+                                <span className="empire-sparkle" style={{ top: '18px', right: '22px', animationDelay: '0.3s' }}></span>
                                 <div className="prism-label"><span className="prism-spark" style={{ background: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>Reviews</div>
-                                <div className="prism-val">{stats.generatedReviews}</div>
+                                <div className="prism-val empire-stat">{stats.generatedReviews}</div>
                                 {stats.weeklySends > 0 && (
                                     <Badge tone="attention">{`+${stats.weeklySends} This Week`}</Badge>
                                 )}
@@ -415,7 +421,7 @@ export default function CampaignsPage() {
                                         {activeCampaigns.map(c => (
                                             <div 
                                                 key={c.id} 
-                                                className={`transmission-beam ${c.status === 'active' ? 'beam-active' : ''}`}
+                                                className={`transmission-beam empire-row ${c.status === 'active' ? 'beam-active' : ''}`}
                                                 style={{ cursor: 'pointer' }}
                                                 onClick={() => navigate(`/app/campaigns/${c.id}`)}
                                             >
@@ -565,7 +571,7 @@ export default function CampaignsPage() {
                                         <button className="test-btn" onClick={handleTest} disabled={testing}>
                                             {testing ? "Sending..." : "Send Test 📧"}
                                         </button>
-                                        <button className="ignite-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
+                                        <button className="ignite-btn empire-btn" onClick={handleLaunchConfirm} disabled={fetcher.state === "submitting"}>
                                             {fetcher.state === "submitting" ? "Queuing Campaign..." : "Activate Setup 🚀"}
                                         </button>
                                     </div>

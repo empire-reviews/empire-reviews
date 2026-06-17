@@ -1,5 +1,6 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate } from "@remix-run/react";
+import empireTheme from "../styles/empire-theme.css?url";
 import {
     Page,
     Layout,
@@ -24,6 +25,8 @@ import { testAIConnection, type AIProvider } from "../services/ai.server";
 import { encrypt, decrypt } from "../utils/encryption.server";
 import { ThemeIcon, CreditCardIcon, ClockIcon, AlertTriangleIcon, LinkIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
+
+export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 const GROWTH_TIPS = [
     "Stores with photo reviews see a 26% higher conversion rate.",
@@ -300,6 +303,7 @@ export default function SettingsPage() {
             primaryAction={isDirty ? { content: 'Save settings', onAction: handleSave } : undefined}
             fullWidth
         >
+            <div className="empire-void" style={{ borderRadius: '16px' }}>
             <BackButton />
             <style>{`
                 .stat-card {
@@ -328,27 +332,33 @@ export default function SettingsPage() {
 
             <div style={{ marginBottom: '24px' }}>
                 <InlineGrid columns={{ xs: 1, sm: 1, md: 3 }} gap="400">
-                    <div className="stat-card">
+                    <div className="stat-card empire-card empire-card-emerald empire-rise empire-rise-1">
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <div className="stat-label">SYSTEM HEALTH</div>
+                                <div className="stat-label empire-label">SYSTEM HEALTH</div>
                                 <Badge tone={isPro ? "success" : "info"}>{isPro ? "Pro Optimized" : "Standard"}</Badge>
                             </div>
                             <div className="stat-value" style={{ color: healthColor }}>{systemHealth}</div>
-                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>All core settings are configured.</p>
+                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>
+                                {systemHealth === "Optimal"
+                                    ? "All core settings are configured."
+                                    : systemHealth === "Good"
+                                    ? "One of Email or AI is not yet configured."
+                                    : "Email and AI are not configured yet."}
+                            </p>
                         </div>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
                             <div style={{ width: '100%', height: '100%', background: '#10b981' }}></div>
                         </div>
                     </div>
 
-                    <div className="stat-card">
+                    <div className="stat-card empire-card empire-card-indigo empire-rise empire-rise-2">
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <div className="stat-label">AI ENGINE</div>
+                                <div className="stat-label empire-label">AI ENGINE</div>
                                 <Badge tone={aiTestSuccess ? "success" : "attention"}>{aiTestSuccess ? "Connected" : "Standby"}</Badge>
                             </div>
-                            <div className="stat-value">{settings.aiProvider ? settings.aiProvider.toUpperCase() : "Inactive"}</div>
+                            <div className="stat-value empire-stat">{settings.aiProvider ? settings.aiProvider.toUpperCase() : "Inactive"}</div>
                             <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>Auto-replies and sentiment analysis.</p>
                         </div>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
@@ -356,13 +366,13 @@ export default function SettingsPage() {
                         </div>
                     </div>
 
-                    <div className="stat-card">
+                    <div className="stat-card empire-card empire-card-cyan empire-rise empire-rise-3">
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <div className="stat-label">DATA CAPACITY</div>
+                                <div className="stat-label empire-label">DATA CAPACITY</div>
                                 <Badge tone={isPro ? "info" : "critical"}>{isPro ? "Unlimited" : "Capped"}</Badge>
                             </div>
-                            <div className="stat-value">{isPro ? "∞" : "50"}</div>
+                            <div className="stat-value empire-stat">{isPro ? "∞" : "50"}</div>
                             <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '8px' }}>{isPro ? "Unlimited review storage." : "Upgrade to prevent data loss."}</p>
                         </div>
                         <div style={{ marginTop: '16px', height: '4px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
@@ -403,7 +413,7 @@ export default function SettingsPage() {
                 <Layout.Section>
                     {activeTab === 'brand' && (
                         <BlockStack gap="400">
-                            <Text as="h2" variant="headingLg" fontWeight="bold">Brand Identity</Text>
+                            <Text as="h2" variant="headingLg" fontWeight="bold"><span className="empire-title">Brand Identity</span></Text>
                             <Card padding="0">
                                 <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="p" variant="bodyMd" tone="subdued">Customize your review widget to match your store's look & feel.</Text>
@@ -465,7 +475,7 @@ export default function SettingsPage() {
 
                     {activeTab === 'automation' && (
                         <BlockStack gap="400">
-                            <Text as="h2" variant="headingLg" fontWeight="bold">Automation & Timing</Text>
+                            <Text as="h2" variant="headingLg" fontWeight="bold"><span className="empire-title">Automation & Timing</span></Text>
                             <Card padding="0">
                                 <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Publishing & Alerts</Text>
@@ -569,7 +579,7 @@ export default function SettingsPage() {
 
                     {activeTab === 'ecosystem' && (
                         <BlockStack gap="400">
-                            <Text as="h2" variant="headingLg" fontWeight="bold">Integrations & AI</Text>
+                            <Text as="h2" variant="headingLg" fontWeight="bold"><span className="empire-title">Integrations & AI</span></Text>
                             <Card padding="0">
                                 <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Ecosystem Sync</Text>
@@ -648,7 +658,7 @@ export default function SettingsPage() {
 
                     {activeTab === 'billing' && (
                         <BlockStack gap="400">
-                            <Text as="h2" variant="headingLg" fontWeight="bold">Plan & Billing</Text>
+                            <Text as="h2" variant="headingLg" fontWeight="bold"><span className="empire-title">Plan & Billing</span></Text>
                             <Card padding="0">
                                 <div style={{ padding: '20px 20px 0' }}>
                                     <Text as="h3" variant="headingMd" fontWeight="bold">Subscription</Text>
@@ -681,7 +691,7 @@ export default function SettingsPage() {
 
                     {activeTab === 'danger' && (
                         <BlockStack gap="400">
-                            <Text as="h2" variant="headingLg" fontWeight="bold">Danger Zone</Text>
+                            <Text as="h2" variant="headingLg" fontWeight="bold"><span className="empire-title">Danger Zone</span></Text>
                             <Card background="bg-surface-critical" padding="0">
                                 <div style={{ padding: '20px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -725,6 +735,7 @@ export default function SettingsPage() {
                     </BlockStack>
                 </Modal.Section>
             </Modal>
+            </div>
         </Page>
     );
 }

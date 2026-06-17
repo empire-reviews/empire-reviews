@@ -209,19 +209,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             }
         }
 
-        // 🎯 CAMPAIGN CONVERSION TRACKING (via HTTP Referer)
-        const referer = request.headers.get("Referer");
-        if (referer) {
+        // 🎯 CAMPAIGN CONVERSION TRACKING (email-based attribution)
+        // Link this review to the most recent unattributed CampaignSend for the same customer email.
+        // This is more reliable than the Referer header which can be stripped or spoofed.
+        if (review.customerEmail) {
             try {
-                const refererUrl = new URL(referer);
-                const campaignId = refererUrl.searchParams.get("campaignId");
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-                if (campaignId) {
-                    await prisma.campaignMetrics.updateMany({
-                        where: { campaignId },
-                        data: { totalReviews: { increment: 1 } }
+                // Find the most recent unattributed send for this customer within this shop
+                const matchedSend = await prisma.campaignSend.findFirst({
+                    where: {
+                        customerEmail: review.customerEmail,
+                        reviewId: null,
+                        sentAt: { gte: thirtyDaysAgo },
+                        campaign: { shop },
+                    },
+                    orderBy: { sentAt: "desc" },
+                });
+
+                if (matchedSend) {
+                    // Mark the send as attributed to this review
+                    await prisma.campaignSend.update({
+                        where: { id: matchedSend.id },
+                        data: { reviewId: review.id },
                     });
-                    console.log(`✅ Conversion tracked to Campaign: ${campaignId}`);
+
+                    // Increment campaign totalReviews (safe: updateMany does nothing if row is missing)
+                    await prisma.campaignMetrics.updateMany({
+                        where: { campaignId: matchedSend.campaignId },
+                        data: { totalReviews: { increment: 1 } },
+                    });
+
+                    console.log(`✅ Conversion tracked: review ${review.id} → send ${matchedSend.id} (campaign ${matchedSend.campaignId})`);
                 }
             } catch (trackError) {
                 console.error("⚠️ Failed to track campaign conversion:", trackError);
