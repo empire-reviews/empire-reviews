@@ -25,6 +25,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
 import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon } from "@shopify/polaris-icons";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
@@ -218,11 +219,15 @@ export default function ReviewsPage() {
     const fetcher = useFetcher();
     const [exportState, setExportState] = useState<"idle" | "loading">("idle");
     const navigate = useNavigate();
+    const shopify = useAppBridge();
 
     const handleExport = async () => {
         setExportState("loading");
         try {
-            const res = await fetch("/app/export");
+            const token = await shopify.idToken();
+            const res = await fetch("/app/export", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8;" });

@@ -1,5 +1,5 @@
-import { json, type ActionFunctionArgs, unstable_parseMultipartFormData, unstable_createMemoryUploadHandler } from "@remix-run/node";
-import { useFetcher, useNavigate } from "@remix-run/react";
+import { json, type ActionFunctionArgs, type LoaderFunctionArgs, unstable_parseMultipartFormData, unstable_createMemoryUploadHandler } from "@remix-run/node";
+import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import {
     Page,
     Layout,
@@ -19,7 +19,9 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
 import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { BackButton } from "../components/BackButton";
+import { isPlanPro } from "../billing.server";
 
 // Helper to parse CSV robustly (handles quotes, empty fields, and newlines within quotes)
 function parseCSV(text: string) {
@@ -188,6 +190,16 @@ async function resolveProductsSmartly(admin: any, identifiers: { handle?: string
     return productMap;
 }
 
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+    const [isPro, existingCount] = await Promise.all([
+        isPlanPro(shop),
+        prisma.review.count({ where: { shop } }),
+    ]);
+    return json({ isPro, existingCount });
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { session, admin } = await authenticate.admin(request);
     const shop = session.shop;
@@ -210,16 +222,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             return json({ error: "Import file is too large. Please limit to 500 rows per file." }, { status: 400 });
         }
 
-        // 🚧 FREE-PLAN CAP — enforce the advertised 50-review limit server-side (C8)
+        // 🚧 FREE-PLAN CAP — enforce the advertised 50-review limit server-side
         const settings = await prisma.settings.findFirst({ where: { shop } });
+        const existingCount = await prisma.review.count({ where: { shop } });
+        const remaining = Math.max(0, 50 - existingCount);
         if ((settings as any)?.plan !== "EMPIRE_PRO") {
-            const existingCount = await prisma.review.count({ where: { shop } });
-            if (existingCount + records.length > 50) {
-                const remaining = Math.max(0, 50 - existingCount);
+            // Check if client sent a limit (user chose "Import First X")
+            const limitParam = formData.get("limit");
+            const limit = limitParam ? parseInt(String(limitParam), 10) : null;
+            if (limit !== null && limit > 0) {
+                // Slice to what they requested (still capped at remaining)
+                records.splice(limit);
+            } else if (existingCount + records.length > 50) {
                 return json({
                     success: false,
                     upgradeRequired: true,
-                    message: `Review limit reached. The free plan allows up to 50 reviews and you can import ${remaining} more. Upgrade to Empire Pro for unlimited reviews.`,
+                    remaining,
+                    message: `Free plan limit: you can add ${remaining} more review${remaining === 1 ? "" : "s"} (50 total). Use "Import First ${remaining}" or upgrade to Empire Pro.`,
                 }, { status: 402 });
             }
         }
@@ -334,15 +353,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function ImportPage() {
+    const { isPro, existingCount } = useLoaderData<typeof loader>();
     const fetcher = useFetcher<any>();
     const navigate = useNavigate();
+    const shopify = useAppBridge();
     const [file, setFile] = useState<File | null>(null);
     const [exportState, setExportState] = useState<"idle" | "loading">("idle");
 
     const handleExport = async () => {
         setExportState("loading");
         try {
-            const res = await fetch("/app/export");
+            const token = await shopify.idToken();
+            const res = await fetch("/app/export", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
             const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8;" });
@@ -421,11 +445,12 @@ export default function ImportPage() {
         setStep(2);
     }, []);
 
-    const handleImport = () => {
+    const handleImport = (limit?: number) => {
         if (!file) return;
         setHasSubmitted(true);
         const formData = new FormData();
         formData.append("file", file);
+        if (limit !== undefined) formData.append("limit", String(limit));
         fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
     };
 
@@ -960,7 +985,11 @@ export default function ImportPage() {
                     <div className="hero-card">
                         <BlockStack gap="600">
                             {/* STEP 2: AUDIT */}
-                            {step === 2 && auditData && (
+                            {step === 2 && auditData && (() => {
+                                const FREE_CAP = 50;
+                                const remaining = Math.max(0, FREE_CAP - existingCount);
+                                const overLimit = !isPro && auditData.count > remaining;
+                                return (
                                 <BlockStack gap="600">
                                     <div style={{ textAlign: 'center' }}>
                                         <Text as="h2" variant="headingLg">Audit Complete! 🛡️</Text>
@@ -984,20 +1013,58 @@ export default function ImportPage() {
                                         </div>
                                     </div>
 
+                                    {overLimit && (
+                                        <Banner tone="warning">
+                                            <BlockStack gap="200">
+                                                <Text as="p" fontWeight="bold">
+                                                    Free plan limit reached
+                                                </Text>
+                                                <Text as="p">
+                                                    Your file has {auditData.count} reviews, but you can only add {remaining} more (free plan allows 50 total — you already have {existingCount}).
+                                                    {remaining === 0
+                                                        ? " You've reached the limit. Upgrade to Empire Pro for unlimited reviews."
+                                                        : ` You can import the first ${remaining} reviews now, or upgrade to Empire Pro to import all ${auditData.count}.`}
+                                                </Text>
+                                            </BlockStack>
+                                        </Banner>
+                                    )}
+
                                     <InlineStack align="center" gap="400">
                                         <Button size="large" onClick={() => setStep(1)}>Back</Button>
-                                        <div style={{ minWidth: '200px' }}>
-                                            <Button
-                                                size="large"
-                                                variant="primary"
-                                                tone="success"
-                                                onClick={handleImport}
-                                                loading={fetcher.state === "submitting"}
-                                                fullWidth
-                                            >
-                                                Launch Migration →
-                                            </Button>
-                                        </div>
+                                        {overLimit ? (
+                                            <>
+                                                {remaining > 0 && (
+                                                    <div style={{ minWidth: '220px' }}>
+                                                        <Button
+                                                            size="large"
+                                                            variant="primary"
+                                                            tone="success"
+                                                            onClick={() => handleImport(remaining)}
+                                                            loading={fetcher.state === "submitting"}
+                                                            fullWidth
+                                                        >
+                                                            Import First {remaining} Reviews →
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                                <Button size="large" variant="primary" url="/app/plans">
+                                                    Upgrade to Pro →
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <div style={{ minWidth: '200px' }}>
+                                                <Button
+                                                    size="large"
+                                                    variant="primary"
+                                                    tone="success"
+                                                    onClick={() => handleImport()}
+                                                    loading={fetcher.state === "submitting"}
+                                                    fullWidth
+                                                >
+                                                    Launch Migration →
+                                                </Button>
+                                            </div>
+                                        )}
                                     </InlineStack>
                                     {fetcher.state === "submitting" && hasSubmitted && (
                                         <BlockStack gap="200">
@@ -1006,7 +1073,8 @@ export default function ImportPage() {
                                         </BlockStack>
                                     )}
                                 </BlockStack>
-                            )}
+                                );
+                            })()}
 
                             {/* STEP 3: SUCCESS */}
                             {step === 3 && (
