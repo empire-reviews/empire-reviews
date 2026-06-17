@@ -42,25 +42,44 @@ export default function App() {
 
 export function ErrorBoundary() {
   const error = useRouteError();
-  let errorMessage = "Unknown error";
-  let errorStack = "";
+  let errorMessage = "An unexpected error occurred.";
+  let isAuthError = false;
 
   if (error instanceof Error) {
     errorMessage = error.message;
-    errorStack = error.stack || "";
+    isAuthError = /authentication failed|invalid.*credentials|database.*credentials/i.test(errorMessage);
+    // Log full details server-side only; never expose stack to users
+    console.error("[app] ErrorBoundary caught:", error.message);
   } else if (isRouteErrorResponse(error)) {
-    errorMessage = `${error.status} ${error.statusText} - ${error.data}`;
+    errorMessage = `${error.status} — ${error.statusText}`;
+    console.error("[app] ErrorBoundary route error:", error.status, error.data);
   } else {
-    errorMessage = String(error);
+    console.error("[app] ErrorBoundary unknown error:", error);
   }
 
   return (
-    <div style={{ padding: "2rem", fontFamily: "system-ui" }}>
-      <h1 style={{ color: "red" }}>GLOBAL CRASH!</h1>
-      <p style={{ fontWeight: "bold" }}>{errorMessage}</p>
-      <pre style={{ background: "#eee", padding: "1rem", overflowX: "auto" }}>
-        {errorStack}
-      </pre>
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      minHeight: "60vh", padding: "2rem", fontFamily: "system-ui", textAlign: "center",
+    }}>
+      <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#202223", marginBottom: "0.5rem" }}>
+        {isAuthError ? "Database connection error" : "Something went wrong"}
+      </h1>
+      <p style={{ color: "#6d7175", maxWidth: 480, marginBottom: "1.5rem" }}>
+        {isAuthError
+          ? "The app couldn't connect to the database. This is usually a configuration issue — please contact support."
+          : "An unexpected error occurred. Please refresh the page and try again."}
+      </p>
+      <a
+        href="/app"
+        style={{
+          display: "inline-block", padding: "0.6rem 1.5rem", borderRadius: "8px",
+          background: "#008060", color: "white", fontWeight: 600, textDecoration: "none",
+        }}
+      >
+        Reload app
+      </a>
     </div>
   );
 }
