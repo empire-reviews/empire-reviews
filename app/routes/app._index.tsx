@@ -451,36 +451,56 @@ export default function EmpireDashboard() {
 
           {/* 📸 PRO FEATURE PROMO (Loss Aversion / Feature Gating) */}
           {planName === "FREE" && (
-            <div style={{
-              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-              padding: '1.5rem',
-              borderRadius: '12px',
-              border: '1px dashed #cbd5e1',
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.5)'
-            }}>
-              <div style={{ flex: 1 }}>
-                <Text as="h3" variant="headingMd" fontWeight="semibold">📸 Unlock Photo & Video Reviews</Text>
-                <div style={{ marginTop: '0.5rem' }}>
-                  <Text as="p" variant="bodyMd" tone="subdued">Visual social proof increases product conversion rates by up to 24%. Upgrade to EMPIRE Pro to instantly add the photo upload widget to your store.</Text>
+            <div
+              className="empire-card empire-card-emerald empire-shimmer empire-rise empire-rise-1"
+              onClick={() => navigate("/app/plans")}
+              style={{
+                position: 'relative',
+                cursor: 'pointer',
+                marginBottom: '1.25rem',
+                padding: '1.35rem 1.6rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1.25rem',
+                background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdfa 55%, #eef2ff 100%)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* twinkling sparkles */}
+              <span className="empire-sparkle" style={{ top: '20%', left: '34%' }} />
+              <span className="empire-sparkle" style={{ top: '64%', left: '48%', animationDelay: '0.7s' }} />
+              <span className="empire-sparkle" style={{ top: '28%', right: '24%', animationDelay: '1.2s' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.1rem', flex: 1, position: 'relative', zIndex: 1 }}>
+                <div
+                  className="empire-glow empire-float"
+                  style={{
+                    flexShrink: 0,
+                    width: 56, height: 56,
+                    borderRadius: '16px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.7rem',
+                    background: 'linear-gradient(135deg, #10b981 0%, #0891b2 100%)',
+                    boxShadow: '0 12px 24px -6px rgba(16,185,129,0.55)',
+                  }}
+                >📸</div>
+                <div>
+                  <Text as="h3" variant="headingMd" fontWeight="semibold">Unlock Photo &amp; Video Reviews</Text>
+                  <div style={{ marginTop: '0.3rem', maxWidth: 640 }}>
+                    <Text as="p" variant="bodyMd" tone="subdued">Visual social proof can lift product conversion by up to 24%. Upgrade to EMPIRE Pro to switch on the photo &amp; video upload widget on your storefront.</Text>
+                  </div>
                 </div>
               </div>
-              <button 
-                  onClick={() => navigate("/app/plans")} 
-                  style={{ 
-                      whiteSpace: 'nowrap', 
-                      marginLeft: '1.5rem', 
-                      background: '#10b981', 
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)'
+              <button
+                  className="empire-btn"
+                  onClick={(e) => { e.stopPropagation(); navigate("/app/plans"); }}
+                  style={{
+                      whiteSpace: 'nowrap',
+                      position: 'relative',
+                      zIndex: 1,
+                      ['--empire-accent' as any]: '#10b981',
+                      background: 'linear-gradient(135deg, #10b981 0%, #0891b2 100%)',
                   }}>
                 Unlock Feature ✨
               </button>
