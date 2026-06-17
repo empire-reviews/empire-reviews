@@ -216,28 +216,30 @@ function daysAgo(dateStr: string) {
 export default function ReviewsPage() {
     const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
-    const exportFetcher = useFetcher<{ csv: string; filename: string }>();
+    const [exportState, setExportState] = useState<"idle" | "loading">("idle");
     const navigate = useNavigate();
 
-    // Trigger CSV download when exportFetcher returns data
-    useEffect(() => {
-        const d = exportFetcher.data as any;
-        if (d?.error) {
-            console.error("Export failed:", d.error);
-            return;
-        }
-        if (d?.csv) {
-            const blob = new Blob([d.csv], { type: "text/csv;charset=utf-8;" });
+    const handleExport = async () => {
+        setExportState("loading");
+        try {
+            const res = await fetch("/app/export");
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+            const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = d.filename;
+            a.download = data.filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Export failed:", err);
+        } finally {
+            setExportState("idle");
         }
-    }, [exportFetcher.data]);
+    };
     const [searchParams] = useSearchParams();
 
     // Build a URL string preserving existing search params with overrides applied.
@@ -664,22 +666,22 @@ export default function ReviewsPage() {
                                             ⬆ Import CSV
                                         </button>
                                         <button
-                                            onClick={() => exportFetcher.load("/app/export")}
-                                            disabled={exportFetcher.state !== "idle"}
+                                            onClick={handleExport}
+                                            disabled={exportState !== "idle"}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                                 padding: '8px 16px', borderRadius: '10px', fontWeight: 700,
                                                 fontSize: '0.85rem', color: 'white', border: 'none',
-                                                cursor: exportFetcher.state !== "idle" ? 'wait' : 'pointer',
+                                                cursor: exportState !== "idle" ? 'wait' : 'pointer',
                                                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                                 boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
                                                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                                opacity: exportFetcher.state !== "idle" ? 0.7 : 1,
+                                                opacity: exportState !== "idle" ? 0.7 : 1,
                                             }}
                                             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 20px rgba(99,102,241,0.55)'; }}
                                             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.4)'; }}
                                         >
-                                            {exportFetcher.state !== "idle" ? "Exporting..." : "⬇ Export CSV"}
+                                            {exportState !== "idle" ? "Exporting..." : "⬇ Export CSV"}
                                         </button>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
