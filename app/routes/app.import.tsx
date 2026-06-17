@@ -21,6 +21,7 @@ import { useState, useCallback, useEffect } from "react";
 import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
+import { buildReviewsCsv } from "../utils/export.server";
 
 // Helper to parse CSV robustly (handles quotes, empty fields, and newlines within quotes)
 function parseCSV(text: string) {
@@ -202,6 +203,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { session, admin } = await authenticate.admin(request);
     const shop = session.shop;
+
+    // Export branch — the "Download CSV" button submits urlencoded (not multipart).
+    // Handle it here, in this route's own action, to share the page's auth context.
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+        try {
+            const { csv, filename } = await buildReviewsCsv(shop);
+            return json({ csv, filename });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[export] failed:", msg);
+            return json({ error: `Export failed: ${msg}` });
+        }
+    }
 
     try {
         const shopSettings = await prisma.settings.findUnique({ where: { shop }, select: { publishMode: true } as any });
@@ -855,7 +870,7 @@ export default function ImportPage() {
                             </p>
                         </div>
                         <button
-                            onClick={() => exportFetcher.submit({}, { method: "post", action: "/app/export" })}
+                            onClick={() => exportFetcher.submit({ intent: "export" }, { method: "post" })}
                             disabled={exportFetcher.state !== "idle"}
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap',
@@ -1037,7 +1052,7 @@ export default function ImportPage() {
                                                             loading={fetcher.state === "submitting"}
                                                             fullWidth
                                                         >
-                                                            Import First {remaining} Reviews →
+                                                            {`Import First ${remaining} Reviews →`}
                                                         </Button>
                                                     </div>
                                                 )}

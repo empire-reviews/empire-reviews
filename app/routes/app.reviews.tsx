@@ -29,6 +29,7 @@ import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
 import { decrypt } from "../utils/encryption.server";
+import { buildReviewsCsv } from "../utils/export.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
@@ -75,6 +76,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const { billing, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent") as string;
+
+    if (intent === "export") {
+        try {
+            const { csv, filename } = await buildReviewsCsv(session.shop);
+            return json({ csv, filename });
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[export] failed:", msg);
+            return json({ error: `Export failed: ${msg}` });
+        }
+    }
 
     if (intent === "save_reply") {
         const reviewId = formData.get("reviewId") as string;
@@ -665,7 +677,7 @@ export default function ReviewsPage() {
                                             ⬆ Import CSV
                                         </button>
                                         <button
-                                            onClick={() => exportFetcher.submit({}, { method: "post", action: "/app/export" })}
+                                            onClick={() => exportFetcher.submit({ intent: "export" }, { method: "post" })}
                                             disabled={exportFetcher.state !== "idle"}
                                             style={{
                                                 display: 'inline-flex', alignItems: 'center', gap: '6px',

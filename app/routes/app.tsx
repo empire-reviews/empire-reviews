@@ -80,6 +80,12 @@ export function ErrorBoundary() {
       >
         Reload app
       </a>
+      <p style={{
+        marginTop: "1.5rem", fontSize: "0.7rem", color: "#babec3",
+        fontFamily: "monospace", maxWidth: 520, wordBreak: "break-word",
+      }}>
+        {errorMessage}
+      </p>
     </div>
   );
 }
