@@ -15,7 +15,11 @@ function getAllowedOrigin(request: Request): string {
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
         return origin;
     }
-    return origin || "*"; // Allow all origins for public storefront API
+    return "null"; // Deny unknown origins — prevents CORS from being exploited
+}
+
+function isValidShopDomain(shop: string | null): boolean {
+    return !!shop && /^[a-zA-Z0-9-]+\.myshopify\.com$/.test(shop);
 }
 
 function corsResponse(request: Request) {
@@ -46,27 +50,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // 🛡️ DATABASE-BACKED RATE LIMITING (persists across Vercel cold starts)
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
 
-    if (ip !== "unknown") {
-        const rateCheck = await checkRateLimit(ip, 10, 60 * 60 * 1000); // 10 requests per hour
+    const rateCheck = await checkRateLimit(ip, 10, 60 * 60 * 1000); // 10 requests per hour
 
-        if (!rateCheck.allowed) {
-            const retryAfter = Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000);
-            return json(
-                { error: "Rate limit exceeded. Try again later." },
-                {
-                    status: 429,
-                    headers: {
-                        ...corsHeaders(request),
-                        "Retry-After": String(retryAfter),
-                        "X-RateLimit-Limit": "10",
-                        "X-RateLimit-Remaining": "0",
-                        "X-RateLimit-Reset": rateCheck.resetAt.toISOString(),
-                    }
+    if (!rateCheck.allowed) {
+        const retryAfter = Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000);
+        return json(
+            { error: "Rate limit exceeded. Try again later." },
+            {
+                status: 429,
+                headers: {
+                    ...corsHeaders(request),
+                    "Retry-After": String(retryAfter),
+                    "X-RateLimit-Limit": "10",
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": rateCheck.resetAt.toISOString(),
                 }
-            );
-        }
+            }
+        );
     }
 
     try {
@@ -83,11 +85,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const title = formData.get("title") as string;
         const mediaUrls = formData.get("media_urls") as string;
 
-        const shop = (formData.get("shop") as string)
-            || request.headers.get("x-shopify-shop-domain")
+        // 🛡️ Derive shop from App Proxy header only — never trust form body for shop
+        const shop = request.headers.get("x-shopify-shop-domain")
             || new URL(request.url).searchParams.get("shop");
 
-        if (!rating || !shop) {
+        if (!shop || !isValidShopDomain(shop)) {
+            return json({ error: "Invalid or missing shop" }, { status: 400, headers: corsHeaders(request) });
+        }
+
+        if (!rating) {
             return json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders(request) });
         }
 
@@ -124,12 +130,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 else urls = mediaUrls.split(',').map((u: string) => u.trim()); // Legacy fallback
 
                 for (const url of urls) {
-                    // Ensure URLs are secure HTTPS or Base64 images to prevent XSS
-                    if (url.startsWith("https://") || url.startsWith("data:image/")) {
+                    // Only allow Cloudinary HTTPS URLs — no data: URIs or arbitrary hosts
+                    if (url.startsWith("https://res.cloudinary.com/")) {
                         mediaCreate.push({ url, type: 'image' });
                     }
                 }
             } catch(e) { console.error("Media URL parsing error", e); }
+        }
+
+        // 🛡️ Enforce free plan 50-review cap
+        if (!settings || settings.plan !== "EMPIRE_PRO") {
+            const reviewCount = await prisma.review.count({ where: { shop } });
+            if (reviewCount >= 50) {
+                return json({ error: "Review limit reached. Upgrade to Empire Pro for unlimited reviews." }, { status: 403, headers: corsHeaders(request) });
+            }
         }
 
         let formattedProductId = null;
