@@ -580,7 +580,7 @@ export default function ImportPage() {
                 {step === 1 && (
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr 1.5fr',
+                        gridTemplateColumns: 'minmax(400px, 1fr) 1.5fr',
                         gap: '3rem',
                         alignItems: 'stretch',
                         perspective: '2000px'
@@ -670,69 +670,6 @@ export default function ImportPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
-
-                        {/* EXPORT PANEL */}
-                        <div className="tilt-card" style={{
-                            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-                            borderRadius: '40px',
-                            padding: '3.5rem',
-                            boxShadow: '0 40px 80px -15px rgba(99,102,241,0.3)',
-                            border: '1px solid rgba(139,92,246,0.2)',
-                            color: 'white',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '2rem',
-                        }}>
-                            <BlockStack gap="400">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                    <div style={{ fontSize: '3rem', filter: 'drop-shadow(0 10px 15px rgba(139,92,246,0.4))' }}>⬇</div>
-                                    <BlockStack gap="100">
-                                        <Text as="h2" variant="headingLg"><span style={{ color: 'white' }}>Export Your Reviews</span></Text>
-                                        <Text as="p" tone="subdued"><span style={{ color: 'rgba(255,255,255,0.6)' }}>Your data, always yours</span></Text>
-                                    </BlockStack>
-                                </div>
-                                <p style={{ color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, fontSize: '0.95rem' }}>
-                                    Download all your reviews as a CSV — compatible with Judge.me, Loox, Yotpo, and every major review app. Switch anytime with zero lock-in.
-                                </p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {[
-                                        { icon: '⭐', text: 'Ratings, titles & review text' },
-                                        { icon: '📸', text: 'Photo URLs included' },
-                                        { icon: '💬', text: 'Your replies exported too' },
-                                        { icon: '✅', text: 'Verified buyer status' },
-                                    ].map((item, i) => (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-                                            <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem', fontWeight: 600 }}>{item.text}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </BlockStack>
-                            <a
-                                href="/app/export"
-                                style={{
-                                    display: 'block', textAlign: 'center', textDecoration: 'none',
-                                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                    color: 'white', padding: '1.1rem', borderRadius: '20px',
-                                    fontWeight: 900, fontSize: '1.1rem',
-                                    boxShadow: '0 20px 40px -10px rgba(99,102,241,0.5)',
-                                    transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
-                                }}
-                                onMouseEnter={e => {
-                                    (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-3px)';
-                                    (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 28px 50px -10px rgba(99,102,241,0.6)';
-                                }}
-                                onMouseLeave={e => {
-                                    (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)';
-                                    (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 20px 40px -10px rgba(99,102,241,0.5)';
-                                }}
-                            >
-                                ⬇ Download CSV Export
-                            </a>
-                            <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
-                                Free on all plans · No restrictions
-                            </p>
                         </div>
 
                         {/* RIGHT COLUMN: CSV FORMAT GUIDE */}
@@ -825,6 +762,69 @@ export default function ImportPage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* EXPORT SECTION — always visible on step 1 */}
+                {step === 1 && (
+                    <div style={{
+                        marginTop: '3rem',
+                        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+                        borderRadius: '32px',
+                        padding: '3rem 4rem',
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        alignItems: 'center',
+                        gap: '4rem',
+                        boxShadow: '0 40px 80px -15px rgba(99,102,241,0.25)',
+                        border: '1px solid rgba(139,92,246,0.2)',
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 8px 12px rgba(139,92,246,0.5))' }}>⬇</span>
+                                <div>
+                                    <h2 style={{ color: 'white', fontSize: '1.6rem', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' }}>Export Your Reviews</h2>
+                                    <p style={{ color: 'rgba(255,255,255,0.55)', margin: '4px 0 0', fontSize: '0.95rem' }}>Your data, always yours — zero lock-in</p>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                                {[
+                                    { icon: '⭐', text: 'Ratings & review text' },
+                                    { icon: '📸', text: 'Photo URLs' },
+                                    { icon: '💬', text: 'Your replies' },
+                                    { icon: '✅', text: 'Verified buyer status' },
+                                ].map((item, i) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>{item.icon}</span>
+                                        <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', fontWeight: 600 }}>{item.text}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', margin: 0 }}>
+                                Compatible with Judge.me, Loox, Yotpo &amp; all major apps · Free on all plans
+                            </p>
+                        </div>
+                        <a
+                            href="/app/export"
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap',
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                color: 'white', padding: '1.1rem 2.5rem', borderRadius: '20px',
+                                fontWeight: 900, fontSize: '1.05rem', textDecoration: 'none',
+                                boxShadow: '0 20px 40px -10px rgba(99,102,241,0.55)',
+                                transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
+                            }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-3px) scale(1.03)';
+                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 28px 50px -10px rgba(99,102,241,0.7)';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0) scale(1)';
+                                (e.currentTarget as HTMLAnchorElement).style.boxShadow = '0 20px 40px -10px rgba(99,102,241,0.55)';
+                            }}
+                        >
+                            ⬇ Download CSV
+                        </a>
                     </div>
                 )}
 
