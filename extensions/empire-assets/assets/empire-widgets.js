@@ -7,6 +7,26 @@ const EmpireWidgets = (function() {
     let currentRatingSelected = 0;
     const widgetState = {}; // Store pagination state for multiple widgets
 
+    // Resolve a product's numeric id robustly. The Liquid `data-product-id`
+    // attribute can render empty when the block isn't inside a product-section
+    // context, which would make the API fall back to SHOP-WIDE stats. Fall back
+    // to Shopify's storefront product meta (present on every product page) so the
+    // widget always stays scoped to THIS product. Returns "" if truly not a product.
+    function resolveProductId(el) {
+        let pid = el && el.getAttribute('data-product-id');
+        if (pid) pid = pid.trim();
+        if (pid && pid !== '' && pid.indexOf('{{') === -1) return pid;
+        try {
+            if (window.ShopifyAnalytics && window.ShopifyAnalytics.meta && window.ShopifyAnalytics.meta.product) {
+                return String(window.ShopifyAnalytics.meta.product.id);
+            }
+            if (window.meta && window.meta.product && window.meta.product.id) {
+                return String(window.meta.product.id);
+            }
+        } catch (e) {}
+        return pid || '';
+    }
+
     const API = {
         init() {
             setTimeout(() => {
@@ -18,7 +38,7 @@ const EmpireWidgets = (function() {
         },
 
         openReviewModal(triggerElement) {
-            activeProductId = triggerElement.getAttribute('data-product-id');
+            activeProductId = resolveProductId(triggerElement);
             // Resolve shop robustly. The element's data-shop-domain can be missing/empty
             // depending on which block/trigger opened the modal, so fall back to the
             // canonical Shopify storefront global (always the *.myshopify.com domain).
@@ -358,7 +378,7 @@ const EmpireWidgets = (function() {
             if (!wrappers.length) return;
 
             for (const wrapper of wrappers) {
-                const productId = wrapper.getAttribute('data-product-id');
+                const productId = resolveProductId(wrapper);
                 const shopDomain = wrapper.getAttribute('data-shop-domain');
                 if (!shopDomain) continue;
 
@@ -389,7 +409,7 @@ const EmpireWidgets = (function() {
             if (!widgets.length) return;
 
             for (const widget of widgets) {
-                const productId = widget.getAttribute('data-product-id');
+                const productId = resolveProductId(widget);
                 const shopDomain = widget.getAttribute('data-shop-domain');
                 const widgetId = widget.id || 'widget_' + Math.floor(Math.random() * 100000);
                 
