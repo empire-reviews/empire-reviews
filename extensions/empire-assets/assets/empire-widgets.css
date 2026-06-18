@@ -614,6 +614,7 @@
 
 /* Glow border via pseudo-element gradient */
 .empire-modal {
+    --empire-primary: #f59e0b;
     background: linear-gradient(160deg, #ffffff 0%, #f8f6ff 100%);
     border-radius: 28px;
     padding: 3rem 2.5rem 2.5rem;

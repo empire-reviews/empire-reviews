@@ -145,7 +145,7 @@ const EmpireWidgets = (function() {
             document.querySelectorAll('.empire-pick-star').forEach((el, index) => {
                 const isActive = index < rating;
                 el.classList.toggle('active', isActive);
-                el.style.color = isActive ? 'var(--empire-primary)' : '#e2e8f0';
+                el.style.color = isActive ? '#f59e0b' : '#e2e8f0';
             });
 
             const formFields = document.getElementById('empire-review-fields');
@@ -973,13 +973,13 @@ const EmpireWidgets = (function() {
                 stars.forEach((s, idx) => {
                     const isHovered = idx <= index;
                     s.classList.toggle('hover-active', isHovered);
-                    s.style.color = isHovered ? 'var(--empire-primary)' : '#e2e8f0';
+                    s.style.color = isHovered ? '#f59e0b' : '#e2e8f0';
                 });
             });
             star.addEventListener('mouseleave', () => {
                 stars.forEach(s => {
                     s.classList.remove('hover-active');
-                    s.style.color = s.classList.contains('active') ? 'var(--empire-primary)' : '#e2e8f0';
+                    s.style.color = s.classList.contains('active') ? '#f59e0b' : '#e2e8f0';
                 });
             });
         });
