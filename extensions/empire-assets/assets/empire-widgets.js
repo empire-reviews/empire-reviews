@@ -409,7 +409,10 @@ const EmpireWidgets = (function() {
             if (!widgets.length) return;
 
             for (const widget of widgets) {
-                const productId = resolveProductId(widget);
+                // Scope control: 'auto' (product page → product, else store),
+                // 'product' (force this product), 'store' (force whole store).
+                const scope = widget.getAttribute('data-review-scope') || 'auto';
+                const productId = (scope === 'store') ? '' : resolveProductId(widget);
                 const shopDomain = widget.getAttribute('data-shop-domain');
                 const widgetId = widget.id || 'widget_' + Math.floor(Math.random() * 100000);
                 

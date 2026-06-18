@@ -3,6 +3,7 @@
      id="empire-reviews-widget-{{ block.id }}"
      data-product-id="{{ product.id }}"
      data-shop-domain="{{ shop.permanent_domain }}"
+     data-review-scope="{{ block.settings.review_scope | default: 'auto' }}"
      style="--empire-primary: {{ block.settings.primary_color }}; --empire-bg: {{ block.settings.bg_color }}; --empire-radius: {{ block.settings.border_radius }}px; --empire-text: {{ block.settings.text_color }}; --empire-heading: {{ block.settings.heading_color }};">
     <div class="empire-split-layout">
         <!-- LEFT COLUMN: Summary & Distribution -->
@@ -85,8 +86,19 @@
   "target": "section",
   "stylesheet": "empire-widgets.css",
   "javascript": "empire-widgets.js",
-  "templates": ["product"],
   "settings": [
+    {
+      "type": "select",
+      "id": "review_scope",
+      "label": "Show reviews for",
+      "info": "Auto = this product on product pages, whole store everywhere else.",
+      "options": [
+        { "value": "auto", "label": "Auto (product page → this product, else whole store)" },
+        { "value": "product", "label": "This product only" },
+        { "value": "store", "label": "Whole store" }
+      ],
+      "default": "auto"
+    },
     {
       "type": "text",
       "id": "heading",
