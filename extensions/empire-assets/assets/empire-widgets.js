@@ -19,7 +19,12 @@ const EmpireWidgets = (function() {
 
         openReviewModal(triggerElement) {
             activeProductId = triggerElement.getAttribute('data-product-id');
-            activeShopDomain = triggerElement.getAttribute('data-shop-domain');
+            // Resolve shop robustly. The element's data-shop-domain can be missing/empty
+            // depending on which block/trigger opened the modal, so fall back to the
+            // canonical Shopify storefront global (always the *.myshopify.com domain).
+            activeShopDomain = triggerElement.getAttribute('data-shop-domain')
+                || (window.Shopify && window.Shopify.shop)
+                || (window.EmpireShopDomain || null);
             currentRatingSelected = 0;
 
             document.querySelectorAll('.empire-pick-star').forEach(el => {
