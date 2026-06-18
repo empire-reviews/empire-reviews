@@ -429,7 +429,7 @@ const EmpireWidgets = (function() {
                 if (i <= rating) {
                     stars += '<span class="empire-skeleton-star">\u2605</span>';
                 } else {
-                    stars += '<span style="color:#e2e8f0; font-size:var(--star-size, 1.15rem); line-height:1;">\u2605</span>';
+                    stars += '<span style="color:#e2e8f0; font-size:var(--star-size, 1.15rem); line-height:1;" class="empire-skeleton-star">\u2605</span>';
                 }
             }
             return `<div class="empire-stars-inner">${stars}</div>`;
@@ -693,7 +693,7 @@ const EmpireWidgets = (function() {
                             </div>
                         </div>
                         <div class="empire-header-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                            <div class="empire-stars-wrap" style="font-size:28px;">${this.getStarsHtml(review.rating)}</div>
+                            <div class="empire-stars-wrap" style="--star-size:28px;">${this.getStarsHtml(review.rating)}</div>
                             ${verifiedBadge}
                         </div>
                     </div>
