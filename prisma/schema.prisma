@@ -84,7 +84,7 @@ model Settings {
   id                     String  @id @default(uuid())
   shop                   String  @unique
   autoPublish            Boolean @default(false)
-  publishMode            String  @default("none") // none | five_star | all
+  publishMode            String  @default("five_star") // none | five_star | all
   emailAlerts            Boolean @default(true)
   themeColor             String  @default("#000000")
   accentColor            String  @default("#3b82f6")
