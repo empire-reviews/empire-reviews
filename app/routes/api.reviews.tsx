@@ -311,7 +311,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             const allReviews = await prisma.review.findMany({
                 where: {
                     productId: `gid://shopify/Product/${productId}`,
-                    status: "approved"
+                    status: "approved",
+                    ...(shop ? { shop } : {}),  // scope to THIS shop — was leaking cross-shop counts
                 },
                 select: { rating: true }
             });
