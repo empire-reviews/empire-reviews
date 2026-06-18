@@ -97,3 +97,40 @@ Storefront widgets call the app through the Shopify **App Proxy** (`shopify.app.
 - `README.md` / `CHANGELOG.md` are the **unmodified Shopify Remix template** and do not describe this app — don't trust them.
 - The root contains leftover/throwaway artifacts (`app (2).zip`, `EXT_BACKUP/`, `check-db.*`, `rewrite.cjs`, `prisma/seed*.ts` with fake data). These are not part of the running app; don't import from them.
 - A user-global `~/CLAUDE.md` (Ruflo MCP/swarm config) also applies in this environment — it governs agent coordination, not this app's domain logic.
+
+## Deployment convention — CRITICAL
+**Git push alone does NOT update the storefront widgets.** Shopify serves theme extension assets (`empire-widgets.js`, `empire-widgets.css`, all `.liquid` blocks) from its own CDN. To update them you must run:
+```bash
+shopify app deploy --force
+```
+Git push → Vercel only updates the backend app routes (`app/routes/`). Always run `shopify app deploy --force` after any change to `extensions/empire-assets/`.
+
+## Widget scoping rules (audited 2026-06-18)
+All 7 theme blocks were audited for product-page vs store-wide data scoping:
+
+| Block | Scope logic | Notes |
+|---|---|---|
+| `review-list.liquid` | ✅ Correct | `auto`/`product`/`store` setting; `data-product-id` → JS → API `?productId=` |
+| `photo-gallery.liquid` | ✅ Correct | `filter_mode` setting; conditional Liquid → `data-product-id` → JS |
+| `ai-summary.liquid` | ✅ Correct | Reads `data-product-id`, appends `?productId=` to summary API call |
+| `star-rating.liquid` | ✅ Correct | Template-restricted to product pages; reads `data-product-id` |
+| `floating-tab.liquid` | ✅ Fixed | Was always store-wide. Now reads `btn.dataset.productId` and scopes fetch |
+| `review-carousel.liquid` | ✅ Fixed | Was always `/api/featured` (store-wide). Now: product page → `/api/reviews?productId=X`; other pages → `/api/featured` |
+| `core-embed.liquid` | n/a | JS/CSS loader only |
+
+**Pattern:** every block must pass `data-product-id="{{ product.id }}"` on its root element. JS reads it, strips `gid://shopify/Product/` prefix if present, and appends `&productId=` to API calls only when non-empty. Empty productId = store-wide.
+
+## AI summary prompt types (`app/services/ai.server.ts`)
+Three prompt modes exist — use the right one:
+- **`"storefront"`** — customer-facing widget. NEVER mentions spam/fake reviews/review numbers. Warm, shopper-perspective summary. Used by `api.reviews.tsx` `intent=summary`.
+- **`"quick"`** — merchant-facing dashboard insight. Flags quality issues, warns about spam, actionable for the merchant.
+- **`"executive"`** — detailed markdown report with 🌟/⚠️/💡 sections. Used on the Insights page.
+
+## Star sizing in widgets (`empire-widgets.css` / `empire-widgets.js`)
+Stars use `font-size: var(--star-size, 1.15rem)` on `.empire-skeleton-star`. To resize stars, set `--star-size` as a CSS custom property on the parent `.empire-stars-wrap` element — **do not set `font-size` on the parent**, as the child class overrides inherited font-size. Example: `style="--star-size:28px;"`.
+
+## Photo gallery hover reveal
+`extensions/empire-assets/blocks/photo-gallery.liquid` + gallery JS in `empire-widgets.js`:
+- Images are clean at rest; on hover a dark gradient fades in from the bottom
+- `.empire-gallery-tile-badge` slides up on hover showing reviewer name (left) + `★★★★★ 5.0` (right)
+- No always-visible badge overlaid on images (removed padding/pill style)

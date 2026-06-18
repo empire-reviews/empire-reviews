@@ -926,22 +926,25 @@ const EmpireWidgets = (function() {
                         continue;
                     }
 
-                    const starsFor = (rating) => '★'.repeat(rating) + '☆'.repeat(5 - rating);
-
                     grid.innerHTML = data.photos.map(photo => {
-                        const stars = starsFor(photo.rating);
+                        const name = this.escapeHtml(photo.customerName || 'Anonymous');
+                        const rating = parseInt(photo.rating) || 5;
+                        const starLabel = '★'.repeat(rating) + ' ' + rating + '.0';
                         return `
                         <div class="empire-gallery-tile"
                             data-url="${this.escapeHtml(photo.url)}"
-                            data-name="${this.escapeHtml(photo.customerName)}"
-                            data-rating="${photo.rating}"
-                            data-body="${this.escapeHtml(photo.body.substring(0, 120))}"
+                            data-name="${name}"
+                            data-rating="${rating}"
+                            data-body="${this.escapeHtml((photo.body || '').substring(0, 120))}"
                             role="button"
                             tabindex="0"
-                            aria-label="View photo by ${this.escapeHtml(photo.customerName)}"
+                            aria-label="View photo by ${name}"
                         >
-                            <img src="${this.escapeHtml(photo.url)}" alt="Review photo by ${this.escapeHtml(photo.customerName)}" loading="lazy" />
-                            <div class="empire-gallery-tile-badge">${stars}</div>
+                            <img src="${this.escapeHtml(photo.url)}" alt="Review photo by ${name}" loading="lazy" />
+                            <div class="empire-gallery-tile-badge">
+                                <span class="empire-gallery-tile-name">${name}</span>
+                                <span class="empire-gallery-tile-stars">${starLabel}</span>
+                            </div>
                         </div>`;
                     }).join('');
 
