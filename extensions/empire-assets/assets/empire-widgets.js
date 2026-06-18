@@ -117,11 +117,11 @@ const EmpireWidgets = (function() {
                         : "image/png, image/jpeg, image/webp";
                     var helperText = allowVideo ? "Photos & video • up to 4 files" : "Max 4 photos, 10MB each";
                     uploadContainer.innerHTML = `
-                        <div style="font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">Drag and Drop</div>
                         <div class="empire-photo-dropzone" id="empire-photo-dropzone">
                             <div class="empire-dropzone-clicker" id="empire-dropzone-clicker">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                                <div>Drag & Drop or Click to upload<br><span style="font-size: 0.8rem; color: #64748b;">(${helperText})</span></div>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <div style="font-size:0.95rem; font-weight:700; color:#6d28d9;">Add Photos${allowVideo ? ' or Video' : ''}</div>
+                                <div style="font-size:0.78rem; color:#a78bfa; margin-top:1px;">${helperText}</div>
                             </div>
                             <div class="empire-photo-previews" id="empire-photo-previews"></div>
                             <input type="file" id="empire-photo-input" accept="${acceptTypes}" multiple style="display:none;" />

@@ -767,26 +767,30 @@
 
 .empire-input {
     width: 100%;
-    padding: 16px 20px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 1.05rem;
-    color: #1e293b;
-    background: #f8fafc;
+    padding: 14px 18px;
+    border: 1.5px solid rgba(139, 92, 246, 0.2);
+    border-radius: 14px;
+    font-size: 1rem;
+    color: #1e1b4b;
+    background: rgba(248, 246, 255, 0.8);
     outline: none;
     font-family: inherit;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
     box-sizing: border-box;
 }
+.empire-input::placeholder {
+    color: #a78bfa;
+    opacity: 0.7;
+}
 .empire-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-    background: #fff;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 2px 12px rgba(139, 92, 246, 0.1);
+    background: #ffffff;
 }
 
 .empire-textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 90px;
 }
 
 /* Submit button — grey until star selected, then Empire violet glow */
@@ -1192,20 +1196,44 @@
 .empire-photo-dropzone {
     display: flex;
     align-items: center;
-    border: 1.5px dashed #cbd5e1;
-    border-radius: 12px;
+    border: 1.5px dashed rgba(139, 92, 246, 0.35);
+    border-radius: 16px;
     padding: 16px;
-    background: #f8fafc;
-    min-height: 80px;
-    transition: all 0.2s ease;
-    margin-bottom: 24px;
+    background: linear-gradient(135deg, rgba(245, 243, 255, 0.8) 0%, rgba(237, 233, 254, 0.5) 100%);
+    min-height: 90px;
+    transition: all 0.25s ease;
+    margin-bottom: 16px;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.empire-photo-dropzone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(99,102,241,0.04));
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+}
+
+.empire-photo-dropzone:hover::before,
+.empire-photo-dropzone.drag-active::before {
+    opacity: 1;
+}
+
+.empire-photo-dropzone:hover {
+    border-color: rgba(139, 92, 246, 0.65);
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.12), inset 0 0 20px rgba(139, 92, 246, 0.04);
 }
 
 .empire-photo-dropzone.drag-active {
-    border-color: var(--empire-primary);
-    background: rgba(var(--empire-primary-rgb, 59, 130, 246), 0.05);
+    border-color: #8b5cf6;
+    border-style: solid;
+    background: linear-gradient(135deg, rgba(237, 233, 254, 0.9) 0%, rgba(221, 214, 254, 0.6) 100%);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
 }
 
 .empire-dropzone-clicker {
@@ -1216,11 +1244,22 @@
     text-align: center;
     cursor: pointer;
     padding: 8px 16px;
-    color: #475569;
+    color: #7c3aed;
+    flex: 1;
+    gap: 6px;
+}
+
+.empire-dropzone-clicker svg {
+    filter: drop-shadow(0 2px 8px rgba(139, 92, 246, 0.35));
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.empire-photo-dropzone:hover .empire-dropzone-clicker svg {
+    transform: translateY(-3px) scale(1.1);
 }
 
 .empire-dropzone-clicker:hover {
-    color: var(--empire-primary);
+    color: #6d28d9;
 }
 
 .empire-photo-previews {
