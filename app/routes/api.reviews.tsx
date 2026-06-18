@@ -391,7 +391,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         }
         
         const headers: any = corsHeaders(request);
-        headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=300";
+        // Short cache so newly approved/added reviews appear on storefronts quickly
+        // (was max-age=60, s-maxage=300, swr=300 — caused stale "0" counts to linger
+        // at the CDN edge for up to ~10 min after a review was approved).
+        headers["Cache-Control"] = "public, max-age=15, s-maxage=15, stale-while-revalidate=30";
         return json(
             { reviews, stats, pagination: { page, hasMore }, features: { allowPhotoUploads, allowVideoUploads }, settings: safeSettings },
             { headers }
