@@ -236,16 +236,37 @@ const EmpireWidgets = (function() {
                 });
 
                 if (response.ok) {
-                    submitBtn.innerText = "Success!";
+                    const resData = await response.json().catch(() => ({}));
+                    const isLive = resData.review?.status === 'approved';
+
+                    submitBtn.innerText = "Sent!";
                     const formFields = document.getElementById('empire-review-fields');
                     const label = document.getElementById('empire-star-label');
                     const picker = document.getElementById('empire-star-picker');
                     const successMsg = document.getElementById('empire-modal-success');
+                    const modalIcon = document.getElementById('empire-modal-icon-el');
+                    const modalTitle = document.getElementById('empire-modal-title-el');
+                    const modalSub = document.getElementById('empire-modal-sub-el');
 
                     if (formFields) formFields.style.display = 'none';
                     if (label) label.style.display = 'none';
                     if (picker) picker.style.display = 'none';
-                    if (successMsg) successMsg.style.display = 'flex';
+
+                    if (successMsg) {
+                        successMsg.innerHTML = isLive
+                            ? `<div class="empire-success-burst">🌟</div>
+                               <h3 class="empire-success-title">You're live!</h3>
+                               <p class="empire-success-sub">Your review is now visible to everyone. Thank you! 💜</p>`
+                            : `<div class="empire-success-burst">🎉</div>
+                               <h3 class="empire-success-title">Review received!</h3>
+                               <p class="empire-success-sub">We'll share your experience with the world very soon. Thank you! 💜</p>`;
+                        successMsg.style.display = 'flex';
+                    }
+
+                    // Dim the header so success state feels full-screen
+                    if (modalIcon) modalIcon.style.opacity = '0';
+                    if (modalTitle) modalTitle.style.opacity = '0';
+                    if (modalSub) modalSub.style.opacity = '0';
 
                     setTimeout(() => {
                         this.closeModal();
@@ -253,7 +274,11 @@ const EmpireWidgets = (function() {
                         submitBtn.disabled = false;
                         if (label) label.style.display = 'block';
                         if (picker) picker.style.display = 'flex';
-                    }, 2500);
+                        if (modalIcon) modalIcon.style.opacity = '1';
+                        if (modalTitle) modalTitle.style.opacity = '1';
+                        if (modalSub) modalSub.style.opacity = '1';
+                        if (successMsg) successMsg.style.display = 'none';
+                    }, 3000);
                 } else {
                     const resData = await response.json().catch(() => ({}));
                     throw new Error(resData.error || "Server error");
@@ -626,7 +651,14 @@ const EmpireWidgets = (function() {
                 mediaHtml = '<div class="empire-review-gallery">';
                 review.media.forEach(m => {
                     const safeUrl = this.escapeHtml(m.url || '');
-                    mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" alt="Review Photo" loading="lazy" data-open-url="${safeUrl}" />`;
+                    const isVideo = m.type === 'video'
+                        || /\/video\//.test(safeUrl)
+                        || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(safeUrl);
+                    if (isVideo) {
+                        mediaHtml += `<video src="${safeUrl}" class="empire-gallery-video" controls playsinline preload="metadata" style="max-width:280px; width:100%; border-radius:10px; margin-top:4px; display:block;"></video>`;
+                    } else {
+                        mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" alt="Customer photo" loading="lazy" data-open-url="${safeUrl}" />`;
+                    }
                 });
                 mediaHtml += '</div>';
             }
