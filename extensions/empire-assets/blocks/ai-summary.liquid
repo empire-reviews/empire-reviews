@@ -134,8 +134,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.summary && data.summary.trim() !== "") {
                 contentEl.innerText = data.summary;
                 el.querySelector('.empire-ai-disclaimer').style.display = 'flex';
+            } else if (data.error === "AI Provider not configured") {
+                contentEl.innerText = "Add an AI provider in your Empire Reviews settings to enable AI-generated summaries.";
+                contentEl.style.opacity = '0.7';
+            } else if (data.error === "Feature requires Empire Pro") {
+                contentEl.innerText = "AI summaries are available on Empire Pro. Upgrade to unlock this feature.";
+                contentEl.style.opacity = '0.7';
+            } else if (data.error) {
+                contentEl.innerText = "Could not generate summary: " + data.error;
+                contentEl.style.opacity = '0.7';
             } else {
-                contentEl.innerText = "Not enough reviews to generate a reliable summary yet.";
+                contentEl.innerText = "No reviews yet — summaries will appear once customers start leaving feedback.";
                 contentEl.style.opacity = '0.7';
             }
         })
