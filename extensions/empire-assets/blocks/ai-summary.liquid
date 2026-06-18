@@ -140,6 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (data.error === "Feature requires Empire Pro") {
                 contentEl.innerText = "AI summaries are available on Empire Pro. Upgrade to unlock this feature.";
                 contentEl.style.opacity = '0.7';
+            } else if (data.error === "NO_WRITTEN_REVIEWS") {
+                contentEl.innerText = "Customers have rated this product but haven't left written reviews yet. A summary will appear once written feedback comes in.";
+                contentEl.style.opacity = '0.7';
             } else if (data.error) {
                 contentEl.innerText = "Could not generate summary: " + data.error;
                 contentEl.style.opacity = '0.7';

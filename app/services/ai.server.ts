@@ -326,7 +326,7 @@ export async function generateInsights(
         .join("\n");
 
     if (!reviewTexts) {
-        return { summary: "Not enough review data to analyze.", score: 0 };
+        throw new Error("NO_WRITTEN_REVIEWS");
     }
 
     const systemPrompt = reportType === "executive"

@@ -385,6 +385,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 headers["Cache-Control"] = `public, max-age=${cacheSeconds}, s-maxage=${cacheSeconds}`;
                 return json({ summary }, { headers });
             } catch (e: any) {
+                if (e.message === "NO_WRITTEN_REVIEWS") {
+                    return json({ error: "NO_WRITTEN_REVIEWS" }, { status: 200, headers: corsHeaders(request) });
+                }
                 console.error("AI Summary Error:", e);
                 return json({ error: e.message || "Summary generation failed" }, { status: 500, headers: corsHeaders(request) });
             }
