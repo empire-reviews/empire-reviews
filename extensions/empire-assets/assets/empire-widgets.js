@@ -429,7 +429,7 @@ const EmpireWidgets = (function() {
                 if (i <= rating) {
                     stars += '<span class="empire-skeleton-star">\u2605</span>';
                 } else {
-                    stars += '<span style="color:#e2e8f0; font-size:var(--star-size, 1.15rem); line-height:1;" class="empire-skeleton-star">\u2605</span>';
+                    stars += '<span class="empire-star-empty">\u2605</span>';
                 }
             }
             return `<div class="empire-stars-inner">${stars}</div>`;
