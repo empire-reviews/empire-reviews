@@ -1479,17 +1479,17 @@
     opacity: 1;
 }
 .empire-gallery-tile-name {
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 65%;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
 }
 .empire-gallery-tile-stars {
-    font-size: 0.75rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: #fbbf24;
     letter-spacing: 0.5px;
