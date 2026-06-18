@@ -165,7 +165,7 @@ const EmpireWidgets = (function() {
                     formData.append('media_urls', JSON.stringify(window.EmpireUploadedPhotos));
                 }
 
-                const response = await fetch(`${API_BASE}/api/reviews`, {
+                const response = await fetch(`${API_BASE}/api/reviews?shop=${encodeURIComponent(activeShopDomain || '')}`, {
                     method: 'POST',
                     body: formData
                 });
