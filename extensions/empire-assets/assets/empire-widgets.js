@@ -693,7 +693,7 @@ const EmpireWidgets = (function() {
                             </div>
                         </div>
                         <div class="empire-header-right" style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                            <div class="empire-stars-wrap" style="font-size:22px;">${this.getStarsHtml(review.rating)}</div>
+                            <div class="empire-stars-wrap" style="font-size:28px;">${this.getStarsHtml(review.rating)}</div>
                             ${verifiedBadge}
                         </div>
                     </div>
