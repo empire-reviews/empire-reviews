@@ -368,6 +368,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             if (!settings.aiProvider) {
                 return json({ error: "AI Provider not configured" }, { status: 400, headers: corsHeaders(request) });
             }
+            if (reviews.length === 0) {
+                return json({ error: "NO_REVIEWS_YET" }, { status: 200, headers: corsHeaders(request) });
+            }
             try {
                 const { generateInsights } = await import("../services/ai.server");
                 const insightReviews = reviews.map(r => ({ body: r.body, rating: r.rating }));
