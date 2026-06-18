@@ -23,7 +23,7 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
-import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon } from "@shopify/polaris-icons";
+import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon, ProductIcon, StoreIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
@@ -34,7 +34,7 @@ import empireTheme from "../styles/empire-theme.css?url";
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const isPro = await isPlanPro(session.shop);
     
     const url = new URL(request.url);
@@ -69,12 +69,34 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         prisma.review.count({ where: { shop: session.shop, replies: { some: {} } } })
     ]);
 
+    // Resolve product names for the reviews on this page so the War Room can show,
+    // per review, whether it's tied to a specific product or is a general/store review.
+    const productTitles: Record<string, string> = {};
+    const distinctProductIds = [...new Set(reviews.map((r: any) => r.productId).filter(Boolean))] as string[];
+    if (distinctProductIds.length > 0) {
+        try {
+            const resp = await admin.graphql(
+                `#graphql
+                query reviewProducts($ids: [ID!]!) {
+                    nodes(ids: $ids) { ... on Product { id title } }
+                }`,
+                { variables: { ids: distinctProductIds } }
+            );
+            const data = await resp.json();
+            for (const node of ((data as any)?.data?.nodes || [])) {
+                if (node && node.id && node.title) productTitles[node.id] = node.title;
+            }
+        } catch (e) {
+            console.error("[war-room] product title resolution failed:", e);
+        }
+    }
+
     const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
     const aiConfigured = !!(settings?.aiProvider && settings?.aiApiKey);
     const pendingCount = await prisma.review.count({ where: { shop: session.shop, status: 'pending' } });
     const publishMode = (settings as any)?.publishMode || (settings?.autoPublish ? 'five_star' : 'none');
-    
-    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, page, statusFilter, ratingFilter, searchQuery });
+
+    return json({ reviews, isPro, aiConfigured, aiProvider: settings?.aiProvider || null, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, productTitles, page, statusFilter, ratingFilter, searchQuery });
 };
 
 // Safely parse the JSON-stringified reviewIds field from a bulk action.
@@ -246,7 +268,7 @@ function daysAgo(dateStr: string) {
 }
 
 export default function ReviewsPage() {
-    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
+    const { reviews, isPro, aiConfigured, pendingCount, publishMode, totalCount, shopTotalReviews, shopRepliedReviews, productTitles, page, statusFilter, searchQuery } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const exportFetcher = useFetcher<{ csv?: string; filename?: string; error?: string }>();
     const navigate = useNavigate();
@@ -472,7 +494,7 @@ export default function ReviewsPage() {
                     </BlockStack>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                    <BlockStack>
+                    <BlockStack gap="100">
                         <InlineStack gap="200" align="start">
                             <Text as="span" fontWeight="bold">{customerName || "Anonymous"}</Text>
                             {verified &&
@@ -481,6 +503,15 @@ export default function ReviewsPage() {
                                 </Tooltip>
                             }
                         </InlineStack>
+                        {review.productId ? (
+                            <Tooltip content={review.productId}>
+                                <Badge tone="info" icon={ProductIcon}>
+                                    {productTitles[review.productId] || "Product review"}
+                                </Badge>
+                            </Tooltip>
+                        ) : (
+                            <Badge icon={StoreIcon}>Store-wide</Badge>
+                        )}
                     </BlockStack>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
