@@ -61,6 +61,8 @@ model Review {
   @@index([shop])
   @@index([productId])
   @@index([status])
+  @@index([shop, productId, status])  // hot path: product widget query
+  @@index([shop, status])             // hot path: store-wide widget / trust badge
 }
 
 model ReviewMedia {
