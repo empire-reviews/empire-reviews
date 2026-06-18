@@ -371,7 +371,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             try {
                 const { generateInsights } = await import("../services/ai.server");
                 const insightReviews = reviews.map(r => ({ body: r.body, rating: r.rating }));
-                const { summary } = await generateInsights({ provider: settings.aiProvider as any, apiKey: decrypt(settings.aiApiKey || "") }, insightReviews, "quick");
+                const { summary } = await generateInsights({ provider: settings.aiProvider as any, apiKey: decrypt(settings.aiApiKey || "") }, insightReviews, "storefront");
                 const headers: any = corsHeaders(request);
                 
                 // Dynamic caching based on merchant settings
