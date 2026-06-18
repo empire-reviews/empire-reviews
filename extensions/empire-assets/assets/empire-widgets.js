@@ -7,11 +7,13 @@ const EmpireWidgets = (function() {
     let currentRatingSelected = 0;
     const widgetState = {}; // Store pagination state for multiple widgets
 
-    // Resolve a product's numeric id robustly. The Liquid `data-product-id`
+    // Cached product id for the current page once resolved (sync or async).
+    let pageProductId = '';
+
+    // Resolve a product's numeric id synchronously. The Liquid `data-product-id`
     // attribute can render empty when the block isn't inside a product-section
     // context, which would make the API fall back to SHOP-WIDE stats. Fall back
-    // to Shopify's storefront product meta (present on every product page) so the
-    // widget always stays scoped to THIS product. Returns "" if truly not a product.
+    // to Shopify's storefront product meta, then to a cached async lookup.
     function resolveProductId(el) {
         let pid = el && el.getAttribute('data-product-id');
         if (pid) pid = pid.trim();
@@ -24,7 +26,23 @@ const EmpireWidgets = (function() {
                 return String(window.meta.product.id);
             }
         } catch (e) {}
-        return pid || '';
+        return pageProductId || '';
+    }
+
+    // Bulletproof last resort: on any product URL, ask Shopify's storefront
+    // product JSON endpoint for the numeric id. Works regardless of theme,
+    // Liquid context, or analytics globals. Caches the result for the page.
+    async function resolveProductIdFromUrl() {
+        if (pageProductId) return pageProductId;
+        try {
+            const m = window.location.pathname.match(/\/products\/([^/?#]+)/);
+            if (!m) return '';
+            const res = await fetch('/products/' + m[1] + '.js', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) return '';
+            const p = await res.json();
+            if (p && p.id) { pageProductId = String(p.id); return pageProductId; }
+        } catch (e) {}
+        return '';
     }
 
     const API = {
@@ -378,7 +396,8 @@ const EmpireWidgets = (function() {
             if (!wrappers.length) return;
 
             for (const wrapper of wrappers) {
-                const productId = resolveProductId(wrapper);
+                let productId = resolveProductId(wrapper);
+                if (!productId) productId = await resolveProductIdFromUrl();
                 const shopDomain = wrapper.getAttribute('data-shop-domain');
                 if (!shopDomain) continue;
 
@@ -412,7 +431,8 @@ const EmpireWidgets = (function() {
                 // Scope control: 'auto' (product page → product, else store),
                 // 'product' (force this product), 'store' (force whole store).
                 const scope = widget.getAttribute('data-review-scope') || 'auto';
-                const productId = (scope === 'store') ? '' : resolveProductId(widget);
+                let productId = (scope === 'store') ? '' : resolveProductId(widget);
+                if (!productId && scope !== 'store') productId = await resolveProductIdFromUrl();
                 const shopDomain = widget.getAttribute('data-shop-domain');
                 const widgetId = widget.id || 'widget_' + Math.floor(Math.random() * 100000);
                 
