@@ -938,9 +938,9 @@ export default function ImportPage() {
                             </div>
 
                             {/* PREVIEW TABLE */}
-                            <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '380px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                    <thead>
+                                    <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                                             <th style={{ padding: '12px', textAlign: 'left' }}>Values Found</th>
                                             {previewData.headers.map((h: string, i: number) => (
