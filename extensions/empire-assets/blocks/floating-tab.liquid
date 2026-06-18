@@ -318,8 +318,13 @@
         panel.classList.add('empire-open');
         if (!panel.dataset.loaded) {
             const shop = btn.dataset.shopDomain;
+            const productId = (btn.dataset.productId || '').trim().replace('gid://shopify/Product/', '');
             const host = 'https://empire-reviews.vercel.app';
-            fetch(`${host}/api/reviews?shop=${shop}&limit=10`)
+            let reviewUrl = `${host}/api/reviews?shop=${shop}&limit=10`;
+            if (productId) reviewUrl += `&productId=${productId}`;
+            const panelTitle = panel.querySelector('.empire-floating-header h3');
+            if (panelTitle) panelTitle.textContent = productId ? 'Product Reviews' : 'Store Reviews';
+            fetch(reviewUrl)
                 .then(res => res.json())
                 .then(data => {
                     const content = panel.querySelector('.empire-floating-content');

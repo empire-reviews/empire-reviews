@@ -718,8 +718,13 @@ const EmpireWidgets = (function() {
                 const nextBtn = section.querySelector('.empire-carousel-next');
                 const dotsContainer = section.querySelector('.empire-carousel-dots');
 
+                const rawProductId = (section.getAttribute('data-product-id') || '').trim().replace('gid://shopify/Product/', '');
+                const carouselUrl = rawProductId
+                    ? `${API_BASE}/api/reviews?shop=${shopDomain}&productId=${rawProductId}&limit=10`
+                    : `${API_BASE}/api/featured?shop=${shopDomain}&limit=10`;
+
                 try {
-                    const res = await fetch(`${API_BASE}/api/featured?shop=${shopDomain}&limit=10`);
+                    const res = await fetch(carouselUrl);
                     if (!res.ok) throw new Error("Failed to load featured reviews");
                     const data = await res.json();
 
