@@ -134,3 +134,30 @@ Stars use `font-size: var(--star-size, 1.15rem)` on `.empire-skeleton-star`. To 
 - Images are clean at rest; on hover a dark gradient fades in from the bottom
 - `.empire-gallery-tile-badge` slides up on hover showing reviewer name (left) + `★★★★★ 5.0` (right)
 - No always-visible badge overlaid on images (removed padding/pill style)
+- Name: `0.95rem bold white`, stars: `0.92rem bold gold` — adjust these two classes for size
+
+## AI summary — 3 distinct states (`api.reviews.tsx` + `ai-summary.liquid`)
+The `intent=summary` API endpoint returns different error codes that the liquid handles separately:
+
+| Error code | When | Message shown to shopper |
+|---|---|---|
+| `NO_REVIEWS_YET` | `reviews.length === 0` | "No reviews yet — be the first to share…" |
+| `NO_WRITTEN_REVIEWS` | Reviews exist but all have `body: null` | "Customers have rated but haven't left written reviews yet…" |
+| `AI Provider not configured` | `settings.aiProvider` is null | "Add an AI provider in your Empire Reviews settings…" |
+| `Feature requires Empire Pro` | Plan is FREE | "AI summaries are available on Empire Pro…" |
+| (success) | AI generates text | Real summary displayed, disclaimer shown |
+
+Never return a misleading summary string from `generateInsights` — throw named errors so the liquid can show accurate messages.
+
+## Review card stars — glow + pop-in animation
+`.empire-skeleton-star` in `empire-widgets.css` has:
+- Multi-layer `text-shadow` gold glow (4 layers: dark bottom edge for 3D, inner bright, mid warm, outer halo)
+- `animation: empire-star-pop` — spring bounce in (`cubic-bezier(0.34, 1.56, 0.64, 1)`)
+- Staggered per nth-child (0 / 55 / 110 / 165 / 220 ms) so stars cascade left→right on load
+- Empty stars use `.empire-star-empty` class — plain gray, no glow, no animation
+- `overflow: visible` on `.empire-stars-wrap` and `.empire-stars-inner` so glow bleeds outside bounds
+
+## Import CSV preview table (`app/routes/app.import.tsx`)
+- Preview table wrapper has `overflowX: 'auto', overflowY: 'auto', maxHeight: '380px'` — scrolls both axes
+- `<thead>` is `position: sticky; top: 0; z-index: 1` — header stays visible while scrolling vertically
+- This is a Vercel-only change (no `shopify app deploy` needed for admin route changes)
