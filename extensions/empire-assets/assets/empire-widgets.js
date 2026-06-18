@@ -5,7 +5,19 @@ const EmpireWidgets = (function() {
     let activeProductId = null;
     let activeShopDomain = null;
     let currentRatingSelected = 0;
+    let pendingUploads = 0; // tracks in-progress Cloudinary uploads
     const widgetState = {}; // Store pagination state for multiple widgets
+
+    // Always returns the best available shop domain. Tries in order:
+    // 1. Value captured when the modal was opened (set from data-shop-domain attr)
+    // 2. Shopify's own global (always present on live storefronts)
+    // 3. Injected by review-list.liquid at page load
+    function resolveShop() {
+        return activeShopDomain
+            || (window.Shopify && window.Shopify.shop)
+            || window.EmpireShopDomain
+            || '';
+    }
 
     // Cached product id for the current page once resolved (sync or async).
     let pageProductId = '';
@@ -57,13 +69,12 @@ const EmpireWidgets = (function() {
 
         openReviewModal(triggerElement) {
             activeProductId = resolveProductId(triggerElement);
-            // Resolve shop robustly. The element's data-shop-domain can be missing/empty
-            // depending on which block/trigger opened the modal, so fall back to the
-            // canonical Shopify storefront global (always the *.myshopify.com domain).
             activeShopDomain = triggerElement.getAttribute('data-shop-domain')
                 || (window.Shopify && window.Shopify.shop)
-                || (window.EmpireShopDomain || null);
+                || window.EmpireShopDomain
+                || null;
             currentRatingSelected = 0;
+            pendingUploads = 0;
 
             document.querySelectorAll('.empire-pick-star').forEach(el => {
                 el.classList.remove('selected', 'hover-active', 'active');
@@ -185,8 +196,19 @@ const EmpireWidgets = (function() {
                 return;
             }
 
+            if (pendingUploads > 0) {
+                showError("Please wait — your photo is still uploading.");
+                return;
+            }
+
             const submitBtn = document.getElementById('empire-submit-btn');
             if (!submitBtn) return;
+
+            const shop = resolveShop();
+            if (!shop) {
+                showError("Could not detect your store. Please refresh the page and try again.");
+                return;
+            }
 
             const originalText = submitBtn.innerText;
             submitBtn.innerText = "Submitting...";
@@ -198,7 +220,7 @@ const EmpireWidgets = (function() {
                 const bodyInput = document.getElementById('empire-input-body');
 
                 formData.append('productId', activeProductId || '');
-                formData.append('shop', activeShopDomain || '');
+                formData.append('shop', shop);
                 formData.append('rating', currentRatingSelected.toString());
 
                 if (nameInput && nameInput.value) formData.append('author', nameInput.value);
@@ -208,7 +230,7 @@ const EmpireWidgets = (function() {
                     formData.append('media_urls', JSON.stringify(window.EmpireUploadedPhotos));
                 }
 
-                const response = await fetch(`${API_BASE}/api/reviews?shop=${encodeURIComponent(activeShopDomain || '')}`, {
+                const response = await fetch(`${API_BASE}/api/reviews?shop=${encodeURIComponent(shop)}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -302,51 +324,64 @@ const EmpireWidgets = (function() {
                 `;
                 previewsContainer.appendChild(prev);
 
+                pendingUploads++;
                 try {
-                    // 1. Ask our server for a short-lived signed upload signature
-                    //    (no unsigned preset — server gates Pro + scopes to the shop folder).
-                    const signRes = await fetch(`${API_BASE}/api/upload-sign?shop=${encodeURIComponent(activeShopDomain || '')}${isVideoFile ? '&type=video' : ''}`, {
+                    const shopForUpload = resolveShop();
+                    if (!shopForUpload) throw new Error("Store not detected — please refresh the page.");
+
+                    // 1. Ask our server for a short-lived signed upload signature.
+                    const signRes = await fetch(`${API_BASE}/api/upload-sign?shop=${encodeURIComponent(shopForUpload)}${isVideoFile ? '&type=video' : ''}`, {
                         method: 'POST',
                     });
                     const sign = await signRes.json();
                     if (!signRes.ok) throw new Error(sign.error || "Upload not permitted");
 
                     // 2. Upload directly to Cloudinary using the signed params.
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('api_key', sign.apiKey);
-                    formData.append('timestamp', sign.timestamp);
-                    formData.append('signature', sign.signature);
-                    formData.append('folder', sign.folder);
+                    const uploadData = new FormData();
+                    uploadData.append('file', file);
+                    uploadData.append('api_key', sign.apiKey);
+                    uploadData.append('timestamp', String(sign.timestamp));
+                    uploadData.append('signature', sign.signature);
+                    uploadData.append('folder', sign.folder);
 
                     const response = await fetch(`https://api.cloudinary.com/v1_1/${sign.cloudName}/${isVideoFile ? 'video' : 'image'}/upload`, {
                         method: 'POST',
-                        body: formData
+                        body: uploadData
                     });
 
                     const data = await response.json();
-
-                    if (!response.ok) throw new Error(data.error?.message || "Cloudinary error");
+                    if (!response.ok) throw new Error(data.error?.message || "Cloudinary upload failed");
 
                     if (data.secure_url) {
                         const secureUrl = data.secure_url;
                         window.EmpireUploadedPhotos.push(secureUrl);
-                        
+
                         // Update UI to success state
-                        prev.querySelector('.empire-uploading-shimmer').style.display = 'none';
+                        const shimmer = prev.querySelector('.empire-uploading-shimmer');
+                        if (shimmer) shimmer.style.display = 'none';
                         const mediaEl = prev.querySelector('img, video');
                         if (mediaEl) mediaEl.style.opacity = '1';
-                        
+
                         const rmBtn = prev.querySelector('.empire-photo-remove');
-                        rmBtn.disabled = false;
-                        rmBtn.onclick = function() {
-                            EmpireWidgets.removePhoto(secureUrl, prev);
-                        };
+                        if (rmBtn) {
+                            rmBtn.disabled = false;
+                            rmBtn.onclick = function() {
+                                EmpireWidgets.removePhoto(secureUrl, prev);
+                            };
+                        }
                     }
                 } catch (err) {
-                    console.error("Cloudinary file processing failed", err);
-                    prev.innerHTML = '<div style="font-size:10px; color:white; background:var(--empire-primary); padding:4px; text-align:center; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;">Error</div>';
-                    setTimeout(() => prev.remove(), 2000);
+                    console.error("Upload failed:", err);
+                    // Show the real error message persistently so the user knows
+                    // the photo was NOT attached. They can remove it and try again.
+                    prev.innerHTML = `
+                        <div style="font-size:10px; color:#ef4444; background:#fef2f2; border:1px solid #fca5a5; padding:6px; text-align:center; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:4px;">
+                            <div style="font-weight:600; margin-bottom:2px;">Upload failed</div>
+                            <div style="opacity:0.8;">${(err.message || 'Try again').substring(0, 60)}</div>
+                            <button onclick="this.closest('.empire-photo-preview-item').remove(); window.EmpireUploadedPhotos = (window.EmpireUploadedPhotos||[]);" style="margin-top:4px; font-size:10px; cursor:pointer; background:none; border:1px solid #ef4444; color:#ef4444; border-radius:3px; padding:2px 6px;">Remove</button>
+                        </div>`;
+                } finally {
+                    pendingUploads = Math.max(0, pendingUploads - 1);
                 }
             }
         },
