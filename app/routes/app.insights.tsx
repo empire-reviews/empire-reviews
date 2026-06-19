@@ -1,7 +1,7 @@
 import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
 import empireTheme from "../styles/empire-theme.css?url";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Page,
   Layout,
@@ -115,6 +115,30 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     hasAiConfig
   });
 };
+
+function MarkdownBlock({ content }: { content: string }) {
+  const html = useMemo(() => {
+    return content
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/^### (.+)$/gm, "<h3 style=\"font-size:1rem;font-weight:700;margin:1.2em 0 0.4em;color:#1e293b\">$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2 style=\"font-size:1.1rem;font-weight:700;margin:1.4em 0 0.4em;color:#1e293b\">$1</h2>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^[*-] (.+)$/gm, "<li style=\"margin:0.2em 0\">$1</li>")
+      .replace(/(<li[\s\S]*?<\/li>)(\n<li)/g, "$1$2")
+      .replace(/(<li[^>]*>[\s\S]*?<\/li>(?:\n<li[^>]*>[\s\S]*?<\/li>)*)/g, "<ul style=\"padding-left:1.4em;margin:0.4em 0\">$1</ul>")
+      .replace(/\n{2,}/g, "</p><p style=\"margin:0.6em 0\">")
+      .replace(/^(?!<[hul])(.+)$/gm, (m) => m.startsWith("<") ? m : m)
+      .trim();
+  }, [content]);
+
+  return (
+    <div
+      style={{ lineHeight: "1.7", fontSize: "1rem", color: "#334155" }}
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: `<p style="margin:0.6em 0">${html}</p>` }}
+    />
+  );
+}
 
 export default function InsightsPage() {
   const { locked, stats, urgentReviews, aiInsightsSummary, aiInsightsUpdatedAt, hasAiConfig } = useLoaderData<typeof loader>();
@@ -397,9 +421,7 @@ export default function InsightsPage() {
 
                 <Box paddingBlockStart="400">
                   {aiInsightsSummary ? (
-                    <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '1.05rem', color: '#334155' }}>
-                      {aiInsightsSummary}
-                    </div>
+                    <MarkdownBlock content={aiInsightsSummary} />
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748b' }}>
                       <p>You haven't generated your AI Insights report yet.</p>
