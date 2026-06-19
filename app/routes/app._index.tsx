@@ -384,6 +384,9 @@ export default function EmpireDashboard() {
                         WebkitBackgroundClip: 'text',
                         backgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
+                        padding: '0.18em 0 0.22em',
+                        lineHeight: 1.3,
+                        display: 'inline-block',
                       }}
                     >
                       Empire Command Center 🚀

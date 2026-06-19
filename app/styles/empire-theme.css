@@ -121,7 +121,9 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    padding-bottom: 0.12em;
+    padding: 0.18em 0 0.22em;
+    line-height: 1.3;
+    display: inline-block;
 }
 
 /* ---- 3D gradient button --------------------------------------------------- */

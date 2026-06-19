@@ -1,5 +1,6 @@
 import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useState } from "react";
 import {
     Page,
     Layout,
@@ -314,6 +315,67 @@ function StatCard({
                     </span>
                 )}
             </BlockStack>
+        </div>
+    );
+}
+
+function TrendChart({ weeklyTrend, trendMax }: { weeklyTrend: WeekBucket[]; trendMax: number }) {
+    const [hovered, setHovered] = useState<string | null>(null);
+    return (
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "140px", padding: "0 4px", position: "relative" }}>
+            {weeklyTrend.map((week) => {
+                const barPct = Math.max(4, Math.round((week.count / Math.max(trendMax, 1)) * 100));
+                const isHovered = hovered === week.weekLabel;
+                return (
+                    <div
+                        key={week.weekLabel}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", height: "100%", position: "relative" }}
+                        onMouseEnter={() => setHovered(week.weekLabel)}
+                        onMouseLeave={() => setHovered(null)}
+                    >
+                        {isHovered && (
+                            <div style={{
+                                position: "absolute",
+                                top: 0,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                background: "#1e293b",
+                                color: "#fff",
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                whiteSpace: "nowrap",
+                                zIndex: 10,
+                                pointerEvents: "none",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                            }}>
+                                {week.count} review{week.count === 1 ? "" : "s"}
+                            </div>
+                        )}
+                        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+                            {week.count > 0 ? (
+                                <div
+                                    className="empire-bar empire-card-indigo"
+                                    style={{
+                                        width: "100%",
+                                        height: `${barPct}%`,
+                                        ["--empire-accent" as any]: "#4f46e5",
+                                        borderRadius: "6px 6px 0 0",
+                                        transition: "opacity 0.15s",
+                                        opacity: isHovered ? 1 : 0.85,
+                                    }}
+                                />
+                            ) : (
+                                <div style={{ width: "100%", height: "4px", background: "#e5e7eb", borderRadius: "4px 4px 0 0" }} />
+                            )}
+                        </div>
+                        <span style={{ fontSize: "0.6rem", color: "#9ca3af", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", textAlign: "center" }}>
+                            {week.weekLabel}
+                        </span>
+                    </div>
+                );
+            })}
         </div>
     );
 }
@@ -713,42 +775,7 @@ export default function ImpactPage() {
                             <Text as="h2" variant="headingMd">
                                 📅 12-Week Review Trend
                             </Text>
-                            <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "120px", padding: "0 4px" }}>
-                                {weeklyTrend.map((week) => (
-                                    <div
-                                        key={week.weekLabel}
-                                        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", height: "100%" }}
-                                    >
-                                        <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
-                                            {week.count > 0 ? (
-                                                <div
-                                                    className="empire-bar empire-card-indigo"
-                                                    style={{
-                                                        width: "100%",
-                                                        height: `${Math.max(4, Math.round((week.count / trendMax) * 100))}%`,
-                                                        ["--empire-accent" as any]: "#4f46e5",
-                                                        borderRadius: "6px 6px 0 0",
-                                                    }}
-                                                    title={`${week.weekLabel}: ${week.count} review${week.count === 1 ? "" : "s"}`}
-                                                />
-                                            ) : (
-                                                <div
-                                                    style={{
-                                                        width: "100%",
-                                                        height: "4px",
-                                                        background: "#e5e7eb",
-                                                        borderRadius: "4px 4px 0 0",
-                                                    }}
-                                                    title={`${week.weekLabel}: ${week.count} review${week.count === 1 ? "" : "s"}`}
-                                                />
-                                            )}
-                                        </div>
-                                        <span style={{ fontSize: "0.6rem", color: "#9ca3af", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", textAlign: "center" }}>
-                                            {week.weekLabel}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
+                            <TrendChart weeklyTrend={weeklyTrend} trendMax={trendMax} />
                             <Text as="p" variant="bodySm" tone="subdued">
                                 Each bar = one week. Hover for exact count.
                             </Text>
