@@ -16,7 +16,8 @@ function onAnchorClick(e: MouseEvent<HTMLDivElement>) {
   const el = document.querySelector(href);
   if (!el) return;
   e.preventDefault();
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const top = el.getBoundingClientRect().top + document.documentElement.scrollTop - 84;
+  document.documentElement.scrollTo({ top, behavior: "smooth" });
   window.history.replaceState(null, "", href);
 }
 
