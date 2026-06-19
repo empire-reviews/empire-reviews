@@ -29,16 +29,16 @@ import { BackButton } from "../components/BackButton";
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
 
 const GROWTH_TIPS = [
-    "Stores with photo reviews see a 26% higher conversion rate.",
-    "Automate requests to send 3 days after delivery for 2x replies.",
-    "Replying to negative reviews within 24h prevents customer churn.",
-    "Displaying 'Verified Buyer' badges increases trust by 40%.",
+    "Photo reviews can give shoppers a clearer sense of your products.",
+    "Sending review requests a few days after delivery can improve reply rates.",
+    "Replying to negative reviews quickly can help retain customers.",
+    "Showing 'Verified Buyer' badges can help build shopper trust.",
     "Incentivize photo reviews with a small discount for future orders.",
     "Use AI Sentiment to spot trends before they become problems.",
-    "High-rating reviews with text build better SEO than stars alone.",
+    "Reviews with written text can add more SEO value than star ratings alone.",
     "Importing your existing CSV reviews is the fastest way to start.",
-    "A 4.5 star average feels more 'real' to buyers than a perfect 5.",
-    "Email campaigns with scarcity templates get 30% more clicks."
+    "A near-perfect average can feel more authentic to buyers than a flawless score.",
+    "Try different email campaign templates to see what resonates with your customers."
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -196,8 +196,8 @@ export default function SettingsPage() {
 
     // Integration States
     const [flowEnabled, setFlowEnabled] = useState(settings.enableFlow);
-    const [klaviyoEnabled, setKlaviyoEnabled] = useState(settings.enableKlaviyo);
-    const [klaviyoKey, setKlaviyoKey] = useState(settings.klaviyoApiKey || "");
+    const [klaviyoEnabled] = useState(settings.enableKlaviyo);
+    const [klaviyoKey] = useState(settings.klaviyoApiKey || "");
     const [googleShoppingEnabled, setGoogleShoppingEnabled] = useState(settings.enableGoogle);
 
     // AI Configuration States

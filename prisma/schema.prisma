@@ -191,7 +191,7 @@ model AnalyticsEvent {
 model Order {
   id            String   @id // Shopify Order Admin GraphQL ID (gid://shopify/Order/123)
   shop          String
-  totalPrice    Decimal?
+  totalPrice    Decimal  @db.Decimal(10, 2) // NOT NULL in DB; all writers default to 0 on partial payloads
   currency      String
   createdAt     DateTime
   fulfilledAt   DateTime? // When order was shipped

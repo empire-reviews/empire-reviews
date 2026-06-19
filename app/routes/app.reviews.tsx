@@ -1,4 +1,4 @@
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
 import {
     Page,
@@ -15,7 +15,6 @@ import {
     Text,
     Tooltip,
     BlockStack,
-    Spinner,
     Pagination,
     Select,
     EmptyState,
@@ -23,7 +22,7 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useEffect } from "react";
-import { ChatIcon, FilterIcon, SearchIcon, CheckIcon, MagicIcon, ArrowLeftIcon, ClockIcon, DeleteIcon, ProductIcon, StoreIcon } from "@shopify/polaris-icons";
+import { SearchIcon, CheckIcon, MagicIcon, ClockIcon, DeleteIcon, ProductIcon, StoreIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { generateReply, type AIProvider } from "../services/ai.server";
 import { isPlanPro } from "../billing.server";
@@ -112,7 +111,7 @@ function parseReviewIds(formData: FormData): string[] {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { billing, session } = await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent") as string;
 
@@ -307,6 +306,7 @@ export default function ReviewsPage() {
         return qs ? `?${qs}` : "?";
     };
     const aiFetcher = useFetcher();
+    const replyFetcher = useFetcher();
 
     // AI Loading State
     const [aiGenerating, setAiGenerating] = useState(false);
@@ -385,12 +385,22 @@ export default function ReviewsPage() {
 
     const handleSave = () => {
         if (!selectedReview) return;
-        fetcher.submit({ intent: "save_reply", reviewId: selectedReview.id, body: textInput }, { method: "post" });
+        replyFetcher.submit({ intent: "save_reply", reviewId: selectedReview.id, body: textInput }, { method: "post" });
         handleCloseModal();
-        setShowConfetti(true);
-        setTimeout(() => setShowConfetti(false), 3000); // 3s burst
-        shopify.toast.show("Reply sent! Streak extended 🔥");
     };
+
+    // Reply-save result — celebrate only after the server confirms the save.
+    useEffect(() => {
+        if (replyFetcher.state !== "idle" || !replyFetcher.data) return;
+        const data = replyFetcher.data as any;
+        if (data.success) {
+            setShowConfetti(true);
+            setTimeout(() => setShowConfetti(false), 3000); // 3s burst
+            shopify.toast.show("Reply saved ✅");
+        } else if (data.error) {
+            shopify.toast.show(data.error);
+        }
+    }, [replyFetcher.data, replyFetcher.state]);
 
     // AI Reply Handler
     const handleAiReply = () => {
@@ -477,6 +487,8 @@ export default function ReviewsPage() {
 
     const rowMarkup = filteredReviews.map((review, index) => {
         const { id, rating, body, createdAt, replies, customerName, verified } = review;
+        // Clamp to 0–5 so a bad import (rating >5 or <0) can't throw RangeError in '★'.repeat(5 - rating).
+        const stars = Math.max(0, Math.min(5, Math.round(rating || 0)));
         const isReplied = replies && replies.length > 0;
         const age = daysAgo(createdAt);
 
@@ -516,7 +528,7 @@ export default function ReviewsPage() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                     <div style={{ color: '#f59e0b', fontSize: '1.1em', letterSpacing: '1px' }}>
-                        {'★'.repeat(rating)}<span style={{ color: '#e2e8f0' }}>{'★'.repeat(5 - rating)}</span>
+                        {'★'.repeat(stars)}<span style={{ color: '#e2e8f0' }}>{'★'.repeat(5 - stars)}</span>
                     </div>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
@@ -554,7 +566,7 @@ export default function ReviewsPage() {
                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxWidth: '120px' }}>
                             {review.media.map((m: any) => (
                                 <div key={m.id} style={{ position: 'relative', width: '36px', height: '36px' }}>
-                                    <img src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }} onClick={() => window.open(m.url, '_blank')} alt="Review Photo" />
+                                    <img src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }} onClick={() => window.open(m.url, '_blank')} alt="Customer review attachment" />
                                     <button
                                         onClick={(e) => { e.stopPropagation(); fetcher.submit({ intent: 'delete_media', mediaId: m.id }, { method: 'post' }); }}
                                         style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#e11d48', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
@@ -850,7 +862,7 @@ export default function ReviewsPage() {
                                         <BlockStack gap="200">
                                             <InlineStack align="space-between">
                                                 <Text as="span" fontWeight="bold">{selectedReview.customerName}</Text>
-                                                <div style={{ color: '#f59e0b' }}>{'★'.repeat(selectedReview.rating)}</div>
+                                                <div style={{ color: '#f59e0b' }}>{'★'.repeat(Math.max(0, Math.min(5, Math.round(selectedReview.rating || 0))))}</div>
                                             </InlineStack>
                                             <Text as="p" variant="bodyLg">"{selectedReview.body}"</Text>
                                         </BlockStack>
@@ -878,7 +890,7 @@ export default function ReviewsPage() {
                                             multiline={5}
                                             autoComplete="off"
                                             placeholder="Type your personal reply here..."
-                                            helpText="A personal reply increases customer lifetime value by 30%."
+                                            helpText="A personal reply shows customers you value their feedback."
                                         />
                                     </BlockStack>
                                 </BlockStack>

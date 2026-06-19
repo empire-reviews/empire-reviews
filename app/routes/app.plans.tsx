@@ -6,7 +6,6 @@ import {
     Badge,
     InlineStack,
     Text,
-    Modal,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { hasActivePayment, requirePayment } from "../billing.server";
@@ -268,11 +267,13 @@ export default function PlansPage() {
                 .zenith-slabs {
                     padding: 4rem 2rem;
                     display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
+                    grid-template-columns: 1fr 1fr;
                     gap: 1.25rem;
                     align-content: center;
                     position: relative;
                     z-index: 10;
+                    max-width: 900px;
+                    margin: 0 auto;
                 }
 
                 .zenith-slab {
@@ -720,34 +721,6 @@ export default function PlansPage() {
                             </button>
                         </div>
                     </div>
-
-                    {/* BUSINESS — Decoy tier for anchoring */}
-                    <div className="zenith-slab" style={{ opacity: 0.65 }}>
-                        <div className="slab-header">
-                            <div className="slab-name">
-                                Business
-                                <Badge tone="info">Coming Soon</Badge>
-                            </div>
-                            <div className="slab-desc">For high-volume enterprise stores.</div>
-                        </div>
-
-                        <div className="slab-price">
-                            <div className="price-val">$29.99<span className="price-curr">/ mo</span></div>
-                            <div className="trial-badge" style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>INVITE ONLY</div>
-                        </div>
-
-                        <div className="slab-features">
-                            <FeatureItem text="Everything in Pro" active />
-                            <FeatureItem text="White-Label Emails" />
-                            <FeatureItem text="Klaviyo Sync" />
-                            <FeatureItem text="Dedicated Support" />
-                            <FeatureItem text="Custom Webhooks" />
-                        </div>
-
-                        <button className="zenith-btn btn-starter btn-disabled" disabled style={{ cursor: 'default' }}>
-                            Coming Soon
-                        </button>
-                    </div>
                 </div>
             </div>
             {/* Custom VIP Access Overlay */}
@@ -788,36 +761,35 @@ export default function PlansPage() {
             {downgradeModalOpen && (
                 <div className="vip-overlay" onClick={() => setDowngradeModalOpen(false)}>
                     <div className="vip-modal" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🥺</div>
                         <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f1f5f9', marginBottom: '1rem', fontFamily: 'Outfit' }}>
-                            Wait! You're abandoning the Empire?
+                            Downgrade to the Starter plan?
                         </h2>
                         <p style={{ color: '#94a3b8', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.5 }}>
-                            If you switch to Starter, your automated trust engine will power down. You'll instantly lose:
+                            Switching to Starter will deactivate your Pro features. The following will no longer be available:
                         </p>
-                        
-                        <ul style={{ textAlign: 'left', background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '12px', listStyle: 'none', margin: '0 0 2rem 0', color: '#f87171', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                            <li>💔 <strong>No more AI Auto-Replies</strong> to boost customer retention</li>
-                            <li>💔 <strong>Review limits</strong> capped at a tiny 50 per month</li>
-                            <li>💔 <strong>Google Shopping</strong> feed gets instantly disabled</li>
-                            <li>💔 <strong>Automated Email Campaigns</strong> stop sending out</li>
+
+                        <ul style={{ textAlign: 'left', background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '12px', listStyle: 'none', margin: '0 0 2rem 0', color: '#cbd5e1', fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                            <li>• AI auto-replies to reviews</li>
+                            <li>• Review limit returns to 50</li>
+                            <li>• Google Shopping review feed</li>
+                            <li>• Automated email campaigns</li>
                         </ul>
 
                         <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
-                            <button 
+                            <button
                                 onClick={() => setDowngradeModalOpen(false)}
                                 style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, cursor: 'pointer' }}
                             >
-                                Keep My Empire Pro Powers 👑
+                                Keep Empire Pro
                             </button>
-                            <button 
+                            <button
                                 onClick={() => {
                                     setDowngradeModalOpen(false);
                                     fetcher.submit({ intent: 'downgrade' }, { method: 'POST' });
                                 }}
                                 style={{ width: '100%', padding: '14px', background: 'transparent', color: '#64748b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem' }}
                             >
-                                Yes, I want less sales (Downgrade)
+                                Downgrade to Starter
                             </button>
                         </div>
                     </div>

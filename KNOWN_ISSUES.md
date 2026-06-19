@@ -3,6 +3,16 @@
 **Status:** All CRITICAL items fixed 2026-06-16 via Opus subagents (each in an isolated worktree). HIGH/MEDIUM/LOW items being fixed — check boxes updated as work completes.
 **Audit date:** 2026-06-16. **Method:** 4 parallel subagent passes (security/billing/infra, admin UI, services/API, data-layer/extensions) over the whole codebase. The migration blocker (C1) was additionally verified by hand.
 
+**RE-AUDIT 2026-06-19 (pre-launch, 4 parallel subagents):** Most HIGH fixes verified genuine. Five launch blockers found — three were regressions/incomplete fixes against items marked done. **ALL FIVE NOW FIXED + residuals fixed (2026-06-19). Verified: `npm run lint` 0 errors, `tsc --noEmit` 0 errors.**
+- **R1. Open redirect (H8) — ✅ FIXED.** `api.track.click.$id.tsx` — extracted `safeRedirectTarget(rawTarget, shop)`, applied UNCONDITIONALLY before every redirect (incl. invalid/absent-token path); falls back to `https://<shop>` or `/` on validation failure.
+- **R2. Stored XSS (C5) — ✅ FIXED.** `empire-widgets.js` `escapeHtml()` now escapes `"`→`&quot;` and `'`→`&#39;` (plus `& < >`), safe in both text and quoted-attribute contexts. ⚠️ needs `shopify app deploy --force` to go live.
+- **R3. H14 — ⚠️ WON'T FIX (platform limit).** Tried `type = "number_integer"`; Shopify deploy **rejects** it: "Field type number_integer is not supported on Flow Triggers." Reverted to `single_line_text_field` (the only valid type — deploys clean). Numeric Flow conditions on `rating` are not possible via the trigger field; merchants must compare as text. Not a launch blocker.
+- **R4. CORS wildcard — ✅ FIXED.** `api.featured.ts` now uses `getAllowedOrigin()` (echoes known Shopify/localhost origins, else `"null"`, never `*`), validates shop with `isValidShopDomain`, and rate-limits the GET.
+- **R5. Migration CONCURRENTLY — ✅ FIXED.** `20260618000002_composite_review_indexes/migration.sql` — dropped `CONCURRENTLY`, kept `CREATE INDEX IF NOT EXISTS`. ⚠️ **CHECKSUM CAVEAT:** editing an already-applied migration changes its Prisma checksum. If this migration was already applied to prod, run `prisma migrate resolve` or confirm it was never applied before `migrate deploy`.
+
+Residuals — ✅ ALL FIXED: order webhooks now `Sentry.captureException` (both create + updated); `email.server.ts` non-campaign path + footer now escape via `esc()`; `Order.totalPrice` schema aligned to DB (`Decimal @db.Decimal(10,2)`, non-null) + webhooks default `currency` to `"USD"` (no null into NOT-NULL col); unsubscribe email lowercased in both send paths; rate limits added to GET `api.reviews` (summary 15/hr, reads 600/hr), `api.photos` (300/hr), `api.feed.xml` (120/hr); ESLint dead-code cleared (0 errors). App Store policy — ✅ ALL FIXED: removed unsourced "+24%/30%/40%" stat claims (now illustrative copy); **deleted** the "Business/Coming Soon" decoy tier (grid rebalanced to 2 cols); de-shamed the downgrade modal ("Downgrade to Starter" / neutral copy); optimistic success toasts (campaigns launch, reviews reply) now fire only on confirmed server response.
+**Residual mixed-case unsubscribe rows:** customers who unsubscribed with a mixed-case email BEFORE this fix may not match the now-lowercased lookups — a one-time `UPDATE "Unsubscriber" SET email = lower(email)` would fully close it (non-blocking).
+
 Severity: **CRITICAL** = launch blocker (App Store rejection, cross-tenant security, data integrity). Fix order is roughly top-to-bottom. `file:line` references were accurate at audit time — re-confirm before editing.
 
 ---
@@ -20,34 +30,34 @@ Severity: **CRITICAL** = launch blocker (App Store rejection, cross-tenant secur
 
 ## HIGH
 
-- [ ] **H1.** Verify every Pro data path returns `locked` from the *loader* (not just blurred client-side).
-- [ ] **H2.** Onboarding upgrade is non-functional — `app.onboarding.tsx:77-79` `requirePayment` commented out; "Start Trial" just redirects to free dashboard.
-- [ ] **H3.** Order webhooks crash silently — `webhooks.app.orders_create.tsx:31` `parseFloat(undefined)`→`NaN`, errors swallowed with 200 → orders never persist → cron never fires. Guard fields, report to Sentry, return non-200 on transient errors.
-- [ ] **H4.** `scopes_update` webhook has no try/catch; `db.session.update` throws P2025 if no row. Use `updateMany`/upsert.
-- [ ] **H5.** Scopes mismatch — `shopify.app.toml:36` grants 3 scopes; env `SCOPES` requests more (`read_all_orders`, `script_tags`, `marketing_events`). TOML wins → under-scoped at runtime or undeclared privileged scopes.
-- [ ] **H6.** Resend webhook unverified in prod — `api.webhooks.resend.tsx:28` skips signature check when `RESEND_WEBHOOK_SECRET` unset (it's absent from env). Fail closed.
-- [ ] **H7.** Email-queue double-send race — `api.cron.process-queue.tsx` is a GET loader with check-then-act idempotency. Use POST + unique constraint on `CampaignSend(orderId, customerEmail)`.
-- [ ] **H8.** Open-redirect — `api.track.click.$id.tsx:24` uses `hostname.includes(shop)`; `shop.myshopify.com.evil.com` passes. Use exact/suffix match.
-- [ ] **H9.** Tracking pixels are IDOR — unauthenticated `sendId`, anyone can inflate metrics. Sign the token.
-- [ ] **H10.** Email template injection — `api.cron.process-queue.tsx:124-145` interpolates unescaped `shop`/`productTitle`/merchant copy into HTML body + subject. Escape interpolations.
-- [ ] **H11.** Reviews page search filters only the current 50-row page while pagination is server-side; bulk-select and "Approve All" operate on different sets. Move search server-side.
-- [ ] **H12.** Six redundant `.env*` files on disk with inconsistent secrets (two `SHOPIFY_API_SECRET` values — one bare-hex likely wrong, two Resend keys, CRLF-corrupted values, OIDC JWTs, DB password). *Not tracked in git or history.* Keep one local `.env`, prod values only in Vercel, rotate.
-- [ ] **H13.** `.vercel/project.json` tracked in git despite `.gitignore` — leaks `projectId`/`orgId`. `git rm --cached -r .vercel`.
-- [ ] **H14.** Flow trigger `rating` typed `single_line_text_field` — merchant Flow conditions like `rating < 3` compare strings. Use `number_integer` (`extensions/empire-review-trigger/shopify.extension.toml`).
+- [x] **H1.** Verify every Pro data path returns `locked` from the *loader* (not just blurred client-side).
+- [x] **H2.** Onboarding upgrade is non-functional — `app.onboarding.tsx:77-79` `requirePayment` commented out; "Start Trial" just redirects to free dashboard.
+- [x] **H3.** Order webhooks crash silently — `webhooks.app.orders_create.tsx:31` `parseFloat(undefined)`→`NaN`, errors swallowed with 200 → orders never persist → cron never fires. Guard fields, report to Sentry, return non-200 on transient errors.
+- [x] **H4.** `scopes_update` webhook has no try/catch; `db.session.update` throws P2025 if no row. Use `updateMany`/upsert.
+- [x] **H5.** Scopes mismatch — `shopify.app.toml:36` grants 3 scopes; env `SCOPES` requests more (`read_all_orders`, `script_tags`, `marketing_events`). TOML wins → under-scoped at runtime or undeclared privileged scopes.
+- [x] **H6.** Resend webhook unverified in prod — `api.webhooks.resend.tsx:28` skips signature check when `RESEND_WEBHOOK_SECRET` unset (it's absent from env). Fail closed.
+- [x] **H7.** Email-queue double-send race — `api.cron.process-queue.tsx` is a GET loader with check-then-act idempotency. Use POST + unique constraint on `CampaignSend(orderId, customerEmail)`.
+- [x] **H8.** Open-redirect — FIXED (RE-AUDIT R1). `safeRedirectTarget()` validates unconditionally before every redirect; invalid/absent-token path no longer trusts raw `?target=`.
+- [x] **H9.** Tracking pixels are IDOR — unauthenticated `sendId`, anyone can inflate metrics. Sign the token.
+- [x] **H10.** Email template injection — `api.cron.process-queue.tsx:124-145` interpolates unescaped `shop`/`productTitle`/merchant copy into HTML body + subject. Escape interpolations.
+- [x] **H11.** Reviews page search filters only the current 50-row page while pagination is server-side; bulk-select and "Approve All" operate on different sets. Move search server-side.
+- [x] **H12.** Six redundant `.env*` files on disk with inconsistent secrets (two `SHOPIFY_API_SECRET` values — one bare-hex likely wrong, two Resend keys, CRLF-corrupted values, OIDC JWTs, DB password). *Not tracked in git or history.* Keep one local `.env`, prod values only in Vercel, rotate.
+- [x] **H13.** `.vercel/project.json` tracked in git despite `.gitignore` — leaks `projectId`/`orgId`. `git rm --cached -r .vercel`.
+- [~] **H14. WON'T FIX — platform limitation.** Shopify rejects `number_integer` on Flow Triggers ("Field type number_integer is not supported on Flow Triggers" at deploy). `rating` reverted to `single_line_text_field`; numeric Flow comparisons aren't supported by the trigger field. Not a blocker.
 
 ## MEDIUM
 
-- [ ] Fabricated metrics (App Store risk): `app.reviews.tsx:228` fake "🔥 Day Streak" (always ≥3, comment says "Fake Streak Logic"); dashboard "Revenue affected by reviews" = `SUM(all orders)` with no review link; impact page advertises Revenue Attribution/CLV/Churn it doesn't compute; hardcoded "+24%/30%/40%" stat claims.
-- [ ] Fake UX: `app.campaigns.tsx:276` artificial 1.5s `setTimeout`; `app.settings.tsx:604` AI "Test Connection" reports success on a 4s timer regardless of result.
-- [ ] `confirm()` dialogs in embedded iframe (`app.campaigns.tsx:344,444`) — unreliable; use Polaris `Modal`.
+- [x] Fabricated metrics (App Store risk) — FIXED 2026-06-19: fake "Day Streak" replaced with real reply-milestone; impact page now computes only real funnel/revenue with explicit "does not imply reviews caused these sales" disclaimers (no CLV/Churn/attribution claims); all hardcoded "+24%/30%/40%" stat claims removed/reworded as illustrative copy.
+- [x] Fake UX — FIXED/verified 2026-06-19: campaigns `setTimeout` only resets a spinner (real send happens via fetcher); settings AI "Test Connection" calls real `testAIConnection` and reflects the actual result.
+- [x] `confirm()` dialogs — verified 2026-06-19: zero `confirm(` calls remain in `app/routes`; all destructive actions use Polaris `Modal`.
 - [ ] `prisma.settings.update` (not upsert) in `app.plans.tsx:49,64` → P2025 crash for a brand-new shop redeeming a VIP code / downgrading.
 - [ ] VIP code grants permanent un-revocable Pro (no expiry/cap; compared with `Array.includes`, not timing-safe).
 - [ ] Downgrade marks DB FREE without confirming Shopify cancellation (`billing.server.ts` return ignored) → billing-without-access risk.
-- [ ] `Order.totalPrice` is `Float` → money rounding errors. Use `Decimal`.
+- [x] `Order.totalPrice` is `Float` → money rounding errors — FIXED: DB migrated to `DECIMAL(10,2)`; schema now `Decimal @db.Decimal(10,2)` (non-null, aligned to DB).
 - [ ] `vercel.json` `X-Frame-Options: ""` invalid empty header — remove, rely on CSP `frame-ancestors`.
-- [ ] `ai.server.ts` no fetch timeouts; Ollama endpoint merchant-controlled → SSRF (can hit `169.254.169.254`). Add `AbortSignal.timeout`, block private IPs.
-- [ ] Prompt injection — raw review text interpolated into AI prompts (`ai.server.ts:203,251`).
-- [ ] CAN-SPAM — `email.server.ts` sends with a placeholder when `physicalAddress` empty instead of blocking; unsubscribe token truncated to 64 bits, email not lowercased.
+- [x] `ai.server.ts` SSRF/timeouts — verified 2026-06-19: `assertSafeUrl()` blocks loopback/RFC1918/169.254/0.0.0.0/IPv6-ULA; all adapters use `AbortSignal.timeout(10000)`. (Residual: no DNS-rebind check — accepted.)
+- [x] Prompt injection — verified 2026-06-19: raw review text wrapped in `<review>` tags + every system prompt has an explicit "treat as data, never instructions" clause.
+- [x] CAN-SPAM — FIXED/verified 2026-06-19: `email.server.ts` now BLOCKS send when `physicalAddress` empty (was placeholder); unsubscribe token is HMAC-SHA256 128-bit (not 64); customer email now lowercased in both send paths before the `Unsubscriber` lookup. (Residual: one-time `UPDATE Unsubscriber SET email=lower(email)` for pre-fix mixed-case rows.)
 - [ ] `docker-start` uses `prisma db push` (drift-prone) — use `migrate deploy`.
 - [ ] Contradictory DB URLs (pooler `:6543` vs direct `:5432` with `pgbouncer=true`); no `connection_limit=1` for serverless.
 - [ ] No enum constraints — `status`/`sentiment`/`type` free strings; seed casing mismatches (`"image"` vs `"IMAGE"`).

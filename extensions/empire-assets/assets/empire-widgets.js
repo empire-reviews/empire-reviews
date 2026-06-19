@@ -418,9 +418,16 @@ const EmpireWidgets = (function() {
 
         escapeHtml(unsanitized) {
             if (!unsanitized) return "";
-            const div = document.createElement('div');
-            div.textContent = unsanitized;
-            return div.innerHTML;
+            // Escape for both text and double-quoted attribute contexts.
+            // The textContent trick only covers < > & — we must also escape
+            // " and ' so values interpolated into quoted attributes (e.g.
+            // data-name, alt, aria-label in the photo gallery) cannot break out.
+            return String(unsanitized)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         },
 
         getStarsHtml(rating) {

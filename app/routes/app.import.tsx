@@ -1,16 +1,11 @@
 import { json, type ActionFunctionArgs, type LoaderFunctionArgs, unstable_parseMultipartFormData, unstable_createMemoryUploadHandler } from "@remix-run/node";
 import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import {
-    Page,
-    Layout,
-    Card,
     BlockStack,
     Text,
     Button,
     DropZone,
     Banner,
-    List,
-    Box,
     InlineStack,
     Badge,
     ProgressBar,
@@ -18,7 +13,7 @@ import {
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { useState, useCallback, useEffect } from "react";
-import { ArrowLeftIcon, ImportIcon, NoteIcon } from "@shopify/polaris-icons";
+import { ImportIcon, NoteIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
 import { buildReviewsCsv } from "../utils/export.server";

@@ -1,6 +1,6 @@
 import { json, type LoaderFunctionArgs, type LinksFunction } from "@remix-run/node";
-import { useLoaderData, useNavigate } from "@remix-run/react";
-import { Page, Card, BlockStack, Text, Badge, InlineStack, Button } from "@shopify/polaris";
+import { useLoaderData } from "@remix-run/react";
+import { Page, Text, InlineStack } from "@shopify/polaris";
 import { BackButton } from "../components/BackButton";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -13,7 +13,7 @@ export const links: LinksFunction = () => [
 ];
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-    const { admin, session } = await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
     
     const campaignId = params.id;
     if (!campaignId) throw new Error("Missing campaign ID");
@@ -37,7 +37,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export default function CampaignDetailsPage() {
     const { campaign } = useLoaderData<typeof loader>();
-    const navigate = useNavigate();
 
     return (
         <Page 

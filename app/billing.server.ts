@@ -1,5 +1,4 @@
-import { BillingInterval } from "@shopify/shopify-app-remix/server";
-import { authenticate } from "./shopify.server";
+import type { authenticate } from "./shopify.server";
 import prisma, { withRetry } from "./db.server";
 
 export const MONTHLY_PLAN = "Empire Pro";

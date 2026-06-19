@@ -5,7 +5,6 @@ import { useState } from "react";
 import {
   Page,
   Layout,
-  Card,
   BlockStack,
   Text,
   Badge,
@@ -18,7 +17,7 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { ArrowLeftIcon, LockIcon } from "@shopify/polaris-icons";
+import { LockIcon } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
 import { generateInsights } from "../services/ai.server";

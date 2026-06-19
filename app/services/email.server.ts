@@ -3,7 +3,22 @@ import prisma from '../db.server';
 import { generateUnsubscribeToken, generateTrackingToken } from '../utils/crypto.server';
 import { Sentry } from '../utils/sentry.server';
 
+// Escape user/merchant-supplied values before interpolating into email HTML.
+// Prevents broken markup / injection from names, product titles, addresses, etc.
+function esc(value: string | null | undefined): string {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 export const sendReviewRequest = async (toEmail: string, customerName: string, productTitle: string, reviewLink: string, shopDomain: string) => {
+    // Normalize email to lowercase so unsubscribe suppression matches regardless of
+    // how Shopify cased it on different orders (CAN-SPAM). The unsubscribe link, token,
+    // and the address we send to all derive from this normalized value.
+    toEmail = (toEmail || "").trim().toLowerCase();
     // 1. Check if user is unsubscribed
     const isUnsubscribed = await prisma.unsubscriber.findUnique({
         where: { email_shop: { email: toEmail, shop: shopDomain } }
@@ -62,11 +77,11 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
                 subject: `How was your order from ${shopDomain}?`,
                 html: `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                        <h2>Hi ${customerName || 'there'},</h2>
-                        <p>Thank you for buying <strong>${productTitle}</strong>.</p>
+                        <h2>Hi ${esc(customerName || 'there')},</h2>
+                        <p>Thank you for buying <strong>${esc(productTitle)}</strong>.</p>
                         <p>We'd love to hear what you think!</p>
                         <br/>
-                        <a href="${reviewLink}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Write a Review</a>
+                        <a href="${esc(reviewLink)}" style="background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Write a Review</a>
                         ${footer}
                     </div>
                 `,
@@ -111,6 +126,8 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
 };
 
 export const sendCampaignEmail = async (shopDomain: string, toEmail: string, subject: string, bodyHtml: string, trackingId: string) => {
+    // Normalize email to lowercase so unsubscribe suppression matches regardless of case.
+    toEmail = (toEmail || "").trim().toLowerCase();
     // 1. Check if user is unsubscribed
     const isUnsubscribed = await prisma.unsubscriber.findUnique({
         where: { email_shop: { email: toEmail, shop: shopDomain } }
@@ -224,7 +241,7 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
  */
 function buildComplianceFooter(shopDomain: string, unsubscribeLink: string, physicalAddress?: string | null): string {
     const addressLine = physicalAddress
-        ? `<p style="margin: 0 0 8px 0;">${physicalAddress}</p>`
+        ? `<p style="margin: 0 0 8px 0;">${esc(physicalAddress)}</p>`
         : `<p style="margin: 0 0 8px 0; color: #f59e0b;">⚠️ Please add your business address in Settings &gt; Automation to comply with CAN-SPAM.</p>`;
 
     return `
@@ -233,7 +250,7 @@ function buildComplianceFooter(shopDomain: string, unsubscribeLink: string, phys
         <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 11px; color: #888; line-height: 1.6;">
             <tr>
                 <td align="center">
-                    <p style="margin: 0 0 8px 0;">Sent by <strong>${shopDomain}</strong> via Empire Reviews</p>
+                    <p style="margin: 0 0 8px 0;">Sent by <strong>${esc(shopDomain)}</strong> via Empire Reviews</p>
                     ${addressLine}
                     <p style="margin: 0;">
                         <a href="${unsubscribeLink}" style="color: #888; text-decoration: underline;">

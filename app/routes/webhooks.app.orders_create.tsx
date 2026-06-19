@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { Sentry } from "../utils/sentry.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     const { topic, shop, admin, payload } = await authenticate.webhook(request);
@@ -28,7 +29,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Guard numeric/date parsing — order fields may be missing on partial payloads.
     const parsedPrice = parseFloat(order.total_price);
     const totalPrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
-    const currency = order.currency ?? null;
+    // currency is a NOT-NULL DB column — never write null on a partial payload.
+    const currency = order.currency || "USD";
     const customerEmail = order.email || order.customer?.email || null;
     const parsedCreatedAt = order.created_at ? new Date(order.created_at) : new Date();
     const createdAt = Number.isNaN(parsedCreatedAt.getTime()) ? new Date() : parsedCreatedAt;
@@ -58,6 +60,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         console.log(`Processed order ${orderId} for shop ${shop}`);
     } catch (error: any) {
         console.error("Error processing order webhook:", error);
+        Sentry.captureException(error, {
+            tags: { operation: "orders_create_webhook", shop },
+            extra: { orderId, topic },
+        });
         // Transient DB/connection errors (Prisma P1xxx) — return 500 so Shopify retries.
         if (typeof error?.code === "string" && error.code.startsWith("P1")) {
             return new Response("Database unavailable", { status: 500 });

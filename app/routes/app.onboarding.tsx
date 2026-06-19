@@ -3,17 +3,14 @@ import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from
 import { useLoaderData, useSubmit, useNavigation, useRouteError, isRouteErrorResponse } from "@remix-run/react";
 import {
     Page,
-    Layout,
     Card,
     BlockStack,
-    InlineStack,
     Text,
     Button,
     TextField,
     Select,
     ChoiceList,
     Checkbox,
-    ProgressBar,
     DropZone,
     Thumbnail
 } from "@shopify/polaris";

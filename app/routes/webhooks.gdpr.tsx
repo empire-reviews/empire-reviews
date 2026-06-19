@@ -40,7 +40,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     where: { customerEmail },
                 });
                 // Delete campaign sends for this customer
-                const deletedSends = await prisma.campaignSend.deleteMany({
+                await prisma.campaignSend.deleteMany({
                     where: { customerEmail },
                 });
                 // Delete orders for this customer

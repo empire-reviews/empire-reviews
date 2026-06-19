@@ -1,51 +1,38 @@
-import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
+import { json, type LoaderFunctionArgs, type ActionFunctionArgs, type LinksFunction } from "@remix-run/node";
 import campaignStyles from "../styles/campaigns.css?url";
 import empireTheme from "../styles/empire-theme.css?url";
 import { CAMPAIGN_TEMPLATES } from "../lib/campaign-templates";
-
-export const links: LinksFunction = () => [
-    { rel: "stylesheet", href: campaignStyles },
-    { rel: "stylesheet", href: empireTheme },
-];
 import { useLoaderData, useFetcher, useNavigate, Link } from "@remix-run/react";
 import {
     Page,
-    Layout,
-    Card,
     BlockStack,
     Text,
     Button,
     TextField,
-    Box,
     InlineStack,
     Badge,
     Divider,
-    Select,
-    Banner,
-    Tooltip,
-    ProgressBar,
     Modal,
-
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { sendCampaignEmail } from "../services/email.server";
 import { callAIForCampaign } from "../services/ai.server";
 import { decrypt } from "../utils/encryption.server";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
-    ArrowLeftIcon,
-    EmailIcon,
     MagicIcon,
     SendIcon,
-    ClockIcon,
-    CheckIcon,
     ChartVerticalIcon,
     EditIcon,
-    LockIcon
 } from "@shopify/polaris-icons";
 import { BackButton } from "../components/BackButton";
 import { isPlanPro } from "../billing.server";
+
+export const links: LinksFunction = () => [
+    { rel: "stylesheet", href: campaignStyles },
+    { rel: "stylesheet", href: empireTheme },
+];
 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -126,7 +113,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { admin, billing, session } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent");
 
@@ -313,6 +300,9 @@ export default function CampaignsPage() {
             const data = fetcher.data as any;
             if (data.testMode && data.success) {
                 shopify.toast.show("✅ Test email delivered to your inbox!");
+            } else if (data.success && data.campaignId) {
+                // Launch/create succeeded server-side (campaignId only set on the create path).
+                shopify.toast.show("Automation activated! 🚀");
             } else if (data.error) {
                 shopify.toast.show("❌ Error: " + data.error);
             }
@@ -334,7 +324,7 @@ export default function CampaignsPage() {
         };
         if (templateType === "ai") payload.aiPrompt = aiPrompt;
         fetcher.submit(payload, { method: "post" });
-        shopify.toast.show(templateType === "ai" ? "AI Automation Activated! 🤖🚀" : "Automation Activated! 🚀");
+        // Success toast fires from the fetcher-response effect once the server confirms.
         setSelectedTab(0);
     };
 

@@ -1,5 +1,6 @@
 import { type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { checkRateLimit } from "../utils/rateLimit.server";
 
 /** Escape user-generated strings for safe XML output */
 function escapeXml(str: string): string {
@@ -11,12 +12,28 @@ function escapeXml(str: string): string {
         .replace(/'/g, "&apos;");
 }
 
+function isValidShopDomain(shop: string | null): shop is string {
+    return !!shop && /^[a-zA-Z0-9-]+\.myshopify\.com$/.test(shop);
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
     const shop = url.searchParams.get("shop");
 
-    if (!shop) {
-        return new Response("Missing shop parameter", { status: 400 });
+    if (!isValidShopDomain(shop)) {
+        return new Response("Invalid or missing shop parameter", { status: 400 });
+    }
+
+    // Rate limit per IP — public feed; cached 1h and crawled by Googlebot (many IPs),
+    // so a moderate ceiling stops scraping without blocking legitimate crawls.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
+    const rateCheck = await checkRateLimit(`feed:${ip}`, 120, 60 * 60 * 1000);
+    if (!rateCheck.allowed) {
+        const retryAfter = Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000);
+        return new Response("Rate limit exceeded. Try again later.", {
+            status: 429,
+            headers: { "Retry-After": String(retryAfter) },
+        });
     }
 
     // Check for "Empire Pro" Plan logic would go here, BUT

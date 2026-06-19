@@ -273,6 +273,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const skip = (page - 1) * limit;
     const mediaOnly = url.searchParams.get("mediaOnly") === "true";
 
+    // 🛡️ Rate limit reads per IP. The summary intent triggers a billable AI call,
+    // so it gets a far stricter budget than plain review-list fetches. (Fails open
+    // on a DB outage — see checkRateLimit — so it never blocks legitimate traffic
+    // due to infra issues.)
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
+    const isSummary = url.searchParams.get("intent") === "summary";
+    const readLimit = isSummary
+        ? await checkRateLimit(`summary:${ip}`, 15, 60 * 60 * 1000)   // 15 AI summaries/hr/IP
+        : await checkRateLimit(`reads:${ip}`, 600, 60 * 60 * 1000);   // 600 list reads/hr/IP
+    if (!readLimit.allowed) {
+        const retryAfter = Math.ceil((readLimit.resetAt.getTime() - Date.now()) / 1000);
+        return json(
+            { error: "Rate limit exceeded. Try again later." },
+            { status: 429, headers: { ...corsHeaders(request), "Retry-After": String(retryAfter) } }
+        );
+    }
+
     try {
         const where: any = {}; // Build dynamic query
 

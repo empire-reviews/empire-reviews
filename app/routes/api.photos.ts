@@ -1,11 +1,16 @@
 import { json, type LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "../db.server";
+import { checkRateLimit } from "../utils/rateLimit.server";
 
 function getAllowedOrigin(request: Request): string {
     const origin = request.headers.get("Origin") || "";
     if (origin.endsWith(".myshopify.com") || origin.endsWith(".shopify.com")) return origin;
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) return origin;
     return "";
+}
+
+function isValidShopDomain(shop: string | null): shop is string {
+    return !!shop && /^[a-zA-Z0-9-]+\.myshopify\.com$/.test(shop);
 }
 
 function corsHeaders(request: Request) {
@@ -26,8 +31,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const productId = url.searchParams.get("productId") || undefined;
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "48"), 48);
 
-    if (!shop) {
-        return json({ error: "Missing shop parameter" }, { status: 400, headers: corsHeaders(request) });
+    if (!isValidShopDomain(shop)) {
+        return json({ error: "Invalid or missing shop" }, { status: 400, headers: corsHeaders(request) });
+    }
+
+    // Rate limit per IP — public read endpoint, guard against scraping / cost abuse
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown-ip";
+    const rateCheck = await checkRateLimit(`photos:${ip}`, 300, 60 * 60 * 1000);
+    if (!rateCheck.allowed) {
+        const retryAfter = Math.ceil((rateCheck.resetAt.getTime() - Date.now()) / 1000);
+        return json(
+            { error: "Rate limit exceeded. Try again later." },
+            { status: 429, headers: { ...corsHeaders(request), "Retry-After": String(retryAfter) } }
+        );
     }
 
     try {

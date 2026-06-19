@@ -9,12 +9,11 @@ import {
   Text,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import { hasActivePayment, isPlanPro } from "../billing.server";
+import { isPlanPro } from "../billing.server";
 import prisma, { withRetry } from "../db.server";
 import { ArrowRightIcon, ArrowUpIcon } from "@shopify/polaris-icons";
 import { trackEvent, getConversionPhase, shouldShowUpgradePrompt } from "../utils/analytics.server";
 import { CONVERSION_CONFIG } from "../config/conversion";
-import { generateInsights, type AIProvider } from "../services/ai.server";
 import empireTheme from "../styles/empire-theme.css?url";
 
 export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireTheme }];
@@ -25,7 +24,7 @@ export const links: LinksFunction = () => [{ rel: "stylesheet", href: empireThem
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
-    const { billing, session } = await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
     const { shop } = session;
 
     // Preserve Shopify params so the redirected request can authenticate
@@ -488,7 +487,7 @@ export default function EmpireDashboard() {
                 <div>
                   <Text as="h3" variant="headingMd" fontWeight="semibold">Unlock Video Reviews</Text>
                   <div style={{ marginTop: '0.3rem', maxWidth: 640 }}>
-                    <Text as="p" variant="bodyMd" tone="subdued">Photo reviews are free on your plan. Upgrade to EMPIRE Pro to also collect video reviews — the highest-converting social proof, shown to lift product conversion by up to 24%.</Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">Photo reviews are free on your plan. Upgrade to EMPIRE Pro to also collect video reviews — a compelling form of social proof that can help build shopper trust.</Text>
                   </div>
                 </div>
               </div>

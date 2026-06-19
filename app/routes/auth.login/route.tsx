@@ -1,7 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form } from "@remix-run/react";
-import { useState } from "react";
 
 // With managed installation + token exchange (unstable_newEmbeddedAuthStrategy),
 // users should NEVER see a login page. They install and open the app entirely

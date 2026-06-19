@@ -150,13 +150,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             // A. Create CampaignSend record BEFORE sending (for idempotency).
             // NOTE: CampaignSend has no `shop`/`status` columns (see schema.prisma);
             // campaign linkage is via campaignId and idempotency via @@unique([orderId, customerEmail]).
-            let sendRecord = await prisma.campaignSend.create({
-                data: {
-                    campaignId: campaignId,
-                    customerEmail: order.customerEmail!,
-                    orderId: order.id,
+            let sendRecord;
+            try {
+                sendRecord = await prisma.campaignSend.create({
+                    data: {
+                        campaignId: campaignId,
+                        customerEmail: order.customerEmail!,
+                        orderId: order.id,
+                    }
+                });
+            } catch (createErr: any) {
+                // A concurrent cron run already claimed this (orderId, customerEmail) via the
+                // @@unique constraint. Treat as already-handled — do NOT mark the order failed
+                // (the other run owns the actual send). Just skip; no duplicate email goes out.
+                if (createErr?.code === "P2002") {
+                    return { orderId: order.id, status: "skipped_duplicate" };
                 }
-            });
+                throw createErr;
+            }
 
             // B. Send Email via Resend (with rate limiting + retries built-in)
             const emailResult = await sendCampaignEmail(
