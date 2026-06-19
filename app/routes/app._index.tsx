@@ -389,7 +389,7 @@ export default function EmpireDashboard() {
                         display: 'inline-block',
                       }}
                     >
-                      Empire Command Center 🚀
+                      Empire Command Center <span style={{ WebkitTextFillColor: 'initial', background: 'none', display: 'inline' }}>🚀</span>
                     </h1>
                   </div>
                   <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px' }}>

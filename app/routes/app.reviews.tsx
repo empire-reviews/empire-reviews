@@ -651,7 +651,7 @@ export default function ReviewsPage() {
                     <div className="reviews-header">
                         <BlockStack gap="400">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <h1 className="empire-title" style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 70%, #67e8f9 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>War Room 🛡️</h1>
+                                <h1 className="empire-title" style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 70%, #67e8f9 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>War Room <span style={{ WebkitTextFillColor: 'initial', background: 'none', display: 'inline' }}>🛡️</span></h1>
                                 {streak > 0 && (
                                     <div className="empire-glow" style={{ background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', padding: '4px 8px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         🔥 {streak * 5}+ Replies

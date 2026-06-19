@@ -447,7 +447,7 @@ export default function InsightsPage() {
             <Layout.Section>
               <div className="insight-card empire-card empire-card-violet empire-shimmer empire-glow empire-rise empire-rise-1" style={{ borderTop: '4px solid #8b5cf6', background: 'linear-gradient(135deg, #faf5ff 0%, #ffffff 100%)' }}>
                 <InlineStack align="space-between">
-                  <Text as="h3" variant="headingMd"><span className="empire-title">🧠 Deep AI Analysis</span></Text>
+                  <Text as="h3" variant="headingMd"><span className="empire-title"><span style={{ WebkitTextFillColor: "initial", background: "none" }}>🧠</span> Deep AI Analysis</span></Text>
                   {aiInsightsUpdatedAt && (
                     <Text as="p" tone="subdued">Last updated: {new Date(aiInsightsUpdatedAt).toLocaleString()}</Text>
                   )}

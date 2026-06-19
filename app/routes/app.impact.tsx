@@ -601,7 +601,7 @@ export default function ImpactPage() {
                     <Layout.Section>
                         <BlockStack gap="200">
                             <h1 className="empire-title empire-rise" style={{ fontSize: "2rem", margin: 0 }}>
-                                Business Impact Analytics 📊
+                                Business Impact Analytics <span style={{ WebkitTextFillColor: "initial", background: "none", display: "inline" }}>📊</span>
                             </h1>
                             <Text as="p" tone="subdued">
                                 Live data across {totalOrders.toLocaleString()} synced orders and{" "}
