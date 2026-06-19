@@ -117,27 +117,61 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 function MarkdownBlock({ content }: { content: string }) {
-  const html = useMemo(() => {
-    return content
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/^### (.+)$/gm, "<h3 style=\"font-size:1rem;font-weight:700;margin:1.2em 0 0.4em;color:#1e293b\">$1</h3>")
-      .replace(/^## (.+)$/gm, "<h2 style=\"font-size:1.1rem;font-weight:700;margin:1.4em 0 0.4em;color:#1e293b\">$1</h2>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/^[*-] (.+)$/gm, "<li style=\"margin:0.2em 0\">$1</li>")
-      .replace(/(<li[\s\S]*?<\/li>)(\n<li)/g, "$1$2")
-      .replace(/(<li[^>]*>[\s\S]*?<\/li>(?:\n<li[^>]*>[\s\S]*?<\/li>)*)/g, "<ul style=\"padding-left:1.4em;margin:0.4em 0\">$1</ul>")
-      .replace(/\n{2,}/g, "</p><p style=\"margin:0.6em 0\">")
-      .replace(/^(?!<[hul])(.+)$/gm, (m) => m.startsWith("<") ? m : m)
-      .trim();
+  const nodes = useMemo(() => {
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const bold = (s: string) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+    const lines = content.split(/\r?\n/);
+    const result: React.ReactNode[] = [];
+    let listBuf: string[] = [];
+
+    const flushList = (key: string) => {
+      if (!listBuf.length) return;
+      result.push(
+        <ul key={key} style={{ paddingLeft: "1.5em", margin: "0.4em 0 0.6em" }}>
+          {listBuf.map((item, i) => (
+            // eslint-disable-next-line react/no-danger
+            <li key={i} style={{ margin: "0.25em 0", lineHeight: "1.65" }} dangerouslySetInnerHTML={{ __html: item }} />
+          ))}
+        </ul>
+      );
+      listBuf = [];
+    };
+
+    lines.forEach((raw, idx) => {
+      const line = raw.trim();
+      if (!line) { flushList(`fl-${idx}`); return; }
+
+      if (line.startsWith("### ")) {
+        flushList(`fl-${idx}`);
+        result.push(
+          // eslint-disable-next-line react/no-danger
+          <h3 key={idx} style={{ fontSize: "1rem", fontWeight: 700, margin: "1.2em 0 0.3em", color: "#1e293b" }}
+            dangerouslySetInnerHTML={{ __html: bold(line.slice(4)) }} />
+        );
+      } else if (line.startsWith("## ")) {
+        flushList(`fl-${idx}`);
+        result.push(
+          // eslint-disable-next-line react/no-danger
+          <h2 key={idx} style={{ fontSize: "1.1rem", fontWeight: 700, margin: "1.4em 0 0.3em", color: "#1e293b" }}
+            dangerouslySetInnerHTML={{ __html: bold(line.slice(3)) }} />
+        );
+      } else if (line.startsWith("* ") || line.startsWith("- ")) {
+        listBuf.push(bold(line.slice(2)));
+      } else {
+        flushList(`fl-${idx}`);
+        result.push(
+          // eslint-disable-next-line react/no-danger
+          <p key={idx} style={{ margin: "0.4em 0", lineHeight: "1.7" }}
+            dangerouslySetInnerHTML={{ __html: bold(line) }} />
+        );
+      }
+    });
+    flushList("final");
+    return result;
   }, [content]);
 
-  return (
-    <div
-      style={{ lineHeight: "1.7", fontSize: "1rem", color: "#334155" }}
-      // eslint-disable-next-line react/no-danger
-      dangerouslySetInnerHTML={{ __html: `<p style="margin:0.6em 0">${html}</p>` }}
-    />
-  );
+  return <div style={{ fontSize: "1rem", color: "#334155" }}>{nodes}</div>;
 }
 
 export default function InsightsPage() {
