@@ -114,7 +114,7 @@ const css = `
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 body {
   margin: 0;
   background: var(--ink);
@@ -125,7 +125,7 @@ body {
 
 .er-page {
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(900px 600px at 12% -5%, rgba(245,158,11,0.16), transparent 60%),
     radial-gradient(820px 560px at 92% 4%, rgba(16,185,129,0.14), transparent 60%),
