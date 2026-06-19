@@ -1,8 +1,24 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
+import type { MouseEvent } from "react";
 
 import { login } from "../../shopify.server";
+
+// In-page nav: scroll explicitly instead of relying on native hash navigation,
+// which Remix's <ScrollRestoration> races against (the cause of links needing
+// several clicks before they'd move). Delegated from the page root.
+function onAnchorClick(e: MouseEvent<HTMLDivElement>) {
+  const anchor = (e.target as HTMLElement).closest('a[href^="#"]');
+  if (!anchor) return;
+  const href = anchor.getAttribute("href");
+  if (!href || href === "#") return;
+  const el = document.querySelector(href);
+  if (!el) return;
+  e.preventDefault();
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.history.replaceState(null, "", href);
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -287,7 +303,7 @@ export default function App() {
   const { showForm } = useLoaderData<typeof loader>();
 
   return (
-    <div className="er-page">
+    <div className="er-page" onClick={onAnchorClick}>
       <style dangerouslySetInnerHTML={{ __html: css }} />
 
       {/* NAV */}
