@@ -353,6 +353,47 @@ export async function testAIConnection(config: AIConfig): Promise<{ success: boo
     }
 }
 
+// ─── PUBLIC API: SUPPORT CHAT ────────────────────────────────────
+
+const SUPPORT_CHAT_SYSTEM_PROMPT_HEADER = `You are the Empire Reviews in-app support assistant — a friendly, concise helper for Shopify merchants using the Empire Reviews app.
+
+Your role:
+- Answer questions about how to USE features of the Empire Reviews app only.
+- Be specific and practical. Give step-by-step instructions when useful.
+- Keep answers short (3-5 sentences max unless a list is genuinely clearer).
+- If the question is about billing, account-level issues, a bug, or something you are not confident about, say: "I'm not sure about that one — please use the Talk to a human button and our team will help you."
+- Never make up features not described in the knowledge base below.
+- Never answer questions unrelated to Empire Reviews.
+
+`;
+
+/**
+ * Generate a support answer using the merchant's own BYOK key.
+ * Accepts a conversation history so follow-up questions work naturally.
+ */
+export async function generateSupportAnswer(
+    config: AIConfig,
+    question: string,
+    history: Array<{ role: "user" | "assistant"; content: string }> = [],
+    knowledgeBase: string = ""
+): Promise<string> {
+    const systemPrompt = SUPPORT_CHAT_SYSTEM_PROMPT_HEADER + (knowledgeBase || "");
+
+    // Build a single user prompt that incorporates history inline for providers
+    // that only accept (system, user) pairs in our callAI adapter.
+    let userPrompt = "";
+    if (history.length > 0) {
+        const historyText = history
+            .map((m) => `${m.role === "user" ? "Merchant" : "Assistant"}: ${m.content}`)
+            .join("\n");
+        userPrompt = `Previous conversation:\n${historyText}\n\nMerchant: ${question}`;
+    } else {
+        userPrompt = question;
+    }
+
+    return callAI(config, systemPrompt, userPrompt);
+}
+
 // ─── PUBLIC API: CAMPAIGN EMAIL GENERATION ───────────────────────
 
 const CAMPAIGN_SYSTEM_PROMPT = `You are an expert email marketing copywriter for e-commerce stores.

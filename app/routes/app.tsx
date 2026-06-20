@@ -7,12 +7,15 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { authenticate } from "../shopify.server";
+import SupportChat from "../components/SupportChat";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
+  let shop: string | null = null;
   try {
-    await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
+    shop = session.shop;
   } catch (error) {
     if (error instanceof Response) throw error;
     // We explicitly swallow non-Response errors here so that
@@ -20,11 +23,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.log("App layout: auth deferred to App Bridge UI initialization");
   }
 
-  return json({ apiKey: (process.env.SHOPIFY_API_KEY || "").trim() });
+  return json({ apiKey: (process.env.SHOPIFY_API_KEY || "").trim(), shop });
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, shop } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
@@ -36,6 +39,7 @@ export default function App() {
         <Link to="/app/settings">Settings</Link>
       </NavMenu>
       <Outlet />
+      <SupportChat shop={shop ?? undefined} />
     </AppProvider>
   );
 }
