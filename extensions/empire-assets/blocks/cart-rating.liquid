@@ -1,0 +1,67 @@
+<div class="empire-cart-trust"
+     id="empire-cart-trust-{{ block.id }}"
+     data-shop-domain="{{ shop.permanent_domain }}"
+     style="--empire-ct-star: {{ block.settings.star_color }}; --empire-ct-text: {{ block.settings.text_color }}; --empire-ct-bg: {{ block.settings.bg_color }};">
+  <div class="empire-ct-inner" style="display:none;">
+    <div class="empire-ct-stars" aria-hidden="true"></div>
+    <div class="empire-ct-copy">
+      <span class="empire-ct-avg"></span>
+      <span class="empire-ct-label">{{ block.settings.label | escape }}</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  #empire-cart-trust-{{ block.id }} { font-family: inherit; margin: 16px 0; }
+  #empire-cart-trust-{{ block.id }} .empire-ct-inner { display:flex; align-items:center; gap:10px; background: var(--empire-ct-bg, #f8fafc); border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:10px 14px; }
+  #empire-cart-trust-{{ block.id }} .empire-ct-stars { color: var(--empire-ct-star, #fbbf24); font-size:1.05rem; letter-spacing:1px; }
+  #empire-cart-trust-{{ block.id }} .empire-ct-copy { display:flex; flex-direction:column; line-height:1.2; }
+  #empire-cart-trust-{{ block.id }} .empire-ct-avg { font-weight:700; color: var(--empire-ct-text, #111); font-size:0.95rem; }
+  #empire-cart-trust-{{ block.id }} .empire-ct-label { font-size:0.78rem; color: var(--empire-ct-text, #111); opacity:0.7; }
+</style>
+
+<script>
+(function() {
+  var root = document.getElementById("empire-cart-trust-{{ block.id }}");
+  if (!root) return;
+  var HOST = 'https://empire-reviews.vercel.app';
+  var shopDomain = root.dataset.shopDomain || (window.Shopify && window.Shopify.shop) || '';
+  if (!shopDomain) return;
+
+  function starsHtml(avg) {
+    var full = Math.round(avg);
+    var s = '';
+    for (var i = 1; i <= 5; i++) s += (i <= full ? '★' : '☆');
+    return s;
+  }
+
+  // Store-wide trust signal: average + total review count for the whole shop.
+  fetch(HOST + '/api/reviews?shop=' + encodeURIComponent(shopDomain) + '&limit=1')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var stats = d && d.stats;
+      if (!stats || !stats.total || stats.total < {{ block.settings.min_reviews | default: 1 }}) return; // hide until enough social proof
+      var avg = Number(stats.average || 0);
+      root.querySelector('.empire-ct-stars').textContent = starsHtml(avg);
+      root.querySelector('.empire-ct-avg').textContent = avg.toFixed(1) + ' / 5';
+      var label = root.querySelector('.empire-ct-label');
+      label.textContent = label.textContent.replace('{count}', String(stats.total));
+      root.querySelector('.empire-ct-inner').style.display = 'flex';
+    })
+    .catch(function() { /* silent — never break the cart */ });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Cart Trust Badge",
+  "target": "section",
+  "settings": [
+    { "type": "text", "id": "label", "label": "Label text", "info": "Use {count} to insert the total review count.", "default": "from {count} verified reviews" },
+    { "type": "range", "id": "min_reviews", "min": 1, "max": 50, "step": 1, "label": "Hide until this many reviews", "default": 3 },
+    { "type": "color", "id": "star_color", "label": "Star color", "default": "#fbbf24" },
+    { "type": "color", "id": "text_color", "label": "Text color", "default": "#111111" },
+    { "type": "color", "id": "bg_color", "label": "Background color", "default": "#f8fafc" }
+  ]
+}
+{% endschema %}

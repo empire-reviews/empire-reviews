@@ -9,6 +9,8 @@ import {
     InlineStack,
     Badge,
     ProgressBar,
+    Select,
+    TextField,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -140,6 +142,104 @@ function parseCSV(text: string) {
     return result;
 }
 
+// Sanitize customer name: strip < > & to prevent XSS
+function sanitizeName(name: string): string {
+    return name.replace(/[<>&]/g, '').trim().substring(0, 200) || 'Anonymous';
+}
+
+// Clamp rating to 1-5
+function clampRating(raw: string | number): number {
+    const n = typeof raw === 'number' ? raw : parseFloat(String(raw));
+    if (isNaN(n)) return 0; // 0 signals skip
+    return Math.min(5, Math.max(1, Math.round(n)));
+}
+
+// Parse Google Reviews paste (Takeout JSON array or CSV)
+// Google Takeout JSON: array of objects with keys like reviewer_name, rating, published_at, text
+// Google Business CSV export: reviewer_name, star_rating, review_text, published_at
+function parseGooglePaste(text: string): any[] {
+    text = text.trim();
+    if (text.startsWith('[') || text.startsWith('{')) {
+        // JSON path
+        try {
+            let arr = JSON.parse(text);
+            if (!Array.isArray(arr)) arr = [arr];
+            return arr.map((item: any) => {
+                const rating = clampRating(item.rating ?? item.star_rating ?? item.stars ?? 0);
+                if (!rating) return null;
+                return {
+                    customerName: sanitizeName(item.reviewer_name ?? item.name ?? item.reviewer ?? 'Anonymous'),
+                    rating,
+                    body: String(item.text ?? item.review_text ?? item.comment ?? item.content ?? '').substring(0, 2000) || null,
+                    title: item.title ? String(item.title).substring(0, 200) : null,
+                    createdAt: item.published_at ?? item.date ?? item.time ?? item.created_at ?? null,
+                };
+            }).filter(Boolean);
+        } catch {
+            return [];
+        }
+    }
+    // CSV path — reuse parseCSV and remap
+    const rows = parseCSV(text);
+    return rows.map((r: any) => {
+        const rating = clampRating(r.rating ?? 0);
+        if (!rating) return null;
+        return {
+            customerName: sanitizeName(r.customer ?? r.name ?? 'Anonymous'),
+            rating,
+            body: String(r.body ?? '').substring(0, 2000) || null,
+            title: r.review_title ?? null,
+            createdAt: r.date ?? null,
+        };
+    }).filter(Boolean);
+}
+
+// Parse AliExpress Reviews paste (JSON array or CSV)
+// Common DSers/AliExpress export: name, stars/rating, feedback/content, date, photo_urls
+function parseAliExpressPaste(text: string): any[] {
+    text = text.trim();
+    if (text.startsWith('[') || text.startsWith('{')) {
+        try {
+            let arr = JSON.parse(text);
+            if (!Array.isArray(arr)) arr = [arr];
+            return arr.map((item: any) => {
+                const rating = clampRating(item.rating ?? item.stars ?? item.star ?? 0);
+                if (!rating) return null;
+                const body = String(item.feedback ?? item.content ?? item.review ?? item.comment ?? item.text ?? '').substring(0, 2000) || null;
+                // Collect HTTPS photo URLs only
+                const rawPhotos: string[] = Array.isArray(item.photo_urls) ? item.photo_urls : String(item.photo_urls ?? item.images ?? item.photos ?? '').split(',');
+                const photos = rawPhotos.map((u: string) => u.trim()).filter((u: string) => u.startsWith('https://'));
+                return {
+                    customerName: sanitizeName(item.name ?? item.buyer_name ?? item.reviewer ?? 'Anonymous'),
+                    rating,
+                    body,
+                    title: null,
+                    createdAt: item.date ?? item.created_at ?? item.time ?? null,
+                    images: photos.length > 0 ? photos.join(',') : null,
+                };
+            }).filter(Boolean);
+        } catch {
+            return [];
+        }
+    }
+    // CSV path
+    const rows = parseCSV(text);
+    return rows.map((r: any) => {
+        const rating = clampRating(r.rating ?? 0);
+        if (!rating) return null;
+        const rawPhotos = String(r.images ?? '').split(',');
+        const photos = rawPhotos.map((u: string) => u.trim()).filter((u: string) => u.startsWith('https://'));
+        return {
+            customerName: sanitizeName(r.customer ?? r.name ?? 'Anonymous'),
+            rating,
+            body: String(r.body ?? '').substring(0, 2000) || null,
+            title: null,
+            createdAt: r.date ?? null,
+            images: photos.length > 0 ? photos.join(',') : null,
+        };
+    }).filter(Boolean);
+}
+
 // Smart Resolve: Finds products by Handle OR Title
 async function resolveProductsSmartly(admin: any, identifiers: { handle?: string, title?: string }[]) {
     const handles = identifiers.map(i => i.handle).filter(Boolean);
@@ -219,6 +319,80 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
         const uploadHandler = unstable_createMemoryUploadHandler({ maxPartSize: 5_000_000 });
         const formData = await unstable_parseMultipartFormData(request, uploadHandler);
+
+        // Determine import source
+        const importSource = String(formData.get("importSource") || "csv");
+
+        // --- Google / AliExpress paste branch ---
+        if (importSource === "google" || importSource === "aliexpress") {
+            const pasteText = String(formData.get("pasteText") || "").trim();
+            if (!pasteText) return json({ success: false, message: "Please paste your review data." });
+
+            const parsedRecords = importSource === "google"
+                ? parseGooglePaste(pasteText)
+                : parseAliExpressPaste(pasteText);
+
+            if (parsedRecords.length === 0) {
+                return json({ success: false, message: "No valid reviews found in your pasted data. Check the format and try again." });
+            }
+            if (parsedRecords.length > 500) {
+                return json({ success: false, message: "Too many reviews (max 500 per import). Please split your data." });
+            }
+
+            // FREE-PLAN CAP
+            const settings2 = await prisma.settings.findFirst({ where: { shop } });
+            const existingCount2 = await prisma.review.count({ where: { shop } });
+            const remaining2 = Math.max(0, 50 - existingCount2);
+            if ((settings2 as any)?.plan !== "EMPIRE_PRO" && existingCount2 + parsedRecords.length > 50) {
+                return json({
+                    success: false,
+                    upgradeRequired: true,
+                    remaining: remaining2,
+                    message: `Free plan limit: you can add ${remaining2} more review${remaining2 === 1 ? "" : "s"} (50 total). Please trim your data to ${remaining2} rows or upgrade to Empire Pro.`,
+                });
+            }
+            if ((settings2 as any)?.plan !== "EMPIRE_PRO") {
+                parsedRecords.splice(remaining2); // hard cap even if user didn't get error above
+            }
+
+            const autoApproveAll = publishMode === "all";
+            let importedCount2 = 0;
+            for (const rec of parsedRecords) {
+                const autoApprove = autoApproveAll || (publishMode === "five_star" && rec.rating === 5);
+                const createdAt = rec.createdAt ? new Date(rec.createdAt) : new Date();
+                const safeDate = isNaN(createdAt.getTime()) ? new Date() : createdAt;
+                const mediaCreate: { url: string; type: string }[] = [];
+                if (rec.images) {
+                    for (const url of String(rec.images).split(',')) {
+                        const u = url.trim();
+                        if (u.startsWith('https://')) mediaCreate.push({ url: u, type: 'image' });
+                    }
+                }
+                const baseData = {
+                    shop,
+                    productId: null as string | null,
+                    rating: rec.rating,
+                    body: rec.body ?? null,
+                    title: rec.title ?? null,
+                    customerName: rec.customerName,
+                    customerEmail: null as string | null,
+                    createdAt: safeDate,
+                    status: autoApprove ? "approved" : "pending",
+                    sentiment: rec.rating >= 4 ? "positive" : rec.rating === 3 ? "neutral" : "negative",
+                    verified: false,
+                    source: importSource,
+                };
+                if (mediaCreate.length > 0) {
+                    await prisma.review.create({ data: { ...baseData, media: { create: mediaCreate } } });
+                } else {
+                    await prisma.review.create({ data: baseData });
+                }
+                importedCount2++;
+            }
+            return json({ success: true, count: importedCount2, skipped: 0, message: `Successfully imported ${importedCount2} ${importSource === "google" ? "Google" : "AliExpress"} reviews.` });
+        }
+
+        // --- Existing CSV branch ---
         const file = formData.get("file") as File;
 
         if (!file || file.size === 0) return json({ success: false, message: "No file uploaded." });
@@ -301,6 +475,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                     status: autoApprove ? "approved" : "pending",
                     sentiment: rating >= 4 ? "positive" : rating === 3 ? "neutral" : "negative",
                     verified: true,
+                    source: "csv",
                 };
 
                 if (hasMedia || hasReply) {
@@ -395,6 +570,8 @@ export default function ImportPage() {
     const [previewData, setPreviewData] = useState<any>(null);
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
+    const [importSource, setImportSource] = useState<"csv" | "google" | "aliexpress">("csv");
+    const [pasteText, setPasteText] = useState("");
 
     const handleDrop = useCallback(async (_droppedFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
         const droppedFile = acceptedFiles[0];
@@ -463,7 +640,17 @@ export default function ImportPage() {
         setHasSubmitted(true);
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("importSource", "csv");
         if (limit !== undefined) formData.append("limit", String(limit));
+        fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
+    };
+
+    const handlePasteImport = () => {
+        if (!pasteText.trim()) return;
+        setHasSubmitted(true);
+        const formData = new FormData();
+        formData.append("importSource", importSource);
+        formData.append("pasteText", pasteText);
         fetcher.submit(formData, { method: "post", encType: "multipart/form-data" });
     };
 
@@ -718,6 +905,60 @@ export default function ImportPage() {
                                     <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.85rem' }}>
                                         Your data never leaves the Shopify ecosystem.
                                     </div>
+                                </BlockStack>
+                            </div>
+
+                            {/* MODULE 1.2: GOOGLE / ALIEXPRESS PASTE IMPORT */}
+                            <div className="tilt-card" style={{
+                                background: 'white',
+                                borderRadius: '32px',
+                                padding: '2.5rem',
+                                boxShadow: '0 20px 50px -10px rgba(0,0,0,0.07)',
+                                border: '1px solid #f1f5f9',
+                            }}>
+                                <BlockStack gap="400">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ fontSize: '2rem' }}>📋</div>
+                                        <BlockStack gap="100">
+                                            <Text as="h2" variant="headingMd" fontWeight="bold">Paste Import</Text>
+                                            <Text as="p" tone="subdued" variant="bodySm">Import from Google or AliExpress by pasting exported data</Text>
+                                        </BlockStack>
+                                    </div>
+                                    <Select
+                                        label="Import source"
+                                        options={[
+                                            { label: 'Google Reviews (Takeout JSON or CSV)', value: 'google' },
+                                            { label: 'AliExpress Reviews (DSers JSON or CSV)', value: 'aliexpress' },
+                                        ]}
+                                        value={importSource === 'csv' ? 'google' : importSource}
+                                        onChange={(v) => setImportSource(v as "google" | "aliexpress")}
+                                    />
+                                    <TextField
+                                        label={importSource === 'aliexpress' ? 'Paste AliExpress review data (JSON or CSV)' : 'Paste Google review data (JSON or CSV)'}
+                                        value={pasteText}
+                                        onChange={setPasteText}
+                                        multiline={6}
+                                        autoComplete="off"
+                                        placeholder={importSource === 'aliexpress'
+                                            ? '[{"name":"Alice","stars":5,"feedback":"Great product!","date":"2024-01-15"}]'
+                                            : '[{"reviewer_name":"John","rating":5,"text":"Excellent!","published_at":"2024-01-10"}]'}
+                                    />
+                                    <Button
+                                        variant="primary"
+                                        tone="success"
+                                        onClick={handlePasteImport}
+                                        loading={fetcher.state === "submitting" && hasSubmitted}
+                                        disabled={!pasteText.trim()}
+                                        fullWidth
+                                    >
+                                        Import {importSource === 'aliexpress' ? 'AliExpress' : 'Google'} Reviews →
+                                    </Button>
+                                    {fetcher.data && !fetcher.data.success && hasSubmitted && (
+                                        <Banner tone="critical"><Text as="p">{fetcher.data.message}</Text></Banner>
+                                    )}
+                                    {fetcher.data?.success && hasSubmitted && (
+                                        <Banner tone="success"><Text as="p">{fetcher.data.message}</Text></Banner>
+                                    )}
                                 </BlockStack>
                             </div>
 

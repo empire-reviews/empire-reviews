@@ -111,7 +111,7 @@ function parseReviewIds(formData: FormData): string[] {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    const { session } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.admin(request);
     const formData = await request.formData();
     const intent = formData.get("intent") as string;
 
@@ -229,20 +229,74 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (intent === "approve_review") {
         const reviewId = formData.get("reviewId") as string;
-        const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop } });
+        const review = await prisma.review.findFirst({ where: { id: reviewId, shop: session.shop }, include: { media: true } });
         if (!review) return json({ success: false, error: "Unauthorized" });
         await prisma.review.update({ where: { id: reviewId }, data: { status: "approved" } });
-        return json({ success: true, message: "Review approved" });
+
+        // 🎁 Loyalty: optionally mint a discount code and email it to the reviewer.
+        // Never let a reward failure block the approval — it's best-effort.
+        let rewardMessage = "";
+        try {
+            const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+            if ((settings as any)?.enableRewards) {
+                const { issueReviewReward } = await import("../services/rewards.server");
+                const result = await issueReviewReward(admin, session.shop, review, settings);
+                if (result.issued && review.customerEmail) {
+                    const { sendRewardEmail } = await import("../services/email.server");
+                    await sendRewardEmail(review.customerEmail, session.shop, result.code, result.amount);
+                    rewardMessage = ` · ${result.amount} reward emailed to customer`;
+                }
+            }
+        } catch (rewardErr) {
+            console.error("[rewards] post-approval reward failed:", rewardErr);
+        }
+
+        return json({ success: true, message: `Review approved${rewardMessage}` });
     }
 
     if (intent === "bulk_approve_reviews") {
         const reviewIds = parseReviewIds(formData);
         if (reviewIds.length === 0) return json({ success: false, error: "No reviews selected." });
+
+        // Snapshot which of the selected reviews were still pending BEFORE approval,
+        // so rewards only fire for newly-approved reviews (the per-review reward
+        // service is also idempotent as a second guard).
+        const toReward = await prisma.review.findMany({
+            where: { id: { in: reviewIds }, shop: session.shop, status: { not: "approved" } },
+            include: { media: true },
+        });
+
         await prisma.review.updateMany({
             where: { id: { in: reviewIds }, shop: session.shop },
             data: { status: "approved" }
         });
-        return json({ success: true, message: `${reviewIds.length} reviews approved` });
+
+        // 🎁 Loyalty: issue + email rewards for the freshly approved reviews.
+        // Best-effort and isolated — one failure never blocks the others or the approval.
+        let rewardedCount = 0;
+        try {
+            const settings = await prisma.settings.findFirst({ where: { shop: session.shop } });
+            if ((settings as any)?.enableRewards && toReward.length > 0) {
+                const { issueReviewReward } = await import("../services/rewards.server");
+                const { sendRewardEmail } = await import("../services/email.server");
+                for (const review of toReward) {
+                    try {
+                        const result = await issueReviewReward(admin, session.shop, review, settings);
+                        if (result.issued && review.customerEmail) {
+                            await sendRewardEmail(review.customerEmail, session.shop, result.code, result.amount);
+                            rewardedCount++;
+                        }
+                    } catch (perErr) {
+                        console.error(`[rewards] bulk reward failed for review ${review.id}:`, perErr);
+                    }
+                }
+            }
+        } catch (rewardErr) {
+            console.error("[rewards] bulk reward batch failed:", rewardErr);
+        }
+
+        const rewardMsg = rewardedCount > 0 ? ` · ${rewardedCount} reward${rewardedCount === 1 ? "" : "s"} emailed` : "";
+        return json({ success: true, message: `${reviewIds.length} reviews approved${rewardMsg}` });
     }
 
     if (intent === "bulk_delete_reviews") {

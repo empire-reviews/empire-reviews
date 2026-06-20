@@ -32,6 +32,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
+        <Link to="/app/questions">Questions</Link>
         <Link to="/app/campaigns">Email Campaigns</Link>
         <Link to="/app/settings">Settings</Link>
       </NavMenu>

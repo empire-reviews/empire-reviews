@@ -239,6 +239,67 @@ export const sendCampaignEmail = async (shopDomain: string, toEmail: string, sub
 };
 
 /**
+ * Send a loyalty reward (discount code) to a shopper after their review is approved.
+ * This is a TRANSACTIONAL email (triggered by the customer's own action), so unlike
+ * marketing campaigns it does not hard-require a physical address. It still honors
+ * unsubscribe suppression as a courtesy.
+ */
+export const sendRewardEmail = async (
+    toEmail: string,
+    shopDomain: string,
+    discountCode: string,
+    amountLabel: string
+) => {
+    toEmail = (toEmail || "").trim().toLowerCase();
+    if (!toEmail) return { success: false, error: "No recipient" };
+
+    const isUnsubscribed = await prisma.unsubscriber.findUnique({
+        where: { email_shop: { email: toEmail, shop: shopDomain } },
+    });
+    if (isUnsubscribed) return { success: false, error: "User unsubscribed" };
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return { success: false, error: "Configuration Error" };
+    const appUrl = (process.env.SHOPIFY_APP_URL || "").trim();
+
+    const resend = new Resend(apiKey);
+    try {
+        const shopSession = await prisma.session.findFirst({
+            where: { shop: shopDomain },
+            select: { email: true },
+        });
+        const replyToEmail = shopSession?.email || "support@empirereviews.com";
+
+        const { error } = await resend.emails.send({
+            from: `${shopDomain} <reviews@${process.env.verified_domain || "empirereviews.com"}>`,
+            replyTo: replyToEmail,
+            to: [toEmail],
+            subject: `Your reward from ${shopDomain} 🎁`,
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; text-align:center;">
+                    ${appUrl ? `<div style="padding: 24px 0 8px;"><img src="${appUrl}/logo-full.png" alt="Empire Reviews" style="height: 48px; width:auto;" /></div>` : ""}
+                    <h2>Thank you for your review!</h2>
+                    <p>As a thank-you, here's <strong>${esc(amountLabel)} off</strong> your next order:</p>
+                    <div style="margin: 20px auto; display:inline-block; border:2px dashed #6d28d9; border-radius:10px; padding:14px 28px; font-size:1.4rem; font-weight:800; letter-spacing:2px; color:#6d28d9;">
+                        ${esc(discountCode)}
+                    </div>
+                    <p style="color:#666; font-size:0.9rem;">Apply this code at checkout. One use per customer.</p>
+                </div>
+            `,
+        });
+
+        if (error) {
+            console.error("Reward email error:", error);
+            return { success: false, error };
+        }
+        return { success: true };
+    } catch (e) {
+        console.error("Reward email exception:", e);
+        return { success: false, error: e };
+    }
+};
+
+/**
  * Build a CAN-SPAM compliant email footer.
  * Includes shop identity, physical address, and unsubscribe link.
  */

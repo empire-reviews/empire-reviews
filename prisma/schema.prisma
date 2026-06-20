@@ -53,6 +53,7 @@ model Review {
   body          String?
   status        String        @default("pending")
   verified      Boolean       @default(false)
+  source        String        @default("native") // native | csv | google | aliexpress
   sentiment     String?
   media         ReviewMedia[]
   replies       Reply[]
@@ -63,6 +64,53 @@ model Review {
   @@index([status])
   @@index([shop, productId, status])  // hot path: product widget query
   @@index([shop, status])             // hot path: store-wide widget / trust badge
+}
+
+// Customer Questions & Answers (product Q&A section)
+model Question {
+  id            String   @id @default(uuid())
+  shop          String
+  productId     String?
+  customerName  String?
+  customerEmail String?
+  body          String
+  status        String   @default("pending") // pending | approved | rejected
+  answers       Answer[]
+  createdAt     DateTime @default(now())
+
+  @@index([shop])
+  @@index([productId])
+  @@index([shop, productId, status]) // hot path: product Q&A widget query
+  @@index([shop, status])
+}
+
+model Answer {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  body       String
+  author     String? // display name for the answer
+  isMerchant Boolean  @default(false) // merchant "official" answer vs. another shopper
+  status     String   @default("approved") // approved | pending | rejected
+  createdAt  DateTime @default(now())
+
+  @@index([questionId])
+}
+
+// Loyalty: discount-code reward issued for an approved review
+model Reward {
+  id            String   @id @default(uuid())
+  shop          String
+  reviewId      String? // the review that earned the reward
+  customerEmail String
+  discountCode  String
+  amount        String // human-readable, e.g. "10%" or "$5"
+  status        String   @default("issued") // issued | used | expired
+  createdAt     DateTime @default(now())
+
+  @@index([shop])
+  @@index([customerEmail])
+  @@index([shop, customerEmail])
 }
 
 model ReviewMedia {
@@ -121,6 +169,13 @@ model Settings {
   reviewRequestDelay Int     @default(3) // Days after order to send email
   senderEmail        String  @default("reviews@empirereviews.com")
   physicalAddress    String? // CAN-SPAM required mailing address
+
+  // Loyalty / Rewards — issue a discount code when a review is approved
+  enableRewards      Boolean @default(false)
+  rewardType         String  @default("percentage") // percentage | fixed
+  rewardValue        Int     @default(10) // 10 (%) or amount in store currency
+  rewardMinRating    Int     @default(1) // minimum star rating to earn a reward
+  rewardRequirePhoto Boolean @default(false) // only reward reviews that include a photo
 }
 
 model Campaign {

@@ -125,10 +125,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const borderRadius = formData.get("borderRadius") as string || "8px";
     const physicalAddress = (formData.get("physicalAddress") as string) || null;
     const senderEmail = (formData.get("senderEmail") as string) || "reviews@empirereviews.com";
+    const language = (formData.get("language") as string) || "en";
 
     // AI Configuration
     let aiProvider = formData.get("aiProvider") as string || null;
     let aiApiKey = formData.get("aiApiKey") as string || null;
+
+    // Loyalty / Rewards
+    const enableRewards = formData.get("enableRewards") === "true";
+    const rewardType = (formData.get("rewardType") as string) === "fixed" ? "fixed" : "percentage";
+    const rewardValue = Math.max(1, parseInt(formData.get("rewardValue") as string) || 10);
+    const rewardMinRating = Math.min(5, Math.max(1, parseInt(formData.get("rewardMinRating") as string) || 1));
+    const rewardRequirePhoto = formData.get("rewardRequirePhoto") === "true";
 
     // Integrations
     const enableFlow = formData.get("enableFlow") === "true";
@@ -165,6 +173,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             reviewRequestDelay,
             physicalAddress,
             senderEmail,
+            language,
+            enableRewards,
+            rewardType,
+            rewardValue,
+            rewardMinRating,
+            rewardRequirePhoto,
         } as any,
     });
 
@@ -189,6 +203,7 @@ export default function SettingsPage() {
     const [borderRadius, setBorderRadius] = useState((settings as any).borderRadius || "8px");
     const [physicalAddress, setPhysicalAddress] = useState((settings as any).physicalAddress || "");
     const [senderEmail, setSenderEmail] = useState((settings as any).senderEmail || "");
+    const [language, setLanguage] = useState((settings as any).language || "en");
 
     const [isDirty, setIsDirty] = useState(false);
     const isMounted = useRef(false);
@@ -199,6 +214,13 @@ export default function SettingsPage() {
     const [klaviyoEnabled] = useState(settings.enableKlaviyo);
     const [klaviyoKey] = useState(settings.klaviyoApiKey || "");
     const [googleShoppingEnabled, setGoogleShoppingEnabled] = useState(settings.enableGoogle);
+
+    // Loyalty / Rewards States
+    const [enableRewards, setEnableRewards] = useState((settings as any).enableRewards || false);
+    const [rewardType, setRewardType] = useState((settings as any).rewardType || "percentage");
+    const [rewardValue, setRewardValue] = useState((settings as any).rewardValue || 10);
+    const [rewardMinRating, setRewardMinRating] = useState((settings as any).rewardMinRating || 1);
+    const [rewardRequirePhoto, setRewardRequirePhoto] = useState((settings as any).rewardRequirePhoto || false);
 
     // AI Configuration States
     const [aiProvider, setAiProvider] = useState(settings.aiProvider || "");
@@ -230,7 +252,7 @@ export default function SettingsPage() {
             return;
         }
         setIsDirty(true);
-    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail, flowEnabled, klaviyoEnabled, klaviyoKey, googleShoppingEnabled, aiProvider, aiApiKey]);
+    }, [publishMode, emailAlerts, themeColor, widgetBgColor, starColor, borderRadius, reviewRequestDelay, physicalAddress, senderEmail, flowEnabled, klaviyoEnabled, klaviyoKey, googleShoppingEnabled, aiProvider, aiApiKey, language, enableRewards, rewardType, rewardValue, rewardMinRating, rewardRequirePhoto]);
 
     // Tip Rotation Logic
     const [tipIndex, setTipIndex] = useState(0);
@@ -265,6 +287,12 @@ export default function SettingsPage() {
                 reviewRequestDelay: String(reviewRequestDelay),
                 physicalAddress,
                 senderEmail,
+                language,
+                enableRewards: String(enableRewards),
+                rewardType,
+                rewardValue: String(rewardValue),
+                rewardMinRating: String(rewardMinRating),
+                rewardRequirePhoto: String(rewardRequirePhoto),
             },
             { method: "post" }
         );
@@ -468,6 +496,23 @@ export default function SettingsPage() {
                                             <Select labelHidden label="Corner Style" options={[{ label: 'Sharp (0px)', value: '0px' }, { label: 'Rounded (8px)', value: '8px' }, { label: 'Pill (16px)', value: '16px' }]} value={borderRadius} onChange={setBorderRadius} />
                                         </div>
                                     </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Widget Language</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>Language for storefront widget text (buttons, labels, badges).</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0, width: '220px' }}>
+                                            <Select labelHidden label="Widget Language" options={[
+                                                { label: 'English', value: 'en' },
+                                                { label: 'Español (Spanish)', value: 'es' },
+                                                { label: 'Français (French)', value: 'fr' },
+                                                { label: 'Deutsch (German)', value: 'de' },
+                                                { label: 'Português (Portuguese)', value: 'pt' },
+                                                { label: 'Italiano (Italian)', value: 'it' },
+                                            ]} value={language} onChange={setLanguage} />
+                                        </div>
+                                    </div>
                                 </div>
                             </Card>
                         </BlockStack>
@@ -551,6 +596,62 @@ export default function SettingsPage() {
                                             <TextField labelHidden label="Days" type="number" value={String(reviewRequestDelay)} onChange={(val) => setReviewRequestDelay(parseInt(val) || 3)} autoComplete="off" suffix="days" min={1} max={30} align="right" />
                                         </div>
                                     </div>
+                                </div>
+                            </Card>
+                            <Card padding="0">
+                                <div style={{ padding: '20px 20px 0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Text as="h3" variant="headingMd" fontWeight="bold">Review Rewards</Text>
+                                        <span style={{ background: '#ede9fe', color: '#6d28d9', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.04em' }}>LOYALTY</span>
+                                    </div>
+                                    <Text as="p" variant="bodyMd" tone="subdued">Automatically email a discount code when you approve a review. Boosts repeat reviews and repeat purchases.</Text>
+                                </div>
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', borderTop: '1px solid #f1f5f9' }}></div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                        <div style={{ flex: 1, paddingRight: '24px' }}>
+                                            <Text as="h3" variant="headingSm" fontWeight="medium">Enable Review Rewards</Text>
+                                            <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '4px' }}>A unique, single-use Shopify discount code is created and emailed to the reviewer on approval.</p>
+                                        </div>
+                                        <div style={{ flexShrink: 0 }}>
+                                            <Checkbox labelHidden label="Enable Rewards" checked={enableRewards} onChange={setEnableRewards} />
+                                        </div>
+                                    </div>
+                                    {enableRewards && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <Select
+                                                label="Reward type"
+                                                options={[{ label: 'Percentage off', value: 'percentage' }, { label: 'Fixed amount off', value: 'fixed' }]}
+                                                value={rewardType}
+                                                onChange={setRewardType}
+                                            />
+                                            <TextField
+                                                label={rewardType === 'fixed' ? 'Amount off' : 'Percent off'}
+                                                type="number"
+                                                value={String(rewardValue)}
+                                                onChange={(val) => setRewardValue(parseInt(val) || 1)}
+                                                autoComplete="off"
+                                                prefix={rewardType === 'fixed' ? '$' : undefined}
+                                                suffix={rewardType === 'percentage' ? '%' : undefined}
+                                                min={1}
+                                                max={rewardType === 'percentage' ? 100 : 10000}
+                                            />
+                                            <Select
+                                                label="Minimum rating to earn"
+                                                options={[
+                                                    { label: 'Any rating (1★+)', value: '1' },
+                                                    { label: '3★ and up', value: '3' },
+                                                    { label: '4★ and up', value: '4' },
+                                                    { label: '5★ only', value: '5' },
+                                                ]}
+                                                value={String(rewardMinRating)}
+                                                onChange={(v) => setRewardMinRating(parseInt(v) || 1)}
+                                            />
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+                                                <Checkbox label="Only reward reviews with a photo" checked={rewardRequirePhoto} onChange={setRewardRequirePhoto} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </Card>
                             <Card padding="0">

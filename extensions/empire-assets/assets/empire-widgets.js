@@ -8,6 +8,115 @@ const EmpireWidgets = (function() {
     let pendingUploads = 0; // tracks in-progress Cloudinary uploads
     const widgetState = {}; // Store pagination state for multiple widgets
 
+    // ─── i18n ────────────────────────────────────────────────────────────────
+    // Storefront widget translations. Language is driven by the merchant's
+    // Settings.language (delivered via the API response → setLang), with a
+    // fallback to Shopify's storefront locale, then English. Unknown keys/langs
+    // fall back to English so a missing translation never renders blank.
+    let currentLang = "en";
+    const I18N = {
+        en: {
+            verified_buyer: "Verified Buyer", write_review: "Write a Review",
+            no_reviews_yet: "No reviews yet", be_first: "Be the first to review!",
+            out_of_5: "out of 5", based_on: "based on", reviews: "reviews",
+            submitting: "Submitting...", submit_review: "Submit Review",
+            add_photos: "Add Photos", remove: "Remove", load_more: "Load More",
+            your_name: "Your name", write_here: "Write your review here...",
+            review_live: "Your review is now visible to everyone. Thank you!",
+            review_pending: "Thank you! Your review has been submitted for approval.",
+            failed_submit: "Failed to submit review. Please try again.",
+            questions: "Questions", ask_question: "Ask a Question",
+            no_questions: "No questions yet — be the first to ask!",
+            your_question: "Type your question...", post_question: "Post Question",
+            answer: "Answer", question_pending: "Thanks! Your question was submitted for review.",
+        },
+        es: {
+            verified_buyer: "Comprador Verificado", write_review: "Escribir una reseña",
+            no_reviews_yet: "Aún no hay reseñas", be_first: "¡Sé el primero en opinar!",
+            out_of_5: "de 5", based_on: "basado en", reviews: "reseñas",
+            submitting: "Enviando...", submit_review: "Enviar reseña",
+            add_photos: "Añadir fotos", remove: "Quitar", load_more: "Cargar más",
+            your_name: "Tu nombre", write_here: "Escribe tu reseña aquí...",
+            review_live: "Tu reseña ya es visible para todos. ¡Gracias!",
+            review_pending: "¡Gracias! Tu reseña fue enviada para aprobación.",
+            failed_submit: "No se pudo enviar la reseña. Inténtalo de nuevo.",
+            questions: "Preguntas", ask_question: "Hacer una pregunta",
+            no_questions: "Aún no hay preguntas — ¡sé el primero!",
+            your_question: "Escribe tu pregunta...", post_question: "Publicar pregunta",
+            answer: "Respuesta", question_pending: "¡Gracias! Tu pregunta fue enviada para revisión.",
+        },
+        fr: {
+            verified_buyer: "Acheteur Vérifié", write_review: "Écrire un avis",
+            no_reviews_yet: "Pas encore d'avis", be_first: "Soyez le premier à donner votre avis !",
+            out_of_5: "sur 5", based_on: "basé sur", reviews: "avis",
+            submitting: "Envoi...", submit_review: "Envoyer l'avis",
+            add_photos: "Ajouter des photos", remove: "Retirer", load_more: "Voir plus",
+            your_name: "Votre nom", write_here: "Écrivez votre avis ici...",
+            review_live: "Votre avis est maintenant visible par tous. Merci !",
+            review_pending: "Merci ! Votre avis a été soumis pour approbation.",
+            failed_submit: "Échec de l'envoi de l'avis. Veuillez réessayer.",
+            questions: "Questions", ask_question: "Poser une question",
+            no_questions: "Aucune question pour l'instant — soyez le premier !",
+            your_question: "Saisissez votre question...", post_question: "Publier la question",
+            answer: "Réponse", question_pending: "Merci ! Votre question a été soumise pour révision.",
+        },
+        de: {
+            verified_buyer: "Verifizierter Käufer", write_review: "Bewertung schreiben",
+            no_reviews_yet: "Noch keine Bewertungen", be_first: "Schreibe die erste Bewertung!",
+            out_of_5: "von 5", based_on: "basierend auf", reviews: "Bewertungen",
+            submitting: "Senden...", submit_review: "Bewertung absenden",
+            add_photos: "Fotos hinzufügen", remove: "Entfernen", load_more: "Mehr laden",
+            your_name: "Dein Name", write_here: "Schreibe deine Bewertung hier...",
+            review_live: "Deine Bewertung ist jetzt für alle sichtbar. Danke!",
+            review_pending: "Danke! Deine Bewertung wurde zur Freigabe eingereicht.",
+            failed_submit: "Bewertung konnte nicht gesendet werden. Bitte erneut versuchen.",
+            questions: "Fragen", ask_question: "Frage stellen",
+            no_questions: "Noch keine Fragen — sei der Erste!",
+            your_question: "Gib deine Frage ein...", post_question: "Frage senden",
+            answer: "Antwort", question_pending: "Danke! Deine Frage wurde zur Prüfung eingereicht.",
+        },
+        pt: {
+            verified_buyer: "Comprador Verificado", write_review: "Escrever avaliação",
+            no_reviews_yet: "Ainda sem avaliações", be_first: "Seja o primeiro a avaliar!",
+            out_of_5: "de 5", based_on: "com base em", reviews: "avaliações",
+            submitting: "Enviando...", submit_review: "Enviar avaliação",
+            add_photos: "Adicionar fotos", remove: "Remover", load_more: "Carregar mais",
+            your_name: "Seu nome", write_here: "Escreva sua avaliação aqui...",
+            review_live: "Sua avaliação já está visível para todos. Obrigado!",
+            review_pending: "Obrigado! Sua avaliação foi enviada para aprovação.",
+            failed_submit: "Falha ao enviar avaliação. Tente novamente.",
+            questions: "Perguntas", ask_question: "Fazer uma pergunta",
+            no_questions: "Ainda sem perguntas — seja o primeiro!",
+            your_question: "Digite sua pergunta...", post_question: "Publicar pergunta",
+            answer: "Resposta", question_pending: "Obrigado! Sua pergunta foi enviada para revisão.",
+        },
+        it: {
+            verified_buyer: "Acquirente Verificato", write_review: "Scrivi una recensione",
+            no_reviews_yet: "Ancora nessuna recensione", be_first: "Sii il primo a recensire!",
+            out_of_5: "su 5", based_on: "basato su", reviews: "recensioni",
+            submitting: "Invio...", submit_review: "Invia recensione",
+            add_photos: "Aggiungi foto", remove: "Rimuovi", load_more: "Carica altro",
+            your_name: "Il tuo nome", write_here: "Scrivi qui la tua recensione...",
+            review_live: "La tua recensione è ora visibile a tutti. Grazie!",
+            review_pending: "Grazie! La tua recensione è stata inviata per l'approvazione.",
+            failed_submit: "Invio della recensione non riuscito. Riprova.",
+            questions: "Domande", ask_question: "Fai una domanda",
+            no_questions: "Ancora nessuna domanda — sii il primo!",
+            your_question: "Scrivi la tua domanda...", post_question: "Pubblica domanda",
+            answer: "Risposta", question_pending: "Grazie! La tua domanda è stata inviata per la revisione.",
+        },
+    };
+    function setLang(lang) {
+        if (lang && I18N[lang]) { currentLang = lang; return; }
+        // Fallback: try the base of a regional Shopify locale (e.g. "fr-CA" → "fr")
+        const base = (lang || "").split("-")[0];
+        if (base && I18N[base]) currentLang = base;
+    }
+    function t(key) {
+        const table = I18N[currentLang] || I18N.en;
+        return table[key] || I18N.en[key] || key;
+    }
+
     // Always returns the best available shop domain. Tries in order:
     // 1. Value captured when the modal was opened (set from data-shop-domain attr)
     // 2. Shopify's own global (always present on live storefronts)
@@ -211,7 +320,7 @@ const EmpireWidgets = (function() {
             }
 
             const originalText = submitBtn.innerText;
-            submitBtn.innerText = "Submitting...";
+            submitBtn.innerText = t("submitting");
             submitBtn.disabled = true;
 
             try {
@@ -256,7 +365,7 @@ const EmpireWidgets = (function() {
                         successMsg.innerHTML = isLive
                             ? `<div class="empire-success-burst">🌟</div>
                                <h3 class="empire-success-title">You're live!</h3>
-                               <p class="empire-success-sub">Your review is now visible to everyone. Thank you! 💜</p>`
+                               <p class="empire-success-sub">${t("review_live")} 💜</p>`
                             : `<div class="empire-success-burst">🎉</div>
                                <h3 class="empire-success-title">Review received!</h3>
                                <p class="empire-success-sub">We'll share your experience with the world very soon. Thank you! 💜</p>`;
@@ -403,7 +512,7 @@ const EmpireWidgets = (function() {
                         <div style="font-size:10px; color:#ef4444; background:#fef2f2; border:1px solid #fca5a5; padding:6px; text-align:center; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:4px;">
                             <div style="font-weight:600; margin-bottom:2px;">Upload failed</div>
                             <div style="opacity:0.8;">${(err.message || 'Try again').substring(0, 60)}</div>
-                            <button onclick="this.closest('.empire-photo-preview-item').remove(); window.EmpireUploadedPhotos = (window.EmpireUploadedPhotos||[]);" style="margin-top:4px; font-size:10px; cursor:pointer; background:none; border:1px solid #ef4444; color:#ef4444; border-radius:3px; padding:2px 6px;">Remove</button>
+                            <button onclick="this.closest('.empire-photo-preview-item').remove(); window.EmpireUploadedPhotos = (window.EmpireUploadedPhotos||[]);" style="margin-top:4px; font-size:10px; cursor:pointer; background:none; border:1px solid #ef4444; color:#ef4444; border-radius:3px; padding:2px 6px;">${t("remove")}</button>
                         </div>`;
                 } finally {
                     pendingUploads = Math.max(0, pendingUploads - 1);
@@ -471,7 +580,7 @@ const EmpireWidgets = (function() {
                 const data = await this.fetchReviewsData(productId, shopDomain, 1);
                 
                 if (!data || !data.stats || data.stats.total === 0) {
-                    wrapper.innerHTML = '<span class="empire-rating-text">No reviews yet</span>';
+                    wrapper.innerHTML = `<span class="empire-rating-text">${t("no_reviews_yet")}</span>`;
                     continue;
                 }
 
@@ -479,7 +588,7 @@ const EmpireWidgets = (function() {
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                             <div class="empire-stars-wrap">${this.getStarsHtml(Math.round(data.stats.average))}</div>
-                            <span class="empire-rating-text">${data.stats.average.toFixed(2)} out of 5</span>
+                            <span class="empire-rating-text">${data.stats.average.toFixed(2)} ${t("out_of_5")}</span>
                         </div>
                         <div class="empire-rating-text" style="color: var(--text-color, var(--empire-text-light));">
                             Based on ${data.stats.total} reviews 
@@ -513,6 +622,14 @@ const EmpireWidgets = (function() {
                 if (data && data.features) {
                     window.EmpireFeatures = data.features;
                 }
+
+                // Apply merchant's configured widget language (falls back to
+                // Shopify storefront locale, then English).
+                if (data && data.settings && data.settings.language) {
+                    setLang(data.settings.language);
+                } else if (window.Shopify && window.Shopify.locale) {
+                    setLang(window.Shopify.locale);
+                }
                 
                 const summarySkeleton = widget.querySelector('.empire-summary-skeleton');
                 const distContainer = widget.querySelector('.empire-distribution-container');
@@ -525,7 +642,7 @@ const EmpireWidgets = (function() {
                         reviewsGrid.innerHTML = `
                             <div class="empire-empty-state">
                                 <div class="empire-empty-icon">✨</div>
-                                <h3>Be the first to review!</h3>
+                                <h3>${t("be_first")}</h3>
                             </div>`;
                     }
                     if (summarySkeleton) summarySkeleton.innerHTML = '<div class="empire-summary-score">0.0</div><div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">Based on 0 reviews</div>';
@@ -684,7 +801,7 @@ const EmpireWidgets = (function() {
             const verifiedBadge = review.verified ? `
                 <span class="empire-verified-badge">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" /></svg>
-                    Verified Buyer
+                    ${t("verified_buyer")}
                 </span>` : '';
 
             return `

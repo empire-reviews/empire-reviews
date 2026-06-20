@@ -154,6 +154,30 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             formattedProductId = `gid://shopify/Product/${productId}`;
         }
 
+        // 🛡️ VERIFIED BUYER — only mark verified when the reviewer's email matches a
+        // real Order for THIS shop. Never trust a client-supplied "verified" flag.
+        // Email is normalized to lowercase to match how Shopify casing varies per order.
+        let verified = false;
+        if (customerEmail) {
+            try {
+                const normalizedEmail = customerEmail.trim();
+                if (normalizedEmail) {
+                    // Case-insensitive: orders store the email as Shopify sent it (mixed case).
+                    const matchingOrder = await prisma.order.findFirst({
+                        where: {
+                            shop,
+                            customerEmail: { equals: normalizedEmail, mode: "insensitive" },
+                        },
+                        select: { id: true },
+                    });
+                    verified = !!matchingOrder;
+                }
+            } catch (verifyErr) {
+                console.error("⚠️ Verified-buyer lookup failed:", verifyErr);
+                // Fail closed: leave verified=false rather than block the submission
+            }
+        }
+
         const review = await prisma.review.create({
             data: {
                 shop,
@@ -165,7 +189,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
                 // @ts-ignore
                 customerEmail,
                 status,
-                verified: false,
+                verified,
                 sentiment,
                 media: { create: mediaCreate }
             }
@@ -369,6 +393,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             aiProvider: settings.aiProvider,
             allowPhotoUploads: true,
             allowVideoUploads: loaderIsPro,
+            language: settings.language || "en",
         } : null;
 
         const allowPhotoUploads = true;
