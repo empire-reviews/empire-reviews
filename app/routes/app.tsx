@@ -23,11 +23,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.log("App layout: auth deferred to App Bridge UI initialization");
   }
 
-  return json({ apiKey: (process.env.SHOPIFY_API_KEY || "").trim(), shop });
+  // Owner-only operator surface (the support-bot "brain" + analytics) is gated to
+  // Empire's own store. Set OWNER_SHOP in the environment to your *.myshopify.com.
+  const ownerShop = (process.env.OWNER_SHOP || "").trim();
+  const isOwner = !!shop && !!ownerShop && shop === ownerShop;
+
+  return json({ apiKey: (process.env.SHOPIFY_API_KEY || "").trim(), shop, isOwner });
 };
 
 export default function App() {
-  const { apiKey, shop } = useLoaderData<typeof loader>();
+  const { apiKey, shop, isOwner } = useLoaderData<typeof loader>();
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
@@ -36,7 +41,8 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/campaigns">Email Campaigns</Link>
-        <Link to="/app/support">Support &amp; Learning</Link>
+        {/* Owner-only: never shown in a merchant's app */}
+        {isOwner && <Link to="/app/support">Support &amp; Learning</Link>}
         <Link to="/app/settings">Settings</Link>
       </NavMenu>
       <Outlet />

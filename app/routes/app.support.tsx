@@ -1,4 +1,4 @@
-import { json, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
     Page,
@@ -26,15 +26,26 @@ const STOPWORDS = new Set([
     "there", "their", "they", "from", "about", "if", "so", "but", "as", "at", "by", "all",
 ]);
 
+// This whole page manages the support bot's GLOBAL brain + analytics — it is an
+// Empire operator tool, NOT a merchant feature. Only the owner store may access it.
+function assertOwner(shop: string) {
+    const ownerShop = (process.env.OWNER_SHOP || "").trim();
+    if (!ownerShop || shop !== ownerShop) {
+        throw redirect("/app");
+    }
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
     const { session } = await authenticate.admin(request);
+    assertOwner(session.shop);
 
     let logs: any[] = [];
     let learned: any[] = [];
     let dbError = false;
     try {
+        // Owner view = ALL merchants' conversations (cross-merchant product intel).
         [logs, learned] = await Promise.all([
-            prisma.supportLog.findMany({ where: { shop: session.shop }, orderBy: { createdAt: "desc" }, take: 300 }),
+            prisma.supportLog.findMany({ orderBy: { createdAt: "desc" }, take: 500 }),
             prisma.learnedAnswer.findMany({ orderBy: { updatedAt: "desc" }, take: 200 }),
         ]);
     } catch (e) {
@@ -54,7 +65,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const gaps = logs
         .filter((l) => (l.helpful === false || l.escalated) && !l.taught)
         .slice(0, 40)
-        .map((l) => ({ id: l.id, question: l.question, answer: l.answer, helpful: l.helpful, escalated: l.escalated, createdAt: l.createdAt }));
+        .map((l) => ({ id: l.id, shop: l.shop, question: l.question, answer: l.answer, helpful: l.helpful, escalated: l.escalated, createdAt: l.createdAt }));
 
     const freq: Record<string, number> = {};
     for (const l of logs) {
@@ -74,15 +85,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         gaps,
         learned: learned.map((l) => ({ id: l.id, question: l.question, answer: l.answer, keywords: l.keywords, active: l.active })),
         topTopics,
-        recent: logs.slice(0, 50).map((l) => ({
-            id: l.id, question: l.question, answer: l.answer,
+        recent: logs.slice(0, 60).map((l) => ({
+            id: l.id, shop: l.shop, question: l.question, answer: l.answer,
             usedAi: l.usedAi, learned: l.learned, escalated: l.escalated, helpful: l.helpful, createdAt: l.createdAt,
         })),
     });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-    await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
+    assertOwner(session.shop); // never let a non-owner shop teach/edit/delete the global brain
     const fd = await request.formData();
     const intent = fd.get("intent");
 
@@ -144,10 +156,10 @@ function GapCard({ gap }: { gap: any }) {
     return (
         <Box padding="300" background="bg-surface-secondary" borderRadius="200">
             <BlockStack gap="200">
-                <InlineStack gap="200">
+                <InlineStack gap="200" blockAlign="center">
                     {gap.helpful === false && <Badge tone="critical">👎 Not helpful</Badge>}
                     {gap.escalated && <Badge tone="attention">Escalated</Badge>}
-                    <Text as="span" variant="bodySm" tone="subdued">{new Date(gap.createdAt).toLocaleString()}</Text>
+                    <Text as="span" variant="bodySm" tone="subdued">{gap.shop} · {new Date(gap.createdAt).toLocaleString()}</Text>
                 </InlineStack>
                 <Text as="p" fontWeight="semibold">Q: {gap.question}</Text>
                 <Text as="p" tone="subdued" variant="bodySm">Bot said: {gap.answer}</Text>
@@ -344,7 +356,7 @@ export default function SupportPage() {
                                                     {r.helpful === true && <Badge tone="success">👍</Badge>}
                                                     {r.helpful === false && <Badge tone="critical">👎</Badge>}
                                                 </InlineStack>
-                                                <Text as="span" variant="bodySm" tone="subdued">{new Date(r.createdAt).toLocaleString()}</Text>
+                                                <Text as="span" variant="bodySm" tone="subdued">{r.shop} · {new Date(r.createdAt).toLocaleString()}</Text>
                                             </InlineStack>
                                             <Text as="p" fontWeight="semibold">Q: {r.question}</Text>
                                             <Text as="p" tone="subdued">A: {r.answer}</Text>
