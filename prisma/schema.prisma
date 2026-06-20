@@ -280,6 +280,22 @@ model Unsubscriber {
   @@index([shop])
 }
 
+// In-app support assistant conversation log. One row per Q&A exchange so we can
+// see what merchants ask, how often, and spot when many hit the same issue.
+model SupportLog {
+  id        String   @id @default(uuid())
+  shop      String
+  question  String
+  answer    String
+  usedAi    Boolean  @default(false) // true if an AI provider answered (vs. canned/human)
+  escalated Boolean  @default(false) // true if the bot routed the user to a human
+  createdAt DateTime @default(now())
+
+  @@index([shop])
+  @@index([createdAt])
+  @@index([shop, createdAt])
+}
+
 // Rate Limiting (Database-Backed)
 model RateLimit {
   id        String   @id @default(uuid())

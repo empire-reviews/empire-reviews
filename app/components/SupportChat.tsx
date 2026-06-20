@@ -66,22 +66,30 @@ const styles = {
     bottom: 20,
     right: 20,
     zIndex: Z,
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     borderRadius: "50%",
-    background: open ? "#1a1f36" : "linear-gradient(135deg, #c9a227 0%, #e8c84a 100%)",
+    // 3D gold orb: radial highlight + diagonal gradient for a domed look
+    background: open
+      ? "radial-gradient(circle at 32% 28%, #3a4374 0%, #1a1f36 70%)"
+      : "radial-gradient(circle at 32% 28%, #fff0b8 0%, #e8c84a 38%, #c9a227 78%, #a8851a 100%)",
     border: "none",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-    transition: "transform 0.15s ease, background 0.2s ease",
+    // Layered shadow for depth; the glow keyframes take over when closed
+    boxShadow: open
+      ? "0 6px 16px rgba(0,0,0,0.30), inset 0 2px 4px rgba(255,255,255,0.18)"
+      : "0 6px 16px rgba(0,0,0,0.28), inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 6px rgba(120,90,0,0.35)",
+    transition: "transform 0.15s ease, background 0.25s ease",
     outline: "none",
-    color: open ? "#c9a227" : "#1a1f36",
+    color: open ? "#e8c84a" : "#1a1f36",
     fontSize: 24,
     fontWeight: 700,
     userSelect: "none",
+    // Breathe + glow only when closed (idle), so it doesn't jiggle while chatting
+    animation: open ? "none" : "empire-bubble-float 3s ease-in-out infinite, empire-bubble-glow 3s ease-in-out infinite",
   }),
   panel: (open: boolean): React.CSSProperties => ({
     position: "fixed",
@@ -310,11 +318,26 @@ export default function SupportChat({ shop }: SupportChatProps) {
 
   return (
     <>
-      {/* Inject typing animation keyframes once */}
+      {/* Inject animation keyframes once */}
       <style>{`
         @keyframes empire-typing-bounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
           40% { transform: translateY(-5px); opacity: 1; }
+        }
+        /* Gentle "breathing" up-down float for the closed support bubble */
+        @keyframes empire-bubble-float {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-7px); }
+        }
+        /* Soft glowing pulse around the bubble, synced with the float */
+        @keyframes empire-bubble-glow {
+          0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,0.28), 0 0 0 0 rgba(232,200,74,0.55), inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 6px rgba(120,90,0,0.35); }
+          50%      { box-shadow: 0 14px 26px rgba(0,0,0,0.30), 0 0 22px 7px rgba(232,200,74,0.55), inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 6px rgba(120,90,0,0.35); }
+        }
+        .empire-support-bubble:hover { transform: scale(1.08) !important; }
+        .empire-support-bubble svg { display: block; }
+        @media (prefers-reduced-motion: reduce) {
+          .empire-support-bubble--float { animation: none !important; }
         }
       `}</style>
 
@@ -398,13 +421,24 @@ export default function SupportChat({ shop }: SupportChatProps) {
 
       {/* Floating bubble trigger */}
       <button
+        className={open ? "empire-support-bubble" : "empire-support-bubble empire-support-bubble--float"}
         style={styles.bubble(open)}
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close support chat" : "Open support chat"}
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        {open ? "✕" : "?"}
+        {open ? (
+          <span style={{ fontSize: 22 }}>✕</span>
+        ) : (
+          /* Headset / support-agent icon */
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1a1f36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 14v-2a8 8 0 0 1 16 0v2" />
+            <path d="M21 15a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2z" fill="#1a1f36" />
+            <path d="M3 15a2 2 0 0 0 2 2h1v-5H5a2 2 0 0 0-2 2z" fill="#1a1f36" />
+            <path d="M19 17v1a4 4 0 0 1-4 4h-3" />
+          </svg>
+        )}
       </button>
     </>
   );

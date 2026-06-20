@@ -106,6 +106,15 @@ export function ErrorBoundary() {
             text-decoration: none;
           }
           .reload-btn:hover { opacity: 0.9; }
+          .report-link {
+            display: block;
+            margin-top: 1rem;
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: underline;
+          }
+          .report-link:hover { color: #2563eb; }
           .auto-note { color: #94a3b8; font-size: 0.8rem; margin-top: 1rem; }
         `}</style>
       </head>
@@ -126,12 +135,32 @@ export function ErrorBoundary() {
               <div className="error-icon">⚠️</div>
               <h1 className="error-title">Something went wrong</h1>
               <p className="error-msg">
-                Empire Reviews hit an unexpected error. Click below to reload and
-                get back on track.
+                Empire Reviews hit an unexpected error. Try reloading — if it keeps
+                happening, report it and our team will jump on it.
               </p>
               <button className="reload-btn" onClick={() => window.location.reload()}>
                 Reload App
               </button>
+              {/* Total-crash escape hatch: even when the whole app fails to render,
+                  the user still has a one-click way to tell us (the in-app support
+                  bot lives inside the app shell and won't render here). */}
+              <a
+                className="report-link"
+                href={
+                  "mailto:support@empirereviews.com" +
+                  "?subject=" + encodeURIComponent("Empire Reviews — App Error Report") +
+                  "&body=" + encodeURIComponent(
+                    "I hit an error in the Empire Reviews app.\n\n" +
+                    "What I was doing: \n\n" +
+                    "----- technical details (please keep) -----\n" +
+                    "Error: " + errorMessage + "\n" +
+                    "Page: " + (typeof window !== "undefined" ? window.location.href : "") + "\n" +
+                    "Time: " + new Date().toISOString()
+                  )
+                }
+              >
+                📨 Report this problem
+              </a>
             </>
           )}
         </div>

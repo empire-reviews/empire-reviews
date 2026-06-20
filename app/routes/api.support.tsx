@@ -98,28 +98,57 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  // Load merchant settings (only the AI fields we need)
-  const settings = await prisma.settings.findFirst({
-    where: { shop: session.shop },
-    select: { aiProvider: true, aiApiKey: true },
-  });
+  // Load merchant settings — RESILIENT: if the DB is down or the schema is mid-
+  // migration (the exact situation where a merchant most needs to reach us), we
+  // degrade to canned/human instead of 500-ing. The support bot must survive an
+  // app failure, because it's how the user tells us the app failed.
+  let settings: { aiProvider: string | null; aiApiKey: string | null } | null = null;
+  try {
+    settings = await prisma.settings.findFirst({
+      where: { shop: session.shop },
+      select: { aiProvider: true, aiApiKey: true },
+    });
+  } catch (dbErr) {
+    console.error("[support] settings lookup failed (degrading gracefully):", (dbErr as Error).message);
+  }
+
+  // Log every exchange (best-effort) so we can see what merchants ask, how often,
+  // and spot when many hit the same bug. Never let a logging failure break the reply.
+  const finish = async (
+    answer: string,
+    opts: { success: boolean; usedAi: boolean; escalated: boolean; needsHuman?: boolean }
+  ) => {
+    try {
+      await prisma.supportLog.create({
+        data: { shop: session.shop, question, answer, usedAi: opts.usedAi, escalated: opts.escalated },
+      });
+    } catch (logErr) {
+      console.error("[support] conversation logging failed:", (logErr as Error).message);
+    }
+    return json({
+      success: opts.success,
+      answer,
+      canEscalate: true,
+      ...(opts.needsHuman ? { needsHuman: true } : {}),
+    });
+  };
 
   // ── Tier 1: Merchant's own BYOK key ──────────────────────────────
   if (settings?.aiProvider && settings?.aiApiKey) {
-    const decryptedKey = decrypt(settings.aiApiKey);
-    if (decryptedKey) {
-      try {
+    try {
+      const decryptedKey = decrypt(settings.aiApiKey);
+      if (decryptedKey) {
         const answer = await generateSupportAnswer(
           { provider: settings.aiProvider as AIProvider, apiKey: decryptedKey },
           question,
           history,
           SUPPORT_SYSTEM_PROMPT
         );
-        return json({ success: true, answer, canEscalate: true });
-      } catch (err) {
-        console.error("[support] merchant AI call failed:", (err as Error).message);
-        // Fall through to tier 2
+        return finish(answer, { success: true, usedAi: true, escalated: false });
       }
+    } catch (err) {
+      console.error("[support] merchant AI call failed:", (err as Error).message);
+      // Fall through to tier 2
     }
   }
 
@@ -133,7 +162,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         history,
         SUPPORT_SYSTEM_PROMPT
       );
-      return json({ success: true, answer, canEscalate: true });
+      return finish(answer, { success: true, usedAi: true, escalated: false });
     } catch (err) {
       console.error("[support] platform AI call failed:", (err as Error).message);
       // Fall through to tier 3
@@ -143,14 +172,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // ── Tier 3: Canned KB answer → human escalation ──────────────────
   const canned = getCannedAnswer(question);
   if (canned) {
-    return json({ success: true, answer: canned, canEscalate: true });
+    return finish(canned, { success: true, usedAi: false, escalated: false });
   }
 
-  return json({
-    success: false,
-    needsHuman: true,
-    canEscalate: true,
-    answer:
-      "I wasn't able to look that up right now. Please use the \"Talk to a human\" button below and our team will help you shortly.",
-  });
+  return finish(
+    "I wasn't able to look that up right now. Please use the \"Talk to a human\" button below and our team will help you shortly.",
+    { success: false, usedAi: false, escalated: true, needsHuman: true }
+  );
 };
