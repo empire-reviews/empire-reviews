@@ -77,6 +77,9 @@ export const sendReviewRequest = async (toEmail: string, customerName: string, p
                 subject: `How was your order from ${shopDomain}?`,
                 html: `
                     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="text-align:center; padding: 24px 0 16px;">
+                            <img src="${(process.env.SHOPIFY_APP_URL || '').trim()}/logo-full.png" alt="Empire Reviews" style="height: 56px; width: auto;" />
+                        </div>
                         <h2>Hi ${esc(customerName || 'there')},</h2>
                         <p>Thank you for buying <strong>${esc(productTitle)}</strong>.</p>
                         <p>We'd love to hear what you think!</p>
