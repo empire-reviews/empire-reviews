@@ -288,12 +288,31 @@ model SupportLog {
   question  String
   answer    String
   usedAi    Boolean  @default(false) // true if an AI provider answered (vs. canned/human)
+  learned   Boolean  @default(false) // true if a curated LearnedAnswer answered it
   escalated Boolean  @default(false) // true if the bot routed the user to a human
+  helpful   Boolean? // 👍 = true, 👎 = false, null = no feedback yet
+  taught    Boolean  @default(false) // true once a merchant turned this gap into a LearnedAnswer
   createdAt DateTime @default(now())
 
   @@index([shop])
   @@index([createdAt])
   @@index([shop, createdAt])
+}
+
+// Human-approved answers that the bot reuses. GLOBAL (not shop-scoped) because
+// app how-to knowledge is the same for every merchant — teaching the bot once
+// improves it for everyone. This is the "learns from mistakes" memory: a gap the
+// bot failed gets turned into a verified LearnedAnswer here.
+model LearnedAnswer {
+  id        String   @id @default(uuid())
+  question  String   // the example/trigger question this answers
+  answer    String   // the verified answer the bot should give
+  keywords  String   @default("") // comma-separated keywords for matching
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
 }
 
 // Rate Limiting (Database-Backed)

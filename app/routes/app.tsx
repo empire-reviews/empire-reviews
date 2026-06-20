@@ -36,7 +36,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/campaigns">Email Campaigns</Link>
-        <Link to="/app/support">Support Inbox</Link>
+        <Link to="/app/support">Support &amp; Learning</Link>
         <Link to="/app/settings">Settings</Link>
       </NavMenu>
       <Outlet />

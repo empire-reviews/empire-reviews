@@ -59,8 +59,36 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   let question: string;
   let history: Array<{ role: "user" | "assistant"; content: string }> = [];
 
+  let rawBody: any;
   try {
-    const body = await request.json();
+    rawBody = await request.json();
+  } catch {
+    return json({ success: false, answer: "Invalid request body.", canEscalate: true }, { status: 400 });
+  }
+
+  // ── Feedback path: record 👍/👎 on a previously-logged answer ──────
+  // This is the signal the learning loop runs on — a 👎 surfaces the answer as a
+  // "gap" in the Support & Learning panel for a human to correct.
+  if (rawBody && rawBody.intent === "feedback") {
+    const logId = String(rawBody.logId || "");
+    const helpful = rawBody.helpful === true ? true : rawBody.helpful === false ? false : null;
+    if (!logId || helpful === null) {
+      return json({ ok: false, error: "Invalid feedback" }, { status: 400 });
+    }
+    try {
+      // Re-scope by shop so a merchant can only rate their own conversations.
+      await prisma.supportLog.updateMany({
+        where: { id: logId, shop: session.shop },
+        data: { helpful },
+      });
+    } catch (e) {
+      console.error("[support] feedback update failed:", (e as Error).message);
+    }
+    return json({ ok: true });
+  }
+
+  try {
+    const body = rawBody;
     question = (body.question ?? "").toString().trim();
     if (Array.isArray(body.history)) {
       history = body.history
@@ -113,15 +141,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   // Log every exchange (best-effort) so we can see what merchants ask, how often,
-  // and spot when many hit the same bug. Never let a logging failure break the reply.
+  // and spot when many hit the same bug. Returns the log id so the widget can
+  // attach 👍/👎 feedback to this exact answer.
   const finish = async (
     answer: string,
-    opts: { success: boolean; usedAi: boolean; escalated: boolean; needsHuman?: boolean }
+    opts: { success: boolean; usedAi: boolean; learned?: boolean; escalated: boolean; needsHuman?: boolean }
   ) => {
+    let logId: string | null = null;
     try {
-      await prisma.supportLog.create({
-        data: { shop: session.shop, question, answer, usedAi: opts.usedAi, escalated: opts.escalated },
+      const row = await prisma.supportLog.create({
+        data: {
+          shop: session.shop,
+          question,
+          answer,
+          usedAi: opts.usedAi,
+          learned: opts.learned ?? false,
+          escalated: opts.escalated,
+        },
+        select: { id: true },
       });
+      logId = row.id;
     } catch (logErr) {
       console.error("[support] conversation logging failed:", (logErr as Error).message);
     }
@@ -129,9 +168,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       success: opts.success,
       answer,
       canEscalate: true,
+      ...(logId ? { logId } : {}),
       ...(opts.needsHuman ? { needsHuman: true } : {}),
     });
   };
+
+  // ── Tier 0: Curated LearnedAnswer (human-verified) wins ──────────
+  // The bot's memory of past corrections. A match here means a human already
+  // taught the bot the right answer to this kind of question — trust it over AI.
+  try {
+    const learned = await prisma.learnedAnswer.findMany({
+      where: { active: true },
+      select: { answer: true, keywords: true, question: true },
+      take: 200,
+    });
+    const q = question.toLowerCase();
+    const hit = learned.find((l) => {
+      const kws = (l.keywords || "")
+        .split(",")
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean);
+      if (kws.some((k) => q.includes(k))) return true;
+      // also match if the stored question is very close (substring either way)
+      const lq = (l.question || "").toLowerCase().trim();
+      return lq.length > 0 && (q.includes(lq) || lq.includes(q));
+    });
+    if (hit) {
+      return finish(hit.answer, { success: true, usedAi: false, learned: true, escalated: false });
+    }
+  } catch (e) {
+    console.error("[support] learned-answer lookup failed (degrading):", (e as Error).message);
+  }
 
   // ── Tier 1: Merchant's own BYOK key ──────────────────────────────
   if (settings?.aiProvider && settings?.aiApiKey) {

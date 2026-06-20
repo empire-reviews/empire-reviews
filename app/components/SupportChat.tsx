@@ -16,6 +16,8 @@ interface Message {
   role: "user" | "assistant" | "system";
   content: string;
   isError?: boolean;
+  logId?: string; // server log id — lets us attach 👍/👎 feedback to this answer
+  feedback?: "up" | "down"; // set once the user rates this answer
 }
 
 interface SupportActionData {
@@ -23,6 +25,7 @@ interface SupportActionData {
   answer?: string;
   canEscalate?: boolean;
   needsHuman?: boolean;
+  logId?: string;
   error?: string;
 }
 
@@ -175,6 +178,31 @@ const styles = {
     margin: "0 2px",
     animation: "empire-typing-bounce 1.2s infinite ease-in-out",
   } as React.CSSProperties,
+  feedbackRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+    paddingLeft: 4,
+  } as React.CSSProperties,
+  feedbackLabel: {
+    fontSize: "0.72rem",
+    color: "#9ca3af",
+  } as React.CSSProperties,
+  feedbackBtn: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "0.95rem",
+    padding: "0 2px",
+    lineHeight: 1,
+    opacity: 0.8,
+  } as React.CSSProperties,
+  feedbackThanks: {
+    fontSize: "0.72rem",
+    color: "#16a34a",
+    fontWeight: 600,
+  } as React.CSSProperties,
   inputRow: {
     display: "flex",
     gap: 8,
@@ -241,7 +269,23 @@ export default function SupportChat({ shop }: SupportChatProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const fetcher = useFetcher<SupportActionData>();
+  const feedbackFetcher = useFetcher();
   const isLoading = fetcher.state !== "idle";
+
+  // Record 👍/👎 on a bot answer → drives the learning loop (a 👎 becomes a "gap"
+  // a human can correct in the Support & Learning panel).
+  const sendFeedback = useCallback(
+    (msgId: string, logId: string, helpful: boolean) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msgId ? { ...m, feedback: helpful ? "up" : "down" } : m))
+      );
+      feedbackFetcher.submit(
+        { intent: "feedback", logId, helpful },
+        { method: "POST", action: "/api/support", encType: "application/json" }
+      );
+    },
+    [feedbackFetcher]
+  );
 
   // Scroll to bottom whenever messages update or panel opens
   useEffect(() => {
@@ -273,6 +317,7 @@ export default function SupportChat({ shop }: SupportChatProps) {
         role: "assistant",
         content: answer || "Something went wrong. Please try again or talk to a human.",
         isError: isError || lastFetcherData.needsHuman,
+        logId: lastFetcherData.logId,
       },
     ]);
   }, [lastFetcherData]);
@@ -294,7 +339,7 @@ export default function SupportChat({ shop }: SupportChatProps) {
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
       fetcher.submit(
-        { question: q, history: JSON.stringify(history) },
+        { question: q, history },
         { method: "POST", action: "/api/support", encType: "application/json" }
       );
 
@@ -366,6 +411,36 @@ export default function SupportChat({ shop }: SupportChatProps) {
               <div style={styles.bubble_msg(msg.role, msg.isError)}>
                 {escapeText(msg.content)}
               </div>
+              {/* 👍/👎 feedback — only on real bot answers (have a logId) */}
+              {msg.role === "assistant" && msg.logId && (
+                <div style={styles.feedbackRow}>
+                  {msg.feedback ? (
+                    <span style={styles.feedbackThanks}>
+                      {msg.feedback === "up" ? "Thanks for the feedback! 🙌" : "Thanks — we'll improve this. 🛠️"}
+                    </span>
+                  ) : (
+                    <>
+                      <span style={styles.feedbackLabel}>Was this helpful?</span>
+                      <button
+                        type="button"
+                        style={styles.feedbackBtn}
+                        aria-label="Helpful"
+                        onClick={() => sendFeedback(msg.id, msg.logId as string, true)}
+                      >
+                        👍
+                      </button>
+                      <button
+                        type="button"
+                        style={styles.feedbackBtn}
+                        aria-label="Not helpful"
+                        onClick={() => sendFeedback(msg.id, msg.logId as string, false)}
+                      >
+                        👎
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 
