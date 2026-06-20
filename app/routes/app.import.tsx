@@ -570,7 +570,9 @@ export default function ImportPage() {
     const [previewData, setPreviewData] = useState<any>(null);
     const [hasSubmitted, setHasSubmitted] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
-    const [importSource, setImportSource] = useState<"csv" | "google" | "aliexpress">("csv");
+    // Paste-import source. Defaults to "google" (not "csv") because the paste card
+    // only offers Google/AliExpress — leaving it "csv" made Import silently no-op.
+    const [importSource, setImportSource] = useState<"google" | "aliexpress">("google");
     const [pasteText, setPasteText] = useState("");
 
     const handleDrop = useCallback(async (_droppedFiles: File[], acceptedFiles: File[], _rejectedFiles: File[]) => {
@@ -930,7 +932,7 @@ export default function ImportPage() {
                                             { label: 'Google Reviews (Takeout JSON or CSV)', value: 'google' },
                                             { label: 'AliExpress Reviews (DSers JSON or CSV)', value: 'aliexpress' },
                                         ]}
-                                        value={importSource === 'csv' ? 'google' : importSource}
+                                        value={importSource}
                                         onChange={(v) => setImportSource(v as "google" | "aliexpress")}
                                     />
                                     <TextField

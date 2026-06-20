@@ -15,96 +15,21 @@ const EmpireWidgets = (function() {
     // fall back to English so a missing translation never renders blank.
     let currentLang = "en";
     const I18N = {
-        en: {
-            verified_buyer: "Verified Buyer", write_review: "Write a Review",
-            no_reviews_yet: "No reviews yet", be_first: "Be the first to review!",
-            out_of_5: "out of 5", based_on: "based on", reviews: "reviews",
-            submitting: "Submitting...", submit_review: "Submit Review",
-            add_photos: "Add Photos", remove: "Remove", load_more: "Load More",
-            your_name: "Your name", write_here: "Write your review here...",
-            review_live: "Your review is now visible to everyone. Thank you!",
-            review_pending: "Thank you! Your review has been submitted for approval.",
-            failed_submit: "Failed to submit review. Please try again.",
-            questions: "Questions", ask_question: "Ask a Question",
-            no_questions: "No questions yet — be the first to ask!",
-            your_question: "Type your question...", post_question: "Post Question",
-            answer: "Answer", question_pending: "Thanks! Your question was submitted for review.",
-        },
-        es: {
-            verified_buyer: "Comprador Verificado", write_review: "Escribir una reseña",
-            no_reviews_yet: "Aún no hay reseñas", be_first: "¡Sé el primero en opinar!",
-            out_of_5: "de 5", based_on: "basado en", reviews: "reseñas",
-            submitting: "Enviando...", submit_review: "Enviar reseña",
-            add_photos: "Añadir fotos", remove: "Quitar", load_more: "Cargar más",
-            your_name: "Tu nombre", write_here: "Escribe tu reseña aquí...",
-            review_live: "Tu reseña ya es visible para todos. ¡Gracias!",
-            review_pending: "¡Gracias! Tu reseña fue enviada para aprobación.",
-            failed_submit: "No se pudo enviar la reseña. Inténtalo de nuevo.",
-            questions: "Preguntas", ask_question: "Hacer una pregunta",
-            no_questions: "Aún no hay preguntas — ¡sé el primero!",
-            your_question: "Escribe tu pregunta...", post_question: "Publicar pregunta",
-            answer: "Respuesta", question_pending: "¡Gracias! Tu pregunta fue enviada para revisión.",
-        },
-        fr: {
-            verified_buyer: "Acheteur Vérifié", write_review: "Écrire un avis",
-            no_reviews_yet: "Pas encore d'avis", be_first: "Soyez le premier à donner votre avis !",
-            out_of_5: "sur 5", based_on: "basé sur", reviews: "avis",
-            submitting: "Envoi...", submit_review: "Envoyer l'avis",
-            add_photos: "Ajouter des photos", remove: "Retirer", load_more: "Voir plus",
-            your_name: "Votre nom", write_here: "Écrivez votre avis ici...",
-            review_live: "Votre avis est maintenant visible par tous. Merci !",
-            review_pending: "Merci ! Votre avis a été soumis pour approbation.",
-            failed_submit: "Échec de l'envoi de l'avis. Veuillez réessayer.",
-            questions: "Questions", ask_question: "Poser une question",
-            no_questions: "Aucune question pour l'instant — soyez le premier !",
-            your_question: "Saisissez votre question...", post_question: "Publier la question",
-            answer: "Réponse", question_pending: "Merci ! Votre question a été soumise pour révision.",
-        },
-        de: {
-            verified_buyer: "Verifizierter Käufer", write_review: "Bewertung schreiben",
-            no_reviews_yet: "Noch keine Bewertungen", be_first: "Schreibe die erste Bewertung!",
-            out_of_5: "von 5", based_on: "basierend auf", reviews: "Bewertungen",
-            submitting: "Senden...", submit_review: "Bewertung absenden",
-            add_photos: "Fotos hinzufügen", remove: "Entfernen", load_more: "Mehr laden",
-            your_name: "Dein Name", write_here: "Schreibe deine Bewertung hier...",
-            review_live: "Deine Bewertung ist jetzt für alle sichtbar. Danke!",
-            review_pending: "Danke! Deine Bewertung wurde zur Freigabe eingereicht.",
-            failed_submit: "Bewertung konnte nicht gesendet werden. Bitte erneut versuchen.",
-            questions: "Fragen", ask_question: "Frage stellen",
-            no_questions: "Noch keine Fragen — sei der Erste!",
-            your_question: "Gib deine Frage ein...", post_question: "Frage senden",
-            answer: "Antwort", question_pending: "Danke! Deine Frage wurde zur Prüfung eingereicht.",
-        },
-        pt: {
-            verified_buyer: "Comprador Verificado", write_review: "Escrever avaliação",
-            no_reviews_yet: "Ainda sem avaliações", be_first: "Seja o primeiro a avaliar!",
-            out_of_5: "de 5", based_on: "com base em", reviews: "avaliações",
-            submitting: "Enviando...", submit_review: "Enviar avaliação",
-            add_photos: "Adicionar fotos", remove: "Remover", load_more: "Carregar mais",
-            your_name: "Seu nome", write_here: "Escreva sua avaliação aqui...",
-            review_live: "Sua avaliação já está visível para todos. Obrigado!",
-            review_pending: "Obrigado! Sua avaliação foi enviada para aprovação.",
-            failed_submit: "Falha ao enviar avaliação. Tente novamente.",
-            questions: "Perguntas", ask_question: "Fazer uma pergunta",
-            no_questions: "Ainda sem perguntas — seja o primeiro!",
-            your_question: "Digite sua pergunta...", post_question: "Publicar pergunta",
-            answer: "Resposta", question_pending: "Obrigado! Sua pergunta foi enviada para revisão.",
-        },
-        it: {
-            verified_buyer: "Acquirente Verificato", write_review: "Scrivi una recensione",
-            no_reviews_yet: "Ancora nessuna recensione", be_first: "Sii il primo a recensire!",
-            out_of_5: "su 5", based_on: "basato su", reviews: "recensioni",
-            submitting: "Invio...", submit_review: "Invia recensione",
-            add_photos: "Aggiungi foto", remove: "Rimuovi", load_more: "Carica altro",
-            your_name: "Il tuo nome", write_here: "Scrivi qui la tua recensione...",
-            review_live: "La tua recensione è ora visibile a tutti. Grazie!",
-            review_pending: "Grazie! La tua recensione è stata inviata per l'approvazione.",
-            failed_submit: "Invio della recensione non riuscito. Riprova.",
-            questions: "Domande", ask_question: "Fai una domanda",
-            no_questions: "Ancora nessuna domanda — sii il primo!",
-            your_question: "Scrivi la tua domanda...", post_question: "Pubblica domanda",
-            answer: "Risposta", question_pending: "Grazie! La tua domanda è stata inviata per la revisione.",
-        },
+        en: { verified_buyer:"Verified Buyer", write_review:"Write a Review", modal_title:"Share Your Experience", modal_sub:"How would you rate this product?", star_label:"Tap a star to rate", name_ph:"Your name (optional)", review_ph:"Tell us what you think...", submit_review:"Submit Review", submitting:"Submitting...", success_title:"Thank you!", success_sub:"Your review has been received and is pending approval.", review_live:"Your review is now visible to everyone. Thank you!", no_reviews_yet:"No reviews yet", be_first:"Be the first to review!", out_of_5:"out of 5", add_photos:"Add Photos", remove:"Remove", load_more:"Load More" },
+        es: { verified_buyer:"Comprador Verificado", write_review:"Escribir una reseña", modal_title:"Comparte tu experiencia", modal_sub:"¿Cómo calificarías este producto?", star_label:"Toca una estrella para calificar", name_ph:"Tu nombre (opcional)", review_ph:"Cuéntanos qué opinas...", submit_review:"Enviar reseña", submitting:"Enviando...", success_title:"¡Gracias!", success_sub:"Tu reseña ha sido recibida y está pendiente de aprobación.", review_live:"Tu reseña ya es visible para todos. ¡Gracias!", no_reviews_yet:"Aún no hay reseñas", be_first:"¡Sé el primero en opinar!", out_of_5:"de 5", add_photos:"Añadir fotos", remove:"Quitar", load_more:"Cargar más" },
+        fr: { verified_buyer:"Acheteur Vérifié", write_review:"Écrire un avis", modal_title:"Partagez votre expérience", modal_sub:"Comment noteriez-vous ce produit ?", star_label:"Touchez une étoile pour noter", name_ph:"Votre nom (facultatif)", review_ph:"Dites-nous ce que vous en pensez...", submit_review:"Envoyer l'avis", submitting:"Envoi...", success_title:"Merci !", success_sub:"Votre avis a été reçu et est en attente d'approbation.", review_live:"Votre avis est maintenant visible par tous. Merci !", no_reviews_yet:"Pas encore d'avis", be_first:"Soyez le premier à donner votre avis !", out_of_5:"sur 5", add_photos:"Ajouter des photos", remove:"Retirer", load_more:"Voir plus" },
+        de: { verified_buyer:"Verifizierter Käufer", write_review:"Bewertung schreiben", modal_title:"Teile deine Erfahrung", modal_sub:"Wie würdest du dieses Produkt bewerten?", star_label:"Tippe auf einen Stern zum Bewerten", name_ph:"Dein Name (optional)", review_ph:"Sag uns deine Meinung...", submit_review:"Bewertung absenden", submitting:"Senden...", success_title:"Danke!", success_sub:"Deine Bewertung ist eingegangen und wartet auf Freigabe.", review_live:"Deine Bewertung ist jetzt für alle sichtbar. Danke!", no_reviews_yet:"Noch keine Bewertungen", be_first:"Schreibe die erste Bewertung!", out_of_5:"von 5", add_photos:"Fotos hinzufügen", remove:"Entfernen", load_more:"Mehr laden" },
+        pt: { verified_buyer:"Comprador Verificado", write_review:"Escrever avaliação", modal_title:"Compartilhe sua experiência", modal_sub:"Como você avaliaria este produto?", star_label:"Toque em uma estrela para avaliar", name_ph:"Seu nome (opcional)", review_ph:"Conte-nos o que você acha...", submit_review:"Enviar avaliação", submitting:"Enviando...", success_title:"Obrigado!", success_sub:"Sua avaliação foi recebida e está aguardando aprovação.", review_live:"Sua avaliação já está visível para todos. Obrigado!", no_reviews_yet:"Ainda sem avaliações", be_first:"Seja o primeiro a avaliar!", out_of_5:"de 5", add_photos:"Adicionar fotos", remove:"Remover", load_more:"Carregar mais" },
+        it: { verified_buyer:"Acquirente Verificato", write_review:"Scrivi una recensione", modal_title:"Condividi la tua esperienza", modal_sub:"Come valuteresti questo prodotto?", star_label:"Tocca una stella per valutare", name_ph:"Il tuo nome (facoltativo)", review_ph:"Dicci cosa ne pensi...", submit_review:"Invia recensione", submitting:"Invio...", success_title:"Grazie!", success_sub:"La tua recensione è stata ricevuta ed è in attesa di approvazione.", review_live:"La tua recensione è ora visibile a tutti. Grazie!", no_reviews_yet:"Ancora nessuna recensione", be_first:"Sii il primo a recensire!", out_of_5:"su 5", add_photos:"Aggiungi foto", remove:"Rimuovi", load_more:"Carica altro" },
+        nl: { verified_buyer:"Geverifieerde koper", write_review:"Schrijf een review", modal_title:"Deel je ervaring", modal_sub:"Hoe zou je dit product beoordelen?", star_label:"Tik op een ster om te beoordelen", name_ph:"Je naam (optioneel)", review_ph:"Vertel ons wat je ervan vindt...", submit_review:"Review versturen", submitting:"Versturen...", success_title:"Bedankt!", success_sub:"Je review is ontvangen en wacht op goedkeuring.", review_live:"Je review is nu zichtbaar voor iedereen. Bedankt!", no_reviews_yet:"Nog geen reviews", be_first:"Wees de eerste die een review schrijft!", out_of_5:"van 5", add_photos:"Foto's toevoegen", remove:"Verwijderen", load_more:"Meer laden" },
+        sv: { verified_buyer:"Verifierad köpare", write_review:"Skriv en recension", modal_title:"Dela din upplevelse", modal_sub:"Hur skulle du betygsätta denna produkt?", star_label:"Tryck på en stjärna för att betygsätta", name_ph:"Ditt namn (valfritt)", review_ph:"Berätta vad du tycker...", submit_review:"Skicka recension", submitting:"Skickar...", success_title:"Tack!", success_sub:"Din recension har tagits emot och väntar på godkännande.", review_live:"Din recension är nu synlig för alla. Tack!", no_reviews_yet:"Inga recensioner än", be_first:"Bli först med att recensera!", out_of_5:"av 5", add_photos:"Lägg till foton", remove:"Ta bort", load_more:"Ladda mer" },
+        pl: { verified_buyer:"Zweryfikowany kupujący", write_review:"Napisz recenzję", modal_title:"Podziel się swoim doświadczeniem", modal_sub:"Jak oceniasz ten produkt?", star_label:"Dotknij gwiazdkę, aby ocenić", name_ph:"Twoje imię (opcjonalnie)", review_ph:"Powiedz nam, co myślisz...", submit_review:"Wyślij recenzję", submitting:"Wysyłanie...", success_title:"Dziękujemy!", success_sub:"Twoja recenzja została odebrana i oczekuje na zatwierdzenie.", review_live:"Twoja recenzja jest teraz widoczna dla wszystkich. Dziękujemy!", no_reviews_yet:"Brak recenzji", be_first:"Bądź pierwszą osobą, która oceni!", out_of_5:"z 5", add_photos:"Dodaj zdjęcia", remove:"Usuń", load_more:"Załaduj więcej" },
+        tr: { verified_buyer:"Doğrulanmış Alıcı", write_review:"Yorum yaz", modal_title:"Deneyiminizi paylaşın", modal_sub:"Bu ürünü nasıl değerlendirirsiniz?", star_label:"Değerlendirmek için bir yıldıza dokunun", name_ph:"Adınız (isteğe bağlı)", review_ph:"Ne düşündüğünüzü söyleyin...", submit_review:"Yorumu gönder", submitting:"Gönderiliyor...", success_title:"Teşekkürler!", success_sub:"Yorumunuz alındı ve onay bekliyor.", review_live:"Yorumunuz artık herkese görünür. Teşekkürler!", no_reviews_yet:"Henüz yorum yok", be_first:"İlk yorumu siz yapın!", out_of_5:"/ 5", add_photos:"Fotoğraf ekle", remove:"Kaldır", load_more:"Daha fazla yükle" },
+        ru: { verified_buyer:"Проверенный покупатель", write_review:"Написать отзыв", modal_title:"Поделитесь своим опытом", modal_sub:"Как бы вы оценили этот товар?", star_label:"Нажмите на звезду, чтобы оценить", name_ph:"Ваше имя (необязательно)", review_ph:"Расскажите, что вы думаете...", submit_review:"Отправить отзыв", submitting:"Отправка...", success_title:"Спасибо!", success_sub:"Ваш отзыв получен и ожидает одобрения.", review_live:"Ваш отзыв теперь виден всем. Спасибо!", no_reviews_yet:"Отзывов пока нет", be_first:"Будьте первым, кто оставит отзыв!", out_of_5:"из 5", add_photos:"Добавить фото", remove:"Удалить", load_more:"Загрузить ещё" },
+        ja: { verified_buyer:"認証済み購入者", write_review:"レビューを書く", modal_title:"ご感想をお聞かせください", modal_sub:"この商品をどう評価しますか？", star_label:"星をタップして評価", name_ph:"お名前（任意）", review_ph:"ご意見をお聞かせください...", submit_review:"レビューを送信", submitting:"送信中...", success_title:"ありがとうございます！", success_sub:"レビューを受け付けました。承認待ちです。", review_live:"あなたのレビューが公開されました。ありがとうございます！", no_reviews_yet:"まだレビューがありません", be_first:"最初のレビューを書きましょう！", out_of_5:"／5", add_photos:"写真を追加", remove:"削除", load_more:"もっと見る" },
+        zh: { verified_buyer:"已验证买家", write_review:"写评价", modal_title:"分享您的体验", modal_sub:"您如何评价此商品？", star_label:"点击星星进行评分", name_ph:"您的姓名（可选）", review_ph:"告诉我们您的想法...", submit_review:"提交评价", submitting:"提交中...", success_title:"谢谢！", success_sub:"您的评价已收到，正在等待审核。", review_live:"您的评价现已对所有人可见。谢谢！", no_reviews_yet:"暂无评价", be_first:"成为第一个评价的人！", out_of_5:"/ 5", add_photos:"添加照片", remove:"移除", load_more:"加载更多" },
+        ar: { verified_buyer:"مشترٍ موثّق", write_review:"اكتب مراجعة", modal_title:"شاركنا تجربتك", modal_sub:"كيف تقيّم هذا المنتج؟", star_label:"اضغط على نجمة للتقييم", name_ph:"اسمك (اختياري)", review_ph:"أخبرنا برأيك...", submit_review:"إرسال المراجعة", submitting:"جارٍ الإرسال...", success_title:"شكرًا لك!", success_sub:"تم استلام مراجعتك وهي في انتظار الموافقة.", review_live:"مراجعتك الآن مرئية للجميع. شكرًا لك!", no_reviews_yet:"لا توجد مراجعات بعد", be_first:"كن أول من يكتب مراجعة!", out_of_5:"من 5", add_photos:"إضافة صور", remove:"إزالة", load_more:"تحميل المزيد" },
+        hi: { verified_buyer:"सत्यापित खरीदार", write_review:"समीक्षा लिखें", modal_title:"अपना अनुभव साझा करें", modal_sub:"आप इस उत्पाद को कैसे रेट करेंगे?", star_label:"रेट करने के लिए स्टार पर टैप करें", name_ph:"आपका नाम (वैकल्पिक)", review_ph:"हमें बताएं कि आप क्या सोचते हैं...", submit_review:"समीक्षा भेजें", submitting:"भेज रहे हैं...", success_title:"धन्यवाद!", success_sub:"आपकी समीक्षा प्राप्त हो गई है और अनुमोदन की प्रतीक्षा में है।", review_live:"आपकी समीक्षा अब सभी के लिए दृश्यमान है। धन्यवाद!", no_reviews_yet:"अभी तक कोई समीक्षा नहीं", be_first:"समीक्षा करने वाले पहले व्यक्ति बनें!", out_of_5:"में से 5", add_photos:"फ़ोटो जोड़ें", remove:"हटाएं", load_more:"और लोड करें" },
     };
     function setLang(lang) {
         if (lang && I18N[lang]) { currentLang = lang; return; }
@@ -115,6 +40,42 @@ const EmpireWidgets = (function() {
     function t(key) {
         const table = I18N[currentLang] || I18N.en;
         return table[key] || I18N.en[key] || key;
+    }
+    // Translate all server-rendered (Liquid) text that carries a data-empire-i18n
+    // attribute for textContent, or data-empire-i18n-ph for a placeholder. This is
+    // what makes the "Write a Review" button + the whole review modal translate.
+    function applyI18n() {
+        try {
+            document.querySelectorAll('[data-empire-i18n]').forEach(function (el) {
+                var v = t(el.getAttribute('data-empire-i18n'));
+                if (v) el.textContent = v;
+            });
+            document.querySelectorAll('[data-empire-i18n-ph]').forEach(function (el) {
+                var v = t(el.getAttribute('data-empire-i18n-ph'));
+                if (v) el.setAttribute('placeholder', v);
+            });
+        } catch (e) { /* never break the page over a translation */ }
+    }
+    // Resolve the merchant's configured language once on load (from the reviews API
+    // → Settings.language) and apply it to the static Liquid UI. Falls back to the
+    // Shopify storefront locale, then English.
+    let languageResolved = false;
+    function resolveLanguageAndApply() {
+        if (languageResolved) { applyI18n(); return; }
+        languageResolved = true;
+        var shop = resolveShop();
+        var applyLocaleFallback = function () {
+            if (window.Shopify && window.Shopify.locale) setLang(window.Shopify.locale);
+            applyI18n();
+        };
+        if (!shop) { applyLocaleFallback(); return; }
+        fetch(API_BASE + '/api/reviews?shop=' + encodeURIComponent(shop) + '&limit=1')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d && d.settings && d.settings.language) { setLang(d.settings.language); applyI18n(); }
+                else applyLocaleFallback();
+            })
+            .catch(applyLocaleFallback);
     }
 
     // Always returns the best available shop domain. Tries in order:
@@ -168,6 +129,9 @@ const EmpireWidgets = (function() {
 
     const API = {
         init() {
+            // Resolve + apply the merchant's language to the static Liquid UI
+            // (Write a Review button, review modal) as early as possible.
+            resolveLanguageAndApply();
             setTimeout(() => {
                 this.renderStarRatings();
                 this.renderReviewLists();
@@ -624,12 +588,14 @@ const EmpireWidgets = (function() {
                 }
 
                 // Apply merchant's configured widget language (falls back to
-                // Shopify storefront locale, then English).
+                // Shopify storefront locale, then English) and re-translate the
+                // static Liquid UI in case this resolved before the early fetch.
                 if (data && data.settings && data.settings.language) {
                     setLang(data.settings.language);
                 } else if (window.Shopify && window.Shopify.locale) {
                     setLang(window.Shopify.locale);
                 }
+                applyI18n();
                 
                 const summarySkeleton = widget.querySelector('.empire-summary-skeleton');
                 const distContainer = widget.querySelector('.empire-distribution-container');

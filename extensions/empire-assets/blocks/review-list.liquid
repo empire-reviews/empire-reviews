@@ -20,10 +20,10 @@
             </div>
 
             <!-- 3D Write a Review Button -->
-            <button class="empire-write-review-btn" onclick="EmpireWidgets.openReviewModal(this)" 
+            <button class="empire-write-review-btn" onclick="EmpireWidgets.openReviewModal(this)"
                     data-product-id="{{ product.id }}"
                     data-shop-domain="{{ shop.permanent_domain }}">
-                ✍️ Write a Review
+                ✍️ <span data-empire-i18n="write_review">Write a Review</span>
             </button>
         </div>
 
@@ -45,8 +45,8 @@
     <div class="empire-modal">
         <button class="empire-modal-close" onclick="EmpireWidgets.closeModal()">✕</button>
         <div class="empire-modal-icon" id="empire-modal-icon-el">⭐</div>
-        <h3 class="empire-modal-title" id="empire-modal-title-el">Share Your Experience</h3>
-        <p class="empire-modal-sub" id="empire-modal-sub-el">How would you rate this product?</p>
+        <h3 class="empire-modal-title" id="empire-modal-title-el" data-empire-i18n="modal_title">Share Your Experience</h3>
+        <p class="empire-modal-sub" id="empire-modal-sub-el" data-empire-i18n="modal_sub">How would you rate this product?</p>
         
         <!-- Interactive Star Picker -->
         <div class="empire-star-picker" id="empire-star-picker">
@@ -56,26 +56,26 @@
             <button class="empire-pick-star" data-value="4" onclick="EmpireWidgets.selectStar(4)">★</button>
             <button class="empire-pick-star" data-value="5" onclick="EmpireWidgets.selectStar(5)">★</button>
         </div>
-        <div class="empire-star-label" id="empire-star-label">Tap a star to rate</div>
+        <div class="empire-star-label" id="empire-star-label" data-empire-i18n="star_label">Tap a star to rate</div>
 
         <!-- Optional Review Fields (shown after star select) -->
         <div class="empire-review-fields" id="empire-review-fields">
-            <input type="text" class="empire-input" id="empire-input-name" placeholder="Your name (optional)" maxlength="80" />
-            <textarea class="empire-input empire-textarea" id="empire-input-body" placeholder="Tell us what you think..." maxlength="1000" rows="4"></textarea>
+            <input type="text" class="empire-input" id="empire-input-name" placeholder="Your name (optional)" data-empire-i18n-ph="name_ph" maxlength="80" />
+            <textarea class="empire-input empire-textarea" id="empire-input-body" placeholder="Tell us what you think..." data-empire-i18n-ph="review_ph" maxlength="1000" rows="4"></textarea>
             
             <!-- Injected dynamically via JS if the user has EMPRESS_PRO features enabled -->
             <div id="empire-photo-upload-container"></div>
 
             <button class="empire-submit-btn" id="empire-submit-btn" onclick="EmpireWidgets.submitReview()">
-                <span class="empire-submit-label">Submit Review</span>
+                <span class="empire-submit-label" data-empire-i18n="submit_review">Submit Review</span>
             </button>
         </div>
 
         <!-- Success State -->
         <div class="empire-modal-success" id="empire-modal-success">
             <div style="font-size: 3rem;">🎉</div>
-            <h3>Thank you!</h3>
-            <p>Your review has been received and is pending approval.</p>
+            <h3 data-empire-i18n="success_title">Thank you!</h3>
+            <p data-empire-i18n="success_sub">Your review has been received and is pending approval.</p>
         </div>
     </div>
 </div>

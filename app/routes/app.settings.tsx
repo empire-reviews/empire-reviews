@@ -486,6 +486,15 @@ export default function SettingsPage() {
                                                 { label: 'Deutsch (German)', value: 'de' },
                                                 { label: 'Português (Portuguese)', value: 'pt' },
                                                 { label: 'Italiano (Italian)', value: 'it' },
+                                                { label: 'Nederlands (Dutch)', value: 'nl' },
+                                                { label: 'Svenska (Swedish)', value: 'sv' },
+                                                { label: 'Polski (Polish)', value: 'pl' },
+                                                { label: 'Türkçe (Turkish)', value: 'tr' },
+                                                { label: 'Русский (Russian)', value: 'ru' },
+                                                { label: '日本語 (Japanese)', value: 'ja' },
+                                                { label: '中文 (Chinese)', value: 'zh' },
+                                                { label: 'العربية (Arabic)', value: 'ar' },
+                                                { label: 'हिन्दी (Hindi)', value: 'hi' },
                                             ]} value={language} onChange={setLanguage} />
                                         </div>
                                     </div>
