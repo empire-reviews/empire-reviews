@@ -486,6 +486,8 @@ export default function SupportChat({ shop }: SupportChatProps) {
         <div style={styles.footer}>
           <a
             href={mailtoHref}
+            target="_blank"
+            rel="noopener noreferrer"
             style={styles.humanLink}
             aria-label="Email Empire Reviews human support"
           >
