@@ -311,7 +311,7 @@ export default function App() {
       <nav className="er-nav">
         <div className="er-wrap er-nav-inner">
           <a className="er-brand" href="#top">
-            <img src="/logo-full.png" alt="Empire Reviews" />
+            <img src="/app-logo.png" alt="Empire Reviews" />
             <span className="er-brand-name">Empire<span> Reviews</span></span>
           </a>
           <div className="er-nav-links">
@@ -498,7 +498,7 @@ export default function App() {
       <footer className="er-footer">
         <div className="er-wrap er-footer-inner">
           <a className="er-brand" href="#top">
-            <img src="/logo-full.png" alt="Empire Reviews" style={{ height: 24 }} />
+            <img src="/app-logo.png" alt="Empire Reviews" style={{ height: 24 }} />
             <span className="er-brand-name">Empire<span> Reviews</span></span>
           </a>
           <div className="er-footer-links">
