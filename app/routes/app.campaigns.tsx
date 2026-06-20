@@ -13,6 +13,9 @@ import {
     Badge,
     Divider,
     Modal,
+    Select,
+    Checkbox,
+    Card,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
@@ -46,6 +49,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
             orderBy: { createdAt: 'desc' },
             include: { metrics: true }
         });
+
+        // Loyalty reward config lives on Settings; surfaced here in the Campaigns
+        // "Loyalty Rewards" tab (merchants look for it alongside email automation,
+        // not buried in Settings).
+        const rewardSettings = await prisma.settings.findFirst({ where: { shop: session.shop } });
 
         // 2. Fetch True Audience Size & Live Mock Data
         const audienceGroup = await prisma.order.groupBy({
@@ -101,6 +109,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
                 sent: c.metrics?.totalSent || 0,
                 openRate: c.metrics?.openRate ? `${c.metrics.openRate.toFixed(1)}%` : "0%"
             })),
+            rewards: {
+                enableRewards: (rewardSettings as any)?.enableRewards || false,
+                rewardType: (rewardSettings as any)?.rewardType || "percentage",
+                rewardValue: (rewardSettings as any)?.rewardValue ?? 10,
+                rewardMinRating: (rewardSettings as any)?.rewardMinRating ?? 1,
+                rewardRequirePhoto: (rewardSettings as any)?.rewardRequirePhoto || false,
+            },
             isPro
         });
     } catch (error) {
@@ -157,6 +172,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         });
 
         return json({ success: true, renamedId: campaignId });
+    }
+
+    // Loyalty reward config — persisted onto Settings (same columns the
+    // reward-issuance service reads on review approval).
+    if (intent === "save_rewards") {
+        const enableRewards = formData.get("enableRewards") === "true";
+        const rewardType = (formData.get("rewardType") as string) === "fixed" ? "fixed" : "percentage";
+        const rewardValue = Math.max(1, parseInt(formData.get("rewardValue") as string) || 10);
+        const rewardMinRating = Math.min(5, Math.max(1, parseInt(formData.get("rewardMinRating") as string) || 1));
+        const rewardRequirePhoto = formData.get("rewardRequirePhoto") === "true";
+
+        await prisma.settings.updateMany({
+            where: { shop: session.shop },
+            data: { enableRewards, rewardType, rewardValue, rewardMinRating, rewardRequirePhoto } as any,
+        });
+        return json({ success: true, rewardsSaved: true });
     }
 
     // 1. Resolve subject & body (AI-generated or manual)
@@ -267,12 +298,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function CampaignsPage() {
-    const { stats, activeCampaigns, mockData, isPro } = useLoaderData<typeof loader>();
+    const { stats, activeCampaigns, mockData, isPro, rewards } = useLoaderData<typeof loader>();
     const fetcher = useFetcher();
     const navigate = useNavigate();
 
     const [selectedTab, setSelectedTab] = useState(0);
     const [templateType, setTemplateType] = useState("reciprocity");
+
+    // Loyalty Rewards tab state (config persisted onto Settings via save_rewards)
+    const [enableRewards, setEnableRewards] = useState(rewards.enableRewards);
+    const [rewardType, setRewardType] = useState(rewards.rewardType);
+    const [rewardValue, setRewardValue] = useState(rewards.rewardValue);
+    const [rewardMinRating, setRewardMinRating] = useState(rewards.rewardMinRating);
+    const [rewardRequirePhoto, setRewardRequirePhoto] = useState(rewards.rewardRequirePhoto);
+
+    const handleSaveRewards = () => {
+        fetcher.submit(
+            {
+                intent: "save_rewards",
+                enableRewards: String(enableRewards),
+                rewardType,
+                rewardValue: String(rewardValue),
+                rewardMinRating: String(rewardMinRating),
+                rewardRequirePhoto: String(rewardRequirePhoto),
+            },
+            { method: "post" }
+        );
+        shopify.toast.show("Loyalty rewards saved 🎁");
+    };
 
     // Rename State
     const [renameModalOpen, setRenameModalOpen] = useState(false);
@@ -358,6 +411,9 @@ export default function CampaignsPage() {
                     </button>
                     <button className={`dock-item ${selectedTab === 1 ? 'active' : ''}`} onClick={() => setSelectedTab(1)}>
                         <MagicIcon style={{ width: 16 }} /> Create Campaign
+                    </button>
+                    <button className={`dock-item ${selectedTab === 2 ? 'active' : ''}`} onClick={() => setSelectedTab(2)}>
+                        <SendIcon style={{ width: 16 }} /> Loyalty Rewards
                     </button>
                 </div>
 
@@ -625,6 +681,85 @@ export default function CampaignsPage() {
                                 Live Mobile Preview
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {selectedTab === 2 && (
+                    <div className="forge-panel" style={{ maxWidth: 760 }}>
+                        <BlockStack gap="500">
+                            <div>
+                                <Text as="h3" variant="headingLg" tone="magic">Loyalty Rewards 🎁</Text>
+                                <Text as="p" tone="subdued">
+                                    Automatically email a one-time discount code to a customer when you approve their review.
+                                    A proven way to turn one review into a repeat purchase — and more reviews.
+                                </Text>
+                            </div>
+
+                            <Card>
+                                <BlockStack gap="400">
+                                    <Checkbox
+                                        label="Enable review rewards"
+                                        helpText="When on, approving a review (single or bulk) creates a unique Shopify discount code and emails it to the reviewer."
+                                        checked={enableRewards}
+                                        onChange={setEnableRewards}
+                                    />
+
+                                    {enableRewards && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                            <Select
+                                                label="Reward type"
+                                                options={[
+                                                    { label: 'Percentage off', value: 'percentage' },
+                                                    { label: 'Fixed amount off', value: 'fixed' },
+                                                ]}
+                                                value={rewardType}
+                                                onChange={setRewardType}
+                                            />
+                                            <TextField
+                                                label={rewardType === 'fixed' ? 'Amount off' : 'Percent off'}
+                                                type="number"
+                                                value={String(rewardValue)}
+                                                onChange={(v) => setRewardValue(parseInt(v) || 1)}
+                                                autoComplete="off"
+                                                prefix={rewardType === 'fixed' ? '$' : undefined}
+                                                suffix={rewardType === 'percentage' ? '%' : undefined}
+                                                min={1}
+                                                max={rewardType === 'percentage' ? 100 : 10000}
+                                            />
+                                            <Select
+                                                label="Minimum rating to earn"
+                                                options={[
+                                                    { label: 'Any rating (1★+)', value: '1' },
+                                                    { label: '3★ and up', value: '3' },
+                                                    { label: '4★ and up', value: '4' },
+                                                    { label: '5★ only', value: '5' },
+                                                ]}
+                                                value={String(rewardMinRating)}
+                                                onChange={(v) => setRewardMinRating(parseInt(v) || 1)}
+                                            />
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '6px' }}>
+                                                <Checkbox
+                                                    label="Only reward reviews with a photo"
+                                                    checked={rewardRequirePhoto}
+                                                    onChange={setRewardRequirePhoto}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <InlineStack align="start" gap="300" blockAlign="center">
+                                        <Button variant="primary" onClick={handleSaveRewards} loading={fetcher.state !== "idle"}>
+                                            Save Rewards
+                                        </Button>
+                                        {!isPro && (
+                                            <Text as="span" tone="subdued" variant="bodySm">
+                                                Requires the <code>write_discounts</code> permission (re-approve when Shopify prompts).
+                                            </Text>
+                                        )}
+                                    </InlineStack>
+                                </BlockStack>
+                            </Card>
+                        </BlockStack>
                     </div>
                 )}
 
