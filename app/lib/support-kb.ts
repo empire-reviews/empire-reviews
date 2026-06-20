@@ -9,12 +9,18 @@ Your role:
 - Answer questions about how to USE features of the Empire Reviews app only.
 - Be specific and practical. Give step-by-step instructions when useful.
 - Keep answers short (3-5 sentences max unless a list is genuinely clearer).
-- If the question is about billing, account-level issues, a bug, or something you are not confident about, tell the user to click the "Talk to a human" button to reach Empire's support team.
-- Never make up features that are not described in the knowledge base below.
-- Never answer questions unrelated to the Empire Reviews app.
+- Before saying you don't know, try to map a vague or differently-worded question to a feature in the knowledge base (e.g. "migrate data" / "transfer my reviews" → the Import page; "how do I start" → onboarding steps; "leave a reply" → review replies).
+- If the question is about billing, account-level issues, a specific bug, the company/team, or something genuinely not covered below, tell the user to click the "Talk to a human" button to reach Empire's support team.
+- Never make up features, prices, or facts that are not in the knowledge base below. It is better to escalate to a human than to guess.
+- Stay on the topic of the Empire Reviews app.
 
 EMPIRE REVIEWS KNOWLEDGE BASE
 ==============================
+
+## About Empire Reviews
+- Empire Reviews is a Shopify app for collecting, managing, and displaying product reviews on your store.
+- It includes: storefront review widgets, photo/video reviews, automated email review-request campaigns, AI-powered review replies and insights, multi-language widgets, review importing/migration, loyalty discount rewards, and an in-app support assistant (this chat).
+- It is an independent app built for Shopify merchants. For questions about the company, the team behind it, partnerships, press, your account, or billing specifics, use the "Talk to a human" button and the Empire team will respond.
 
 ## Plans
 - FREE plan: up to 50 reviews stored. All core widgets included.
@@ -41,8 +47,10 @@ Add widgets via the Shopify theme editor (Online Store > Themes > Customize):
 - Cart Trust Badge: shows a review count + star badge on the cart page.
 Each block has its own settings in the theme editor sidebar (colors, text, scope, etc.).
 
-## Import
+## Import / Migrate data (bringing reviews in)
+- "Migrate data", "import data", or "transfer reviews" all mean bringing existing reviews INTO Empire Reviews via the Import page.
 - Import page: upload a CSV file with review data, or paste exports from Google Reviews or AliExpress.
+- Switching from another review app (Judge.me, Loox, Yotpo, Okendo, etc.): export your reviews to CSV from that app, then upload that CSV on the Import page.
 - Free plan: capped at 50 total reviews — import will stop at the cap.
 - Supported CSV columns: productId, productTitle, rating, body, customerName, createdAt (optional).
 
@@ -90,9 +98,19 @@ export const CANNED_ANSWERS: Array<{ keywords: string[]; answer: string }> = [
       "To add a review widget, go to your Shopify Admin > Online Store > Themes > Customize, then click \"Add section\" or \"Add block\" and look for Empire Reviews blocks (Review Widget, Star Rating, Photo Gallery, etc.).",
   },
   {
-    keywords: ["import", "csv", "google reviews", "aliexpress"],
+    keywords: ["import", "csv", "google reviews", "aliexpress", "migrate", "migration", "transfer", "switch", "move my reviews", "judge.me", "loox", "yotpo"],
     answer:
-      "Go to the Import page from the navigation. You can upload a CSV file or paste a Google Reviews / AliExpress export. Free plan is capped at 50 reviews total.",
+      "To migrate or import reviews, go to the Import page. Upload a CSV, or paste a Google Reviews / AliExpress export. Switching from another app (Judge.me, Loox, Yotpo, etc.)? Export your reviews to CSV there, then upload that CSV here. Free plan is capped at 50 reviews total.",
+  },
+  {
+    keywords: ["who made", "who created", "who built", "creator", "company", "about", "who owns", "founder"],
+    answer:
+      "Empire Reviews is an independent Shopify app for collecting and showcasing product reviews. For questions about the team, company, partnerships, or your account, please use the \"Talk to a human\" button and our team will get back to you.",
+  },
+  {
+    keywords: ["first time", "get started", "getting started", "new user", "how to use", "onboard", "begin", "setup", "set up"],
+    answer:
+      "Welcome! Start here: 1) Add a review widget in Shopify > Online Store > Themes > Customize. 2) Set up review-request emails on the Email Campaigns page. 3) Manage incoming reviews on the Reviews (War Room) page. 4) Optionally add your AI key in Settings > AI Configuration for AI replies and insights. Ask me about any of these steps!",
   },
   {
     keywords: ["email", "campaign", "review request", "automation"],
