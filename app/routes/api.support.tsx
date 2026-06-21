@@ -156,6 +156,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ ok: true, presence });
   }
 
+  // Owner panel polls this to show new merchant messages live (no full reload).
+  if (rawBody && rawBody.intent === "owner_threads") {
+    if (!OWNER_SHOP || session.shop !== OWNER_SHOP) return json({ ok: false, threads: [] }, { status: 403 });
+    try {
+      const rows = await prisma.supportMessage.findMany({
+        orderBy: { createdAt: "asc" },
+        take: 1000,
+        select: { id: true, shop: true, sender: true, body: true, readAt: true, createdAt: true },
+      });
+      const map = new Map<string, { shop: string; messages: unknown[]; unread: number; lastAt: Date }>();
+      for (const m of rows) {
+        if (!map.has(m.shop)) map.set(m.shop, { shop: m.shop, messages: [], unread: 0, lastAt: m.createdAt });
+        const t = map.get(m.shop)!;
+        t.messages.push({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt });
+        if (m.sender === "merchant" && !m.readAt) t.unread += 1;
+        t.lastAt = m.createdAt;
+      }
+      const threads = Array.from(map.values()).sort(
+        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+      );
+      return json({ ok: true, threads });
+    } catch (e) {
+      console.error("[support] owner_threads failed:", (e as Error).message);
+      return json({ ok: true, threads: [] });
+    }
+  }
+
   if (rawBody && rawBody.intent === "send_message") {
     const text = String(rawBody.body || "").trim().slice(0, 2000);
     if (!text) return json({ ok: false, error: "Empty message" }, { status: 400 });

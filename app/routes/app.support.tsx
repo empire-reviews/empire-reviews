@@ -385,6 +385,28 @@ export default function SupportPage() {
         return () => clearInterval(id);
     }, []);
 
+    // Live threads: poll every 5s so new INCOMING merchant messages appear
+    // without reloading the page. Seeded from the loader; kept in sync after a
+    // reply revalidates. Uses a raw fetch (App Bridge adds auth) to avoid the
+    // loader re-running on every poll.
+    const [liveThreads, setLiveThreads] = useState(threads);
+    useEffect(() => { setLiveThreads(threads); }, [threads]);
+    useEffect(() => {
+        let active = true;
+        const poll = () => {
+            fetch("/api/support", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ intent: "owner_threads" }),
+            })
+                .then((r) => r.json())
+                .then((d) => { if (active && d && Array.isArray(d.threads)) setLiveThreads(d.threads); })
+                .catch(() => { });
+        };
+        const id = setInterval(poll, 5000);
+        return () => { active = false; clearInterval(id); };
+    }, []);
+
     return (
         <Page
             title="Support & Learning"
@@ -416,14 +438,14 @@ export default function SupportPage() {
                     <Card>
                         <BlockStack gap="300">
                             <InlineStack align="space-between" blockAlign="center">
-                                <Text as="h2" variant="headingMd">Messages ({threads.length})</Text>
+                                <Text as="h2" variant="headingMd">Messages ({liveThreads.length})</Text>
                                 <Text as="span" variant="bodySm" tone="subdued">Replies show up in the merchant's support widget</Text>
                             </InlineStack>
-                            {threads.length === 0 ? (
+                            {liveThreads.length === 0 ? (
                                 <Text as="p" tone="subdued">No merchant messages yet. When a merchant sends one from the support widget, the thread appears here to reply.</Text>
                             ) : (
                                 <BlockStack gap="300">
-                                    {threads.map((t) => <MessageThread key={t.shop} thread={t} />)}
+                                    {liveThreads.map((t) => <MessageThread key={t.shop} thread={t} />)}
                                 </BlockStack>
                             )}
                         </BlockStack>
