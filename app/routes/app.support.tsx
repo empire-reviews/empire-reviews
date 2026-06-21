@@ -88,9 +88,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         if (m.sender === "merchant" && !m.readAt) t.unread += 1;
         t.lastAt = m.createdAt;
     }
-    const threads = Array.from(threadMap.values()).sort(
-        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
-    );
+    // Only show threads that escalated to a human (Astra-handled chats stay out
+    // of the inbox). Matches the /api/support owner_threads poll.
+    let humanShops = new Set<string>();
+    try {
+        const ts = await prisma.supportThread.findMany({ where: { status: "human" }, select: { shop: true } });
+        humanShops = new Set(ts.map((t) => t.shop));
+    } catch { /* table may be pending migration — show none rather than all */ }
+    const threads = Array.from(threadMap.values())
+        .filter((t) => humanShops.has(t.shop))
+        .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
 
     const total = logs.length;
     const aiAnswered = logs.filter((l) => l.usedAi).length;

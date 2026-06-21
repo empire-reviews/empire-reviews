@@ -37,17 +37,8 @@ interface Message {
   feedback?: "up" | "down"; // set once the user rates this answer
 }
 
-interface SupportActionData {
-  success?: boolean;
-  answer?: string;
-  canEscalate?: boolean;
-  needsHuman?: boolean;
-  logId?: string;
-  error?: string;
-}
-
 interface SupportChatProps {
-  /** The merchant's myshopify.com domain — used for the greeting + mailto escalation */
+  /** The merchant's myshopify.com domain — used for the greeting */
   shop?: string;
 }
 
@@ -65,19 +56,6 @@ function shopName(shop?: string): string {
   return shop.replace(/\.myshopify\.com$/i, "");
 }
 
-function buildMailto(shop: string | undefined, history: Message[]): string {
-  const subject = encodeURIComponent("Empire Reviews Support Request");
-  const shopLine = shop ? `Shop: ${shop}\n` : "";
-  const historyLines = history
-    .filter((m) => m.role !== "system")
-    .slice(-6)
-    .map((m) => `${m.role === "user" ? "Merchant" : "Bot"}: ${m.content}`)
-    .join("\n");
-  const body = encodeURIComponent(
-    `Hi Empire Reviews team,\n\nI need help with the app.\n\n${shopLine}\nRecent chat:\n${historyLines}\n\n---\nPlease describe your issue below:\n`
-  );
-  return `mailto:support@empirereviews.com?subject=${subject}&body=${body}`;
-}
 
 function slugifyHeading(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -344,95 +322,16 @@ export default function SupportChat({ shop }: SupportChatProps) {
   const [query, setQuery] = useState("");
 
   // Messages tab (two-way inbox with the Empire team)
-  const [dmMessages, setDmMessages] = useState<{ id: string; sender: string; body: string; createdAt: string }[]>([]);
+  type DmMsg = { id: string; sender: string; body: string; createdAt: string };
+  const [dmMessages, setDmMessages] = useState<DmMsg[]>([]);
   const [dmInput, setDmInput] = useState("");
   const [dmPresence, setDmPresence] = useState<{ online: boolean; typing: boolean }>({ online: false, typing: false });
-  const dmFetcher = useFetcher<{ ok?: boolean; messages?: { id: string; sender: string; body: string; createdAt: string }[]; presence?: { online: boolean; typing: boolean } }>();
-  const dmSendFetcher = useFetcher<{ ok?: boolean }>();
+  const [dmMode, setDmMode] = useState<"ai" | "human">("ai"); // ai = Astra answering; human = escalated
+  const dmFetcher = useFetcher<{ ok?: boolean; messages?: DmMsg[]; presence?: { online: boolean; typing: boolean }; mode?: "ai" | "human" }>();
+  const dmSendFetcher = useFetcher<{ ok?: boolean; message?: DmMsg; astra?: DmMsg; mode?: "ai" | "human" }>();
+  const dmSendPrevRef = useRef<unknown>(undefined);
   const dmEndRef = useRef<HTMLDivElement>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Hi! I'm your Empire Reviews assistant. Ask me how to do anything in the app — adding widgets, managing reviews, email campaigns, AI features, and more.",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const listEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  const fetcher = useFetcher<SupportActionData>();
-  const feedbackFetcher = useFetcher();
-  const isLoading = fetcher.state !== "idle";
-
-  const sendFeedback = useCallback(
-    (msgId: string, logId: string, helpful: boolean) => {
-      setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, feedback: helpful ? "up" : "down" } : m)));
-      feedbackFetcher.submit(
-        { intent: "feedback", logId, helpful },
-        { method: "POST", action: "/api/support", encType: "application/json" }
-      );
-    },
-    [feedbackFetcher]
-  );
-
-  // Scroll chat to bottom when messages change / chat opens
-  useEffect(() => {
-    if (view === "chat") listEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, view]);
-
-  useEffect(() => {
-    if (open && view === "chat") setTimeout(() => inputRef.current?.focus(), 120);
-  }, [open, view]);
-
-  // Append assistant answers when the fetcher returns
-  const lastFetcherData = fetcher.data;
-  const prevDataRef = useRef<SupportActionData | undefined>(undefined);
-  useEffect(() => {
-    if (!lastFetcherData || lastFetcherData === prevDataRef.current) return;
-    prevDataRef.current = lastFetcherData;
-    const answer = lastFetcherData.answer ?? "";
-    const isError = !lastFetcherData.success && !answer;
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: uid(),
-        role: "assistant",
-        content: answer || "Something went wrong. Please try again or talk to a human.",
-        isError: isError || lastFetcherData.needsHuman,
-        logId: lastFetcherData.logId,
-      },
-    ]);
-  }, [lastFetcherData]);
-
-  const handleSend = useCallback(() => {
-    const q = input.trim();
-    if (!q || isLoading) return;
-    const userMsg: Message = { id: uid(), role: "user", content: q };
-    setMessages((prev) => {
-      const updated = [...prev, userMsg];
-      const history = updated
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .slice(0, -1)
-        .slice(-10)
-        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
-      fetcher.submit({ question: q, history }, { method: "POST", action: "/api/support", encType: "application/json" });
-      return updated;
-    });
-    setInput("");
-  }, [input, isLoading, fetcher]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
 
   // ── Navigation helpers ──
   const openArticle = useCallback((slug: string, from: View) => {
@@ -469,20 +368,38 @@ export default function SupportChat({ shop }: SupportChatProps) {
   useEffect(() => {
     if (dmFetcher.data?.messages) setDmMessages(dmFetcher.data.messages);
     if (dmFetcher.data?.presence) setDmPresence(dmFetcher.data.presence);
+    if (dmFetcher.data?.mode) setDmMode(dmFetcher.data.mode);
   }, [dmFetcher.data]);
+  // Append Astra's reply (or the handoff line) the moment send/escalate returns.
+  useEffect(() => {
+    const d = dmSendFetcher.data;
+    if (!d || d === dmSendPrevRef.current) return;
+    dmSendPrevRef.current = d;
+    if (d.mode) setDmMode(d.mode);
+    if (d.astra) setDmMessages((prev) => [...prev, d.astra as DmMsg]);
+  }, [dmSendFetcher.data]);
   useEffect(() => {
     if (view === "messages") dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [dmMessages, view]);
 
   const sendDm = useCallback(() => {
     const text = dmInput.trim();
-    if (!text) return;
+    if (!text || dmSendFetcher.state !== "idle") return;
     setDmMessages((prev) => [...prev, { id: "tmp_" + uid(), sender: "merchant", body: text, createdAt: new Date().toISOString() }]);
-    dmSendFetcher.submit({ intent: "send_message", body: text }, { method: "POST", action: "/api/support", encType: "application/json" });
+    // short rolling history so Astra has context (merchant→user, astra/team→assistant)
+    const history = dmMessages.slice(-10).map((m) => ({ role: m.sender === "merchant" ? "user" : "assistant", content: m.body }));
+    dmSendFetcher.submit({ intent: "send_message", body: text, history }, { method: "POST", action: "/api/support", encType: "application/json" });
     setDmInput("");
-  }, [dmInput, dmSendFetcher]);
+  }, [dmInput, dmMessages, dmSendFetcher]);
 
-  const mailtoHref = buildMailto(shop, messages);
+  // Dedicated "Talk to a human" + 👎: escalate the thread to the Empire team.
+  const sendEscalate = useCallback(() => {
+    if (dmMode === "human") return;
+    setDmMode("human");
+    setDmMessages((prev) => [...prev, { id: "tmp_" + uid(), sender: "astra", body: "Connecting you with the Empire team — someone will reply here shortly. 👋", createdAt: new Date().toISOString() }]);
+    dmSendFetcher.submit({ intent: "escalate" }, { method: "POST", action: "/api/support", encType: "application/json" });
+  }, [dmMode, dmSendFetcher]);
+
   const name = shopName(shop);
   const featured = getFeaturedArticles();
   const results = query.trim() ? searchArticles(query) : [];
@@ -525,12 +442,18 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 {view === "messages" && "Messages"}
               </div>
               {view === "chat" && <div style={styles.headerSub}>Typically replies instantly</div>}
-              {view === "messages" && (
-                <div style={{ fontSize: "0.72rem", color: "#cbd2e0", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", background: dmPresence.online ? "#22c55e" : "#9ca3af", boxShadow: dmPresence.online ? "0 0 6px #22c55e" : "none" }} />
-                  {dmPresence.online ? "Online — typically replies in a few minutes" : "Offline — leave a message, we'll reply shortly"}
-                </div>
-              )}
+              {view === "messages" && (() => {
+                const online = dmMode === "ai" || dmPresence.online; // Astra is always on
+                const label = dmMode === "ai"
+                  ? "Astra · AI assistant — replies instantly"
+                  : (dmPresence.online ? "Empire team · Online — replies in a few minutes" : "Empire team · Offline — we'll reply shortly");
+                return (
+                  <div style={{ fontSize: "0.72rem", color: "#cbd2e0", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", background: online ? "#22c55e" : "#9ca3af", boxShadow: online ? "0 0 6px #22c55e" : "none" }} />
+                    {label}
+                  </div>
+                );
+              })()}
             </div>
           )}
           <button style={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close support">✕</button>
@@ -550,12 +473,12 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 aria-label="Search help articles"
               />
             </div>
-            {/* CTA → chat */}
-            <button style={styles.cta} className="empire-hc-row" onClick={() => setView("chat")}>
+            {/* CTA → unified Messages (Astra answers, humans on standby) */}
+            <button style={styles.cta} className="empire-hc-row" onClick={() => setView("messages")}>
               <span style={{ fontSize: 22 }}>💬</span>
               <span>
-                <span style={styles.rowTitle}>Ask our assistant</span>
-                <span style={styles.rowSub}>Instant answers about anything in the app</span>
+                <span style={styles.rowTitle}>Send us a message</span>
+                <span style={styles.rowSub}>Instant answers — a human if you need one</span>
               </span>
               <span style={styles.chevron}>→</span>
             </button>
@@ -595,7 +518,7 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 <div style={styles.card}>
                   {results.length === 0 ? (
                     <div style={{ padding: 18, fontSize: "0.84rem", color: "#8a909c" }}>
-                      No articles found. Try the <button onClick={() => setView("chat")} style={{ ...styles.tocItem, display: "inline", width: "auto", padding: 0 }}>AI assistant</button> instead.
+                      No articles found. Try <button onClick={() => setView("messages")} style={{ ...styles.tocItem, display: "inline", width: "auto", padding: 0 }}>messaging us</button> instead.
                     </div>
                   ) : results.map((a) => (
                     <button key={a.slug} className="empire-hc-row" style={styles.rowBtn} onClick={() => openArticle(a.slug, "help")}>
@@ -669,120 +592,83 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 {a.body.map((b, i) => <ArticleBlock key={i} block={b} />)}
                 <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #eef0f3", fontSize: "0.8rem", color: "#8a909c" }}>
                   Still need help?{" "}
-                  <button onClick={() => setView("chat")} style={{ ...styles.tocItem, display: "inline", width: "auto", padding: 0 }}>Ask the assistant</button>
-                  {" "}or{" "}
-                  <a href={mailtoHref} target="_blank" rel="noopener noreferrer" style={{ color: GOLD }}>email us</a>.
+                  <button onClick={() => setView("messages")} style={{ ...styles.tocItem, display: "inline", width: "auto", padding: 0 }}>Send us a message</button>
+                  .
                 </div>
               </div>
             </div>
           );
         })()}
 
-        {/* ── MESSAGES (two-way inbox with the Empire team) ── */}
+        {/* ── MESSAGES (unified: Astra AI assistant → human handoff) ── */}
         {view === "messages" && (
           <>
-            <div style={styles.messages} role="log" aria-live="polite" aria-label="Messages with the Empire team">
+            <div style={styles.messages} role="log" aria-live="polite" aria-label="Support conversation">
               {dmMessages.length === 0 ? (
                 <div style={styles.empty}>
-                  <div style={{ fontSize: 34, marginBottom: 10 }}>💬</div>
-                  <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No messages yet</div>
-                  <div style={{ fontSize: "0.84rem" }}>Send the Empire team a message below — replies land right here.</div>
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>👋</div>
+                  <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>Hi {name}! I’m Astra.</div>
+                  <div style={{ fontSize: "0.84rem" }}>Ask me anything about Empire Reviews — or tap “Talk to a human” anytime.</div>
                 </div>
               ) : (
-                dmMessages.map((m) => (
-                  <div key={m.id} style={styles.msgRow(m.sender === "merchant" ? "user" : "assistant")}>
-                    <div style={styles.bubble_msg(m.sender === "merchant" ? "user" : "assistant")}>{m.body}</div>
-                    <span style={{ fontSize: "0.66rem", color: "#aab0bc", margin: "2px 4px 0" }}>
-                      {m.sender === "team" ? "Empire team" : "You"} · {new Date(m.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                ))
+                dmMessages.map((m) => {
+                  const isMerchant = m.sender === "merchant";
+                  const isAstra = m.sender === "astra";
+                  const label = isMerchant ? "You" : isAstra ? "Astra · AI assistant" : "Empire team";
+                  const accent = isAstra ? "#e8c84a" : !isMerchant ? "#2d3561" : null;
+                  return (
+                    <div key={m.id} style={styles.msgRow(isMerchant ? "user" : "assistant")}>
+                      <div style={{ ...styles.bubble_msg(isMerchant ? "user" : "assistant"), ...(accent ? { borderLeft: `3px solid ${accent}` } : {}) }}>{m.body}</div>
+                      <span style={{ fontSize: "0.66rem", color: isAstra ? "#b4881f" : "#aab0bc", fontWeight: isAstra ? 700 : 400, margin: "2px 4px 0" }}>
+                        {label} · {new Date(m.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  );
+                })
               )}
-              {dmPresence.typing && dmMessages.length > 0 && (
+              {((dmMode === "ai" && dmSendFetcher.state !== "idle") || (dmMode === "human" && dmPresence.typing)) && (
                 <div style={styles.msgRow("assistant")}>
-                  <div style={{ ...styles.bubble_msg("assistant"), display: "flex", alignItems: "center", gap: 2 }}>
+                  <div style={{ ...styles.bubble_msg("assistant"), display: "flex", alignItems: "center", gap: 2, borderLeft: `3px solid ${dmMode === "ai" ? "#e8c84a" : "#2d3561"}` }}>
                     <span style={styles.typingDot} />
                     <span style={{ ...styles.typingDot, animationDelay: "0.2s" }} />
                     <span style={{ ...styles.typingDot, animationDelay: "0.4s" }} />
                   </div>
-                  <span style={{ fontSize: "0.66rem", color: "#aab0bc", margin: "2px 4px 0" }}>Empire team is typing…</span>
+                  <span style={{ fontSize: "0.66rem", color: "#aab0bc", margin: "2px 4px 0" }}>{dmMode === "ai" ? "Astra is typing…" : "Empire team is typing…"}</span>
                 </div>
               )}
               <div ref={dmEndRef} />
             </div>
+
+            {dmMode === "ai" ? (
+              <button
+                onClick={sendEscalate}
+                style={{ width: "calc(100% - 24px)", margin: "0 12px", padding: "8px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, color: NAVY, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", flexShrink: 0 }}
+              >
+                🤝 Talk to a human
+              </button>
+            ) : (
+              <div style={{ textAlign: "center", padding: "6px 12px 2px", fontSize: "0.74rem", color: "#16a34a", fontWeight: 600, flexShrink: 0 }}>
+                You’re connected to the Empire team 💬
+              </div>
+            )}
+
             <div style={styles.inputRow}>
               <textarea
                 style={styles.input}
                 rows={1}
-                placeholder="Message the Empire team…"
+                placeholder={dmMode === "ai" ? "Ask Astra anything…" : "Message the Empire team…"}
                 value={dmInput}
                 onChange={(e) => setDmInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendDm(); } }}
                 maxLength={2000}
-                aria-label="Message to the Empire team"
+                aria-label="Your message"
               />
-              <button style={styles.sendBtn(!dmInput.trim())} onClick={sendDm} disabled={!dmInput.trim()} aria-label="Send message">Send</button>
+              <button style={styles.sendBtn(!dmInput.trim() || dmSendFetcher.state !== "idle")} onClick={sendDm} disabled={!dmInput.trim() || dmSendFetcher.state !== "idle"} aria-label="Send message">Send</button>
             </div>
           </>
         )}
 
-        {/* ── CHAT ── */}
-        {view === "chat" && (
-          <>
-            <div style={styles.messages} role="log" aria-live="polite" aria-label="Chat messages">
-              {messages.map((msg) => (
-                <div key={msg.id} style={styles.msgRow(msg.role)}>
-                  <div style={styles.bubble_msg(msg.role, msg.isError)}>{msg.content}</div>
-                  {msg.role === "assistant" && msg.logId && (
-                    <div style={styles.feedbackRow}>
-                      {msg.feedback ? (
-                        <span style={styles.feedbackThanks}>{msg.feedback === "up" ? "Thanks for the feedback! 🙌" : "Thanks — we'll improve this. 🛠️"}</span>
-                      ) : (
-                        <>
-                          <span style={styles.feedbackLabel}>Was this helpful?</span>
-                          <button type="button" style={styles.feedbackBtn} aria-label="Helpful" onClick={() => sendFeedback(msg.id, msg.logId as string, true)}>👍</button>
-                          <button type="button" style={styles.feedbackBtn} aria-label="Not helpful" onClick={() => sendFeedback(msg.id, msg.logId as string, false)}>👎</button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {isLoading && (
-                <div style={styles.msgRow("assistant")}>
-                  <div style={styles.bubble_msg("assistant")}>
-                    <span style={styles.typingDot} />
-                    <span style={{ ...styles.typingDot, animationDelay: "0.2s" }} />
-                    <span style={{ ...styles.typingDot, animationDelay: "0.4s" }} />
-                  </div>
-                </div>
-              )}
-              <div ref={listEndRef} />
-            </div>
-            <div style={styles.inputRow}>
-              <textarea
-                ref={inputRef}
-                style={styles.input}
-                rows={1}
-                placeholder="Ask me anything about Empire Reviews…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading}
-                maxLength={1000}
-                aria-label="Support question"
-              />
-              <button style={styles.sendBtn(isLoading || !input.trim())} onClick={handleSend} disabled={isLoading || !input.trim()} aria-label="Send message">Send</button>
-            </div>
-            <div style={styles.footer}>
-              <a href={mailtoHref} target="_blank" rel="noopener noreferrer" style={styles.humanLink} aria-label="Email Empire Reviews human support">
-                💌 Talk to a human — support@empirereviews.com
-              </a>
-            </div>
-          </>
-        )}
-
-        {/* ── Bottom tab bar (hidden in chat, which has its own input) ── */}
+        {/* ── Bottom tab bar ── */}
         {view !== "chat" && (
           <div style={styles.tabBar}>
             <button style={styles.tab(activeTab === "home")} onClick={() => goTab("home")}>

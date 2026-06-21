@@ -59,6 +59,93 @@ async function computePresence(forShop: string): Promise<{ online: boolean; typi
   }
 }
 
+// ── Astra: the AI assistant that answers merchants in the Messages thread ──
+// Same tiering as the old chat: curated LearnedAnswer → merchant BYOK key →
+// Empire platform key → canned KB. Returns escalate=true when it genuinely
+// can't help (no answer) or the answer itself routes the merchant to a human.
+const ESCALATE_RE = /talk to (a )?(human|person|team)|reach (out to )?(a )?(human|our team)|connect you/i;
+
+async function answerAsAstra(
+  shop: string,
+  question: string,
+  history: Array<{ role: "user" | "assistant"; content: string }>
+): Promise<{ answer: string; usedAi: boolean; learned: boolean; escalate: boolean }> {
+  // Tier 0: human-verified LearnedAnswer
+  try {
+    const learned = await prisma.learnedAnswer.findMany({
+      where: { active: true },
+      select: { answer: true, keywords: true, question: true },
+      take: 200,
+    });
+    const q = question.toLowerCase();
+    const hit = learned.find((l) => {
+      const kws = (l.keywords || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
+      if (kws.some((k) => q.includes(k))) return true;
+      const lq = (l.question || "").toLowerCase().trim();
+      return lq.length > 0 && (q.includes(lq) || lq.includes(q));
+    });
+    if (hit) return { answer: hit.answer, usedAi: false, learned: true, escalate: false };
+  } catch (e) {
+    console.error("[astra] learned lookup failed:", (e as Error).message);
+  }
+
+  let settings: { aiProvider: string | null; aiApiKey: string | null } | null = null;
+  try {
+    settings = await prisma.settings.findFirst({ where: { shop }, select: { aiProvider: true, aiApiKey: true } });
+  } catch { /* degrade */ }
+
+  // Tier 1: merchant's own BYOK key (if present)
+  if (settings?.aiProvider && settings?.aiApiKey) {
+    try {
+      const key = decrypt(settings.aiApiKey);
+      if (key) {
+        const answer = await generateSupportAnswer({ provider: settings.aiProvider as AIProvider, apiKey: key }, question, history, SUPPORT_SYSTEM_PROMPT);
+        return { answer, usedAi: true, learned: false, escalate: ESCALATE_RE.test(answer) };
+      }
+    } catch (e) {
+      console.error("[astra] merchant AI failed:", (e as Error).message);
+    }
+  }
+
+  // Tier 2: Empire platform key
+  const platform = getPlatformAIConfig();
+  if (platform) {
+    try {
+      const answer = await generateSupportAnswer(platform, question, history, SUPPORT_SYSTEM_PROMPT);
+      return { answer, usedAi: true, learned: false, escalate: ESCALATE_RE.test(answer) };
+    } catch (e) {
+      console.error("[astra] platform AI failed:", (e as Error).message);
+    }
+  }
+
+  // Tier 3: canned KB answer
+  const canned = getCannedAnswer(question);
+  if (canned) return { answer: canned, usedAi: false, learned: false, escalate: ESCALATE_RE.test(canned) };
+
+  // Nothing could answer → escalate to a human.
+  return { answer: "", usedAi: false, learned: false, escalate: true };
+}
+
+async function getThreadStatus(shop: string): Promise<"ai" | "human"> {
+  try {
+    const t = await prisma.supportThread.findUnique({ where: { shop }, select: { status: true } });
+    return t?.status === "human" ? "human" : "ai";
+  } catch {
+    return "ai";
+  }
+}
+
+async function setThreadHuman(shop: string): Promise<void> {
+  try {
+    await prisma.supportThread.upsert({ where: { shop }, create: { shop, status: "human" }, update: { status: "human" } });
+  } catch (e) {
+    console.error("[support] setThreadHuman failed:", (e as Error).message);
+  }
+}
+
+const ASTRA_HANDOFF = "Let me bring in a teammate for this — someone from the Empire team will reply right here shortly. 👋";
+const ASTRA_CONNECTING = "Connecting you with the Empire team — someone will reply here shortly. 👋";
+
 // Only allow POST — return 405 on GET so Remix doesn't 404
 export const loader = async () => {
   return json({ error: "Method not allowed" }, { status: 405 });
@@ -127,10 +214,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         data: { readAt: new Date() },
       });
       const presence = await computePresence(session.shop);
-      return json({ ok: true, messages: rows, presence });
+      const mode = await getThreadStatus(session.shop);
+      return json({ ok: true, messages: rows, presence, mode });
     } catch (e) {
       console.error("[support] list_messages failed (table may be mid-migration):", (e as Error).message);
-      return json({ ok: true, messages: [], presence: { online: false, typing: false } });
+      return json({ ok: true, messages: [], presence: { online: false, typing: false }, mode: "ai" });
     }
   }
 
@@ -173,9 +261,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         if (m.sender === "merchant" && !m.readAt) t.unread += 1;
         t.lastAt = m.createdAt;
       }
-      const threads = Array.from(map.values()).sort(
-        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
-      );
+      // Only surface threads that reached a human — Astra-handled chats don't
+      // clutter the owner inbox.
+      let humanShops = new Set<string>();
+      try {
+        const ts = await prisma.supportThread.findMany({ where: { status: "human" }, select: { shop: true } });
+        humanShops = new Set(ts.map((t) => t.shop));
+      } catch { /* if the table is missing, show nothing rather than everything */ }
+
+      const threads = Array.from(map.values())
+        .filter((t) => humanShops.has(t.shop))
+        .sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
       return json({ ok: true, threads });
     } catch (e) {
       console.error("[support] owner_threads failed:", (e as Error).message);
@@ -187,14 +283,58 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const text = String(rawBody.body || "").trim().slice(0, 2000);
     if (!text) return json({ ok: false, error: "Empty message" }, { status: 400 });
     try {
-      const row = await prisma.supportMessage.create({
+      const merchantMsg = await prisma.supportMessage.create({
         data: { shop: session.shop, sender: "merchant", body: text },
         select: { id: true, sender: true, body: true, createdAt: true },
       });
-      return json({ ok: true, message: row });
+
+      // If the thread is already with a human, Astra stays out of it.
+      const status = await getThreadStatus(session.shop);
+      if (status === "human") {
+        return json({ ok: true, message: merchantMsg, mode: "human" });
+      }
+
+      // Otherwise Astra answers (merchant key → platform key → canned KB).
+      const history: Array<{ role: "user" | "assistant"; content: string }> = Array.isArray(rawBody.history)
+        ? rawBody.history
+            .slice(-MAX_HISTORY_TURNS)
+            .filter((m: any) => m && typeof m === "object" && ["user", "assistant"].includes(m.role) && typeof m.content === "string")
+            .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 2000) }))
+        : [];
+      const astra = await answerAsAstra(session.shop, text, history);
+
+      if (astra.escalate || !astra.answer) {
+        await setThreadHuman(session.shop);
+        const handoff = await prisma.supportMessage.create({
+          data: { shop: session.shop, sender: "astra", body: ASTRA_HANDOFF },
+          select: { id: true, sender: true, body: true, createdAt: true },
+        });
+        return json({ ok: true, message: merchantMsg, astra: handoff, mode: "human", escalated: true });
+      }
+
+      const astraMsg = await prisma.supportMessage.create({
+        data: { shop: session.shop, sender: "astra", body: astra.answer },
+        select: { id: true, sender: true, body: true, createdAt: true },
+      });
+      return json({ ok: true, message: merchantMsg, astra: astraMsg, mode: "ai" });
     } catch (e) {
       console.error("[support] send_message failed:", (e as Error).message);
       return json({ ok: false, error: "Could not send message right now." }, { status: 500 });
+    }
+  }
+
+  // Explicit escalation — the dedicated "Talk to a human" button or a 👎 on Astra.
+  if (rawBody && rawBody.intent === "escalate") {
+    try {
+      await setThreadHuman(session.shop);
+      const msg = await prisma.supportMessage.create({
+        data: { shop: session.shop, sender: "astra", body: ASTRA_CONNECTING },
+        select: { id: true, sender: true, body: true, createdAt: true },
+      });
+      return json({ ok: true, mode: "human", message: msg });
+    } catch (e) {
+      console.error("[support] escalate failed:", (e as Error).message);
+      return json({ ok: false }, { status: 500 });
     }
   }
 

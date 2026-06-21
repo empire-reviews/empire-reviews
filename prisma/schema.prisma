@@ -330,6 +330,17 @@ model SupportMessage {
   @@index([shop, createdAt])
 }
 
+// Per-merchant support thread mode. "ai" = Astra (the AI assistant) handles
+// replies; "human" = escalated, the Empire team takes over in the same thread.
+// Once escalated it stays human until... (v1: stays human). Drives whether
+// Astra auto-replies on a new merchant message and whether the owner inbox
+// surfaces the thread.
+model SupportThread {
+  shop      String   @id
+  status    String   @default("ai") // "ai" | "human"
+  updatedAt DateTime @updatedAt
+}
+
 // Live presence for the support inbox. A single "owner" row, updated by the
 // Support & Learning panel's heartbeat. `lastSeenAt` drives the Online/Offline
 // badge in the merchant widget; `typingShop`/`typingAt` drive the typing dots
