@@ -36,6 +36,29 @@ function getPlatformAIConfig(): { provider: AIProvider; apiKey: string } | null 
   return { provider, apiKey };
 }
 
+// ── Live presence (Online/Offline + typing) for the support inbox ──────────
+const OWNER_SHOP = (process.env.OWNER_SHOP || "").trim();
+const ONLINE_WINDOW_MS = 35000; // owner counts as online if seen within 35s
+const TYPING_WINDOW_MS = 6000; // typing shown if owner typed to this shop within 6s
+
+async function computePresence(forShop: string): Promise<{ online: boolean; typing: boolean }> {
+  try {
+    const p = await prisma.supportPresence.findUnique({ where: { scope: "owner" } });
+    if (!p) return { online: false, typing: false };
+    const now = Date.now();
+    const online = now - new Date(p.lastSeenAt).getTime() < ONLINE_WINDOW_MS;
+    const typing =
+      online &&
+      p.typingShop === forShop &&
+      !!p.typingAt &&
+      now - new Date(p.typingAt).getTime() < TYPING_WINDOW_MS;
+    return { online, typing };
+  } catch {
+    // Table may be mid-migration — never break the widget over presence.
+    return { online: false, typing: false };
+  }
+}
+
 // Only allow POST — return 405 on GET so Remix doesn't 404
 export const loader = async () => {
   return json({ error: "Method not allowed" }, { status: 405 });
@@ -103,11 +126,34 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shop: session.shop, sender: "team", readAt: null },
         data: { readAt: new Date() },
       });
-      return json({ ok: true, messages: rows });
+      const presence = await computePresence(session.shop);
+      return json({ ok: true, messages: rows, presence });
     } catch (e) {
       console.error("[support] list_messages failed (table may be mid-migration):", (e as Error).message);
-      return json({ ok: true, messages: [] });
+      return json({ ok: true, messages: [], presence: { online: false, typing: false } });
     }
+  }
+
+  // Owner heartbeat + typing signal — written by the Support & Learning panel.
+  if (rawBody && rawBody.intent === "owner_presence") {
+    if (!OWNER_SHOP || session.shop !== OWNER_SHOP) return json({ ok: false }, { status: 403 });
+    const typingShop = rawBody.typingShop ? String(rawBody.typingShop).slice(0, 120) : null;
+    try {
+      await prisma.supportPresence.upsert({
+        where: { scope: "owner" },
+        create: { scope: "owner", lastSeenAt: new Date(), typingShop, typingAt: typingShop ? new Date() : null },
+        update: { lastSeenAt: new Date(), ...(typingShop ? { typingShop, typingAt: new Date() } : {}) },
+      });
+    } catch (e) {
+      console.error("[support] owner_presence failed:", (e as Error).message);
+    }
+    return json({ ok: true });
+  }
+
+  // Merchant widget asks: is the team online / typing to me right now?
+  if (rawBody && rawBody.intent === "presence") {
+    const presence = await computePresence(session.shop);
+    return json({ ok: true, presence });
   }
 
   if (rawBody && rawBody.intent === "send_message") {

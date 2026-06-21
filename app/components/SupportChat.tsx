@@ -346,7 +346,8 @@ export default function SupportChat({ shop }: SupportChatProps) {
   // Messages tab (two-way inbox with the Empire team)
   const [dmMessages, setDmMessages] = useState<{ id: string; sender: string; body: string; createdAt: string }[]>([]);
   const [dmInput, setDmInput] = useState("");
-  const dmFetcher = useFetcher<{ ok?: boolean; messages?: { id: string; sender: string; body: string; createdAt: string }[] }>();
+  const [dmPresence, setDmPresence] = useState<{ online: boolean; typing: boolean }>({ online: false, typing: false });
+  const dmFetcher = useFetcher<{ ok?: boolean; messages?: { id: string; sender: string; body: string; createdAt: string }[]; presence?: { online: boolean; typing: boolean } }>();
   const dmSendFetcher = useFetcher<{ ok?: boolean }>();
   const dmEndRef = useRef<HTMLDivElement>(null);
 
@@ -461,12 +462,13 @@ export default function SupportChat({ shop }: SupportChatProps) {
     const load = () =>
       dmFetcher.submit({ intent: "list_messages" }, { method: "POST", action: "/api/support", encType: "application/json" });
     load(); // immediate fetch on open
-    const id = setInterval(load, 8000); // refresh every 8s while open
+    const id = setInterval(load, 3000); // poll every 3s so replies + typing feel live
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view]);
   useEffect(() => {
     if (dmFetcher.data?.messages) setDmMessages(dmFetcher.data.messages);
+    if (dmFetcher.data?.presence) setDmPresence(dmFetcher.data.presence);
   }, [dmFetcher.data]);
   useEffect(() => {
     if (view === "messages") dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -523,6 +525,12 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 {view === "messages" && "Messages"}
               </div>
               {view === "chat" && <div style={styles.headerSub}>Typically replies instantly</div>}
+              {view === "messages" && (
+                <div style={{ fontSize: "0.72rem", color: "#cbd2e0", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", display: "inline-block", background: dmPresence.online ? "#22c55e" : "#9ca3af", boxShadow: dmPresence.online ? "0 0 6px #22c55e" : "none" }} />
+                  {dmPresence.online ? "Online — typically replies in a few minutes" : "Offline — leave a message, we'll reply shortly"}
+                </div>
+              )}
             </div>
           )}
           <button style={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close support">✕</button>
@@ -689,6 +697,16 @@ export default function SupportChat({ shop }: SupportChatProps) {
                     </span>
                   </div>
                 ))
+              )}
+              {dmPresence.typing && dmMessages.length > 0 && (
+                <div style={styles.msgRow("assistant")}>
+                  <div style={{ ...styles.bubble_msg("assistant"), display: "flex", alignItems: "center", gap: 2 }}>
+                    <span style={styles.typingDot} />
+                    <span style={{ ...styles.typingDot, animationDelay: "0.2s" }} />
+                    <span style={{ ...styles.typingDot, animationDelay: "0.4s" }} />
+                  </div>
+                  <span style={{ fontSize: "0.66rem", color: "#aab0bc", margin: "2px 4px 0" }}>Empire team is typing…</span>
+                </div>
               )}
               <div ref={dmEndRef} />
             </div>

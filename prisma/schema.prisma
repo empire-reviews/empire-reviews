@@ -330,6 +330,18 @@ model SupportMessage {
   @@index([shop, createdAt])
 }
 
+// Live presence for the support inbox. A single "owner" row, updated by the
+// Support & Learning panel's heartbeat. `lastSeenAt` drives the Online/Offline
+// badge in the merchant widget; `typingShop`/`typingAt` drive the typing dots
+// shown to the specific merchant the owner is currently replying to.
+model SupportPresence {
+  scope      String    @id // "owner" (single row)
+  lastSeenAt DateTime  @default(now())
+  typingShop String? // which merchant shop the owner is currently typing to
+  typingAt   DateTime?
+  updatedAt  DateTime  @updatedAt
+}
+
 // Rate Limiting (Database-Backed)
 model RateLimit {
   id        String   @id @default(uuid())

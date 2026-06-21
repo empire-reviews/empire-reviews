@@ -16,7 +16,20 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+
+// Fire-and-forget presence ping to /api/support. App Bridge injects the session
+// token into same-origin fetches, so this authenticates as the owner without a
+// useFetcher (which would needlessly revalidate this whole page every few sec).
+function pingPresence(typingShop?: string) {
+    try {
+        fetch("/api/support", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(typingShop ? { intent: "owner_presence", typingShop } : { intent: "owner_presence" }),
+        }).catch(() => { });
+    } catch { /* never let presence break the page */ }
+}
 
 const STOPWORDS = new Set([
     "the", "a", "an", "to", "of", "in", "on", "is", "it", "this", "that", "i", "my", "me",
@@ -298,6 +311,18 @@ function MessageThread({ thread }: { thread: any }) {
     const [reply, setReply] = useState("");
     const busy = fetcher.state !== "idle";
     const sent = (fetcher.data as any)?.ok;
+    const lastTypeRef = useRef(0);
+
+    // As the owner types, signal "typing" to this specific merchant (throttled
+    // to ~once/1.8s so the widget can show the typing dots within its 3s poll).
+    const onReplyChange = (val: string) => {
+        setReply(val);
+        const now = Date.now();
+        if (val && now - lastTypeRef.current > 1800) {
+            lastTypeRef.current = now;
+            pingPresence(thread.shop);
+        }
+    };
 
     return (
         <Box padding="300" background="bg-surface-secondary" borderRadius="200">
@@ -324,7 +349,7 @@ function MessageThread({ thread }: { thread: any }) {
                     <input type="hidden" name="shop" value={thread.shop} />
                     <BlockStack gap="200">
                         <TextField label="Reply" labelHidden multiline={2} name="body" autoComplete="off"
-                            value={reply} onChange={setReply} placeholder={`Reply to ${thread.shop}…`} />
+                            value={reply} onChange={onReplyChange} placeholder={`Reply to ${thread.shop}…`} />
                         <InlineStack gap="200" blockAlign="center">
                             <Button variant="primary" loading={busy} disabled={!reply.trim()}
                                 onClick={() => {
@@ -351,6 +376,14 @@ function MessageThread({ thread }: { thread: any }) {
 
 export default function SupportPage() {
     const { stats, gaps, learned, topTopics, recent, dbError, threads } = useLoaderData<typeof loader>();
+
+    // Heartbeat: while this owner panel is open, mark the team "Online" in the
+    // merchant widget (a ping every 5s; the widget treats <35s as online).
+    useEffect(() => {
+        pingPresence();
+        const id = setInterval(() => pingPresence(), 5000);
+        return () => clearInterval(id);
+    }, []);
 
     return (
         <Page
