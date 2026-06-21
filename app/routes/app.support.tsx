@@ -326,10 +326,14 @@ function MessageThread({ thread }: { thread: any }) {
                         <TextField label="Reply" labelHidden multiline={2} name="body" autoComplete="off"
                             value={reply} onChange={setReply} placeholder={`Reply to ${thread.shop}…`} />
                         <InlineStack gap="200" blockAlign="center">
-                            <Button submit variant="primary" loading={busy} disabled={!reply.trim()}
+                            <Button variant="primary" loading={busy} disabled={!reply.trim()}
                                 onClick={() => {
+                                    const body = reply.trim();
+                                    if (!body) return;
+                                    // Single submission only — NOT a submit-type button, so the
+                                    // form doesn't also fire a native submit with an emptied field.
                                     fetcher.submit(
-                                        { intent: "reply_message", shop: thread.shop, body: reply },
+                                        { intent: "reply_message", shop: thread.shop, body },
                                         { method: "post" }
                                     );
                                     setReply("");
