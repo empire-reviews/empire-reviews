@@ -382,15 +382,15 @@ export default function SupportChat({ shop }: SupportChatProps) {
     if (view === "messages") dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [dmMessages, view]);
 
-  const sendDm = useCallback(() => {
-    const text = dmInput.trim();
+  const submitMessage = useCallback((raw: string) => {
+    const text = raw.trim();
     if (!text || dmSendFetcher.state !== "idle") return;
     setDmMessages((prev) => [...prev, { id: "tmp_" + uid(), sender: "merchant", body: text, createdAt: new Date().toISOString() }]);
     // short rolling history so Astra has context (merchant→user, astra/team→assistant)
     const history = dmMessages.slice(-10).map((m) => ({ role: m.sender === "merchant" ? "user" : "assistant", content: m.body }));
     dmSendFetcher.submit({ intent: "send_message", body: text, history }, { method: "POST", action: "/api/support", encType: "application/json" });
-    setDmInput("");
-  }, [dmInput, dmMessages, dmSendFetcher]);
+  }, [dmMessages, dmSendFetcher]);
+  const sendDm = useCallback(() => { submitMessage(dmInput); setDmInput(""); }, [dmInput, submitMessage]);
 
   // Dedicated "Talk to a human" + 👎: escalate the thread to the Empire team.
   const sendEscalate = useCallback(() => {
@@ -608,7 +608,12 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 <div style={styles.empty}>
                   <div style={{ fontSize: 34, marginBottom: 10 }}>👋</div>
                   <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>Hi {name}! I’m Astra.</div>
-                  <div style={{ fontSize: "0.84rem" }}>Ask me anything about Empire Reviews — or tap “Talk to a human” anytime.</div>
+                  <div style={{ fontSize: "0.84rem", marginBottom: 14 }}>Ask me anything about Empire Reviews — I answer instantly.</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+                    {["How do I add the review widget?", "Import my existing reviews", "Change the widget language", "Set up review-request emails"].map((qz) => (
+                      <button key={qz} onClick={() => submitMessage(qz)} style={{ background: "#fff", border: "1px solid #e1e4ea", borderRadius: 999, padding: "7px 12px", fontSize: "0.78rem", color: NAVY, cursor: "pointer", fontWeight: 600 }}>{qz}</button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 dmMessages.map((m) => {
@@ -639,19 +644,6 @@ export default function SupportChat({ shop }: SupportChatProps) {
               <div ref={dmEndRef} />
             </div>
 
-            {dmMode === "ai" ? (
-              <button
-                onClick={sendEscalate}
-                style={{ width: "calc(100% - 24px)", margin: "0 12px", padding: "8px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, color: NAVY, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", flexShrink: 0 }}
-              >
-                🤝 Talk to a human
-              </button>
-            ) : (
-              <div style={{ textAlign: "center", padding: "6px 12px 2px", fontSize: "0.74rem", color: "#16a34a", fontWeight: 600, flexShrink: 0 }}>
-                You’re connected to the Empire team 💬
-              </div>
-            )}
-
             <div style={styles.inputRow}>
               <textarea
                 style={styles.input}
@@ -665,6 +657,17 @@ export default function SupportChat({ shop }: SupportChatProps) {
               />
               <button style={styles.sendBtn(!dmInput.trim() || dmSendFetcher.state !== "idle")} onClick={sendDm} disabled={!dmInput.trim() || dmSendFetcher.state !== "idle"} aria-label="Send message">Send</button>
             </div>
+            {/* Human option is intentionally a quiet link — Astra handles most things */}
+            {dmMode === "ai" ? (
+              <div style={{ textAlign: "center", padding: "0 12px 8px", fontSize: "0.7rem", color: "#9aa0ac", flexShrink: 0 }}>
+                Astra usually has the answer ·{" "}
+                <button onClick={sendEscalate} style={{ background: "none", border: "none", padding: 0, color: "#6d7175", textDecoration: "underline", cursor: "pointer", fontSize: "0.7rem" }}>talk to a human</button>
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "0 12px 8px", fontSize: "0.72rem", color: "#16a34a", fontWeight: 600, flexShrink: 0 }}>
+                ✓ You’re connected to the Empire team
+              </div>
+            )}
           </>
         )}
 

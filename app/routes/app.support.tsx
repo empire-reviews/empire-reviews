@@ -313,15 +313,24 @@ function LearnedRow({ item }: { item: any }) {
     );
 }
 
-function MessageThread({ thread }: { thread: any }) {
+function relTime(d: string): string {
+    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+    if (s < 60) return "just now";
+    const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+}
+
+// One conversation row — collapsed by default so 100 merchants stay scannable.
+// Click to expand the full thread + reply box. Unread + preview show collapsed.
+function MessageThread({ thread, defaultOpen }: { thread: any; defaultOpen?: boolean }) {
     const fetcher = useFetcher();
     const [reply, setReply] = useState("");
+    const [open, setOpen] = useState(!!defaultOpen);
     const busy = fetcher.state !== "idle";
     const sent = (fetcher.data as any)?.ok;
     const lastTypeRef = useRef(0);
 
-    // As the owner types, signal "typing" to this specific merchant (throttled
-    // to ~once/1.8s so the widget can show the typing dots within its 3s poll).
     const onReplyChange = (val: string) => {
         setReply(val);
         const now = Date.now();
@@ -331,52 +340,70 @@ function MessageThread({ thread }: { thread: any }) {
         }
     };
 
+    const last = thread.messages[thread.messages.length - 1];
+    const prefix = last ? (last.sender === "team" ? "You: " : last.sender === "astra" ? "Astra: " : "") : "";
+    const preview = last ? (prefix + last.body).slice(0, 80) : "";
+
     return (
-        <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-            <BlockStack gap="200">
-                <InlineStack align="space-between" blockAlign="center">
-                    <Text as="p" fontWeight="semibold">{thread.shop}</Text>
-                    {thread.unread > 0 && <Badge tone="attention">{`${thread.unread} new`}</Badge>}
-                </InlineStack>
-                <BlockStack gap="150">
-                    {thread.messages.map((m: any) => (
-                        <Box key={m.id} padding="200" borderRadius="200"
-                            background={m.sender === "team" ? "bg-surface-success" : "bg-surface"}>
-                            <BlockStack gap="050">
-                                <Text as="span" variant="bodySm" tone="subdued">
-                                    {m.sender === "team" ? "You (Empire)" : thread.shop} · {new Date(m.createdAt).toLocaleString()}
-                                </Text>
-                                <Text as="p">{m.body}</Text>
-                            </BlockStack>
-                        </Box>
-                    ))}
-                </BlockStack>
-                <fetcher.Form method="post">
-                    <input type="hidden" name="intent" value="reply_message" />
-                    <input type="hidden" name="shop" value={thread.shop} />
+        <Box background="bg-surface-secondary" borderRadius="200">
+            <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setOpen((o) => !o)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+                style={{ cursor: "pointer", padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+            >
+                <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <strong style={{ fontSize: "0.9rem" }}>{thread.shop}</strong>
+                        {thread.unread > 0 && <Badge tone="attention">{`${thread.unread} new`}</Badge>}
+                    </span>
+                    <span style={{ display: "block", fontSize: "0.8rem", color: "#6d7175", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>{preview}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: "0.75rem", color: "#8c9196" }}>{relTime(thread.lastAt)}</span>
+                    <span style={{ color: "#8c9196" }}>{open ? "▾" : "▸"}</span>
+                </span>
+            </div>
+            {open && (
+                <div style={{ borderTop: "1px solid #e3e3e3", padding: "12px 14px" }}>
                     <BlockStack gap="200">
-                        <TextField label="Reply" labelHidden multiline={2} name="body" autoComplete="off"
-                            value={reply} onChange={onReplyChange} placeholder={`Reply to ${thread.shop}…`} />
-                        <InlineStack gap="200" blockAlign="center">
-                            <Button variant="primary" loading={busy} disabled={!reply.trim()}
-                                onClick={() => {
-                                    const body = reply.trim();
-                                    if (!body) return;
-                                    // Single submission only — NOT a submit-type button, so the
-                                    // form doesn't also fire a native submit with an emptied field.
-                                    fetcher.submit(
-                                        { intent: "reply_message", shop: thread.shop, body },
-                                        { method: "post" }
-                                    );
-                                    setReply("");
-                                }}>
-                                Send reply
-                            </Button>
-                            {sent && <Text as="span" variant="bodySm" tone="success">Sent ✓</Text>}
-                        </InlineStack>
+                        <BlockStack gap="150">
+                            {thread.messages.map((m: any) => (
+                                <Box key={m.id} padding="200" borderRadius="200"
+                                    background={m.sender === "team" ? "bg-surface-success" : "bg-surface"}>
+                                    <BlockStack gap="050">
+                                        <Text as="span" variant="bodySm" tone="subdued">
+                                            {m.sender === "team" ? "You (Empire)" : m.sender === "astra" ? "Astra (AI)" : thread.shop} · {new Date(m.createdAt).toLocaleString()}
+                                        </Text>
+                                        <Text as="p">{m.body}</Text>
+                                    </BlockStack>
+                                </Box>
+                            ))}
+                        </BlockStack>
+                        <fetcher.Form method="post">
+                            <input type="hidden" name="intent" value="reply_message" />
+                            <input type="hidden" name="shop" value={thread.shop} />
+                            <BlockStack gap="200">
+                                <TextField label="Reply" labelHidden multiline={2} name="body" autoComplete="off"
+                                    value={reply} onChange={onReplyChange} placeholder={`Reply to ${thread.shop}…`} />
+                                <InlineStack gap="200" blockAlign="center">
+                                    <Button variant="primary" loading={busy} disabled={!reply.trim()}
+                                        onClick={() => {
+                                            const body = reply.trim();
+                                            if (!body) return;
+                                            fetcher.submit({ intent: "reply_message", shop: thread.shop, body }, { method: "post" });
+                                            setReply("");
+                                        }}>
+                                        Send reply
+                                    </Button>
+                                    {sent && <Text as="span" variant="bodySm" tone="success">Sent ✓</Text>}
+                                </InlineStack>
+                            </BlockStack>
+                        </fetcher.Form>
                     </BlockStack>
-                </fetcher.Form>
-            </BlockStack>
+                </div>
+            )}
         </Box>
     );
 }
@@ -414,6 +441,15 @@ export default function SupportPage() {
         return () => { active = false; clearInterval(id); };
     }, []);
 
+    // Inbox: filter by shop/message text, surface unread first, newest next.
+    const [msgSearch, setMsgSearch] = useState("");
+    const q = msgSearch.trim().toLowerCase();
+    const visibleThreads = liveThreads
+        .filter((t) => !q || t.shop.toLowerCase().includes(q) || t.messages.some((m: any) => (m.body || "").toLowerCase().includes(q)))
+        .slice()
+        .sort((a, b) => (b.unread > 0 ? 1 : 0) - (a.unread > 0 ? 1 : 0) || new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+    const unreadConvos = liveThreads.filter((t) => t.unread > 0).length;
+
     return (
         <Page
             title="Support & Learning"
@@ -445,14 +481,23 @@ export default function SupportPage() {
                     <Card>
                         <BlockStack gap="300">
                             <InlineStack align="space-between" blockAlign="center">
-                                <Text as="h2" variant="headingMd">Messages ({liveThreads.length})</Text>
-                                <Text as="span" variant="bodySm" tone="subdued">Replies show up in the merchant's support widget</Text>
+                                <Text as="h2" variant="headingMd">
+                                    Conversations ({liveThreads.length}){unreadConvos > 0 ? ` · ${unreadConvos} unread` : ""}
+                                </Text>
+                                <Text as="span" variant="bodySm" tone="subdued">Merchants who asked for a human</Text>
                             </InlineStack>
+                            {liveThreads.length > 0 && (
+                                <TextField label="Search conversations" labelHidden value={msgSearch} onChange={setMsgSearch}
+                                    placeholder="Search by shop or message…" autoComplete="off"
+                                    clearButton onClearButtonClick={() => setMsgSearch("")} />
+                            )}
                             {liveThreads.length === 0 ? (
-                                <Text as="p" tone="subdued">No merchant messages yet. When a merchant sends one from the support widget, the thread appears here to reply.</Text>
+                                <Text as="p" tone="subdued">No conversations yet. When Astra hands one off — or a merchant taps “Talk to a human” — it appears here to reply.</Text>
+                            ) : visibleThreads.length === 0 ? (
+                                <Text as="p" tone="subdued">No conversations match “{msgSearch}”.</Text>
                             ) : (
-                                <BlockStack gap="300">
-                                    {liveThreads.map((t) => <MessageThread key={t.shop} thread={t} />)}
+                                <BlockStack gap="200">
+                                    {visibleThreads.map((t) => <MessageThread key={t.shop} thread={t} />)}
                                 </BlockStack>
                             )}
                         </BlockStack>
