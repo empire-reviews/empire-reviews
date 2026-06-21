@@ -203,7 +203,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (rawBody && rawBody.intent === "list_messages") {
     try {
       const rows = await prisma.supportMessage.findMany({
-        where: { shop: session.shop },
+        where: { shop: session.shop, archivedAt: null },
         orderBy: { createdAt: "asc" },
         take: 200,
         select: { id: true, sender: true, body: true, createdAt: true },
@@ -249,6 +249,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!OWNER_SHOP || session.shop !== OWNER_SHOP) return json({ ok: false, threads: [] }, { status: 403 });
     try {
       const rows = await prisma.supportMessage.findMany({
+        where: { archivedAt: null },
         orderBy: { createdAt: "asc" },
         take: 1000,
         select: { id: true, shop: true, sender: true, body: true, readAt: true, createdAt: true },
@@ -320,6 +321,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     } catch (e) {
       console.error("[support] send_message failed:", (e as Error).message);
       return json({ ok: false, error: "Could not send message right now." }, { status: 500 });
+    }
+  }
+
+  // Start a fresh session — archive the current messages and hand back to Astra.
+  if (rawBody && rawBody.intent === "new_conversation") {
+    try {
+      await prisma.supportMessage.updateMany({
+        where: { shop: session.shop, archivedAt: null },
+        data: { archivedAt: new Date() },
+      });
+      await prisma.supportThread.upsert({
+        where: { shop: session.shop },
+        create: { shop: session.shop, status: "ai" },
+        update: { status: "ai" },
+      });
+      return json({ ok: true, mode: "ai" });
+    } catch (e) {
+      console.error("[support] new_conversation failed:", (e as Error).message);
+      return json({ ok: false }, { status: 500 });
     }
   }
 

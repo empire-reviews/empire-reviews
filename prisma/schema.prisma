@@ -319,15 +319,17 @@ model LearnedAnswer {
 // support widget's Messages tab; the owner replies from the Support & Learning
 // panel. Shop-scoped — each merchant only ever sees their own thread.
 model SupportMessage {
-  id        String    @id @default(uuid())
-  shop      String
-  sender    String // "merchant" | "team"
-  body      String
-  readAt    DateTime? // null until the other side has seen it
-  createdAt DateTime  @default(now())
+  id         String    @id @default(uuid())
+  shop       String
+  sender     String // "merchant" | "astra" | "team"
+  body       String
+  readAt     DateTime? // null until the other side has seen it
+  archivedAt DateTime? // set when the merchant starts a new conversation (closed session)
+  createdAt  DateTime  @default(now())
 
   @@index([shop])
   @@index([shop, createdAt])
+  @@index([shop, archivedAt])
 }
 
 // Per-merchant support thread mode. "ai" = Astra (the AI assistant) handles

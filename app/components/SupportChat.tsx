@@ -400,6 +400,14 @@ export default function SupportChat({ shop }: SupportChatProps) {
     dmSendFetcher.submit({ intent: "escalate" }, { method: "POST", action: "/api/support", encType: "application/json" });
   }, [dmMode, dmSendFetcher]);
 
+  // Fresh session: archive the current thread server-side and hand back to Astra.
+  const newConversation = useCallback(() => {
+    setDmMessages([]);
+    setDmMode("ai");
+    setDmInput("");
+    dmSendFetcher.submit({ intent: "new_conversation" }, { method: "POST", action: "/api/support", encType: "application/json" });
+  }, [dmSendFetcher]);
+
   const name = shopName(shop);
   const featured = getFeaturedArticles();
   const results = query.trim() ? searchArticles(query) : [];
@@ -455,6 +463,15 @@ export default function SupportChat({ shop }: SupportChatProps) {
                 );
               })()}
             </div>
+          )}
+          {view === "messages" && dmMessages.length > 0 && (
+            <button
+              onClick={newConversation}
+              style={{ marginLeft: "auto", marginRight: 4, background: "rgba(255,255,255,0.14)", border: "none", color: "#fff", cursor: "pointer", fontSize: "0.7rem", padding: "4px 9px", borderRadius: 8, fontWeight: 600 }}
+              aria-label="Start a new conversation"
+            >
+              ↻ New chat
+            </button>
           )}
           <button style={styles.closeBtn} onClick={() => setOpen(false)} aria-label="Close support">✕</button>
         </div>

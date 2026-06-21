@@ -71,6 +71,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     let dmRows: any[] = [];
     try {
         dmRows = await prisma.supportMessage.findMany({
+            where: { archivedAt: null },
             orderBy: { createdAt: "asc" },
             take: 1000,
             select: { id: true, shop: true, sender: true, body: true, readAt: true, createdAt: true },
