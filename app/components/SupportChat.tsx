@@ -454,11 +454,15 @@ export default function SupportChat({ shop }: SupportChatProps) {
     else setView("home");
   }, [view, articleBack]);
 
-  // ── Messages: load the thread when the tab opens, keep it scrolled ──
+  // ── Messages: load the thread when the tab opens, then poll so team replies
+  // appear live without the merchant having to leave and re-open the tab ──
   useEffect(() => {
-    if (open && view === "messages") {
+    if (!(open && view === "messages")) return;
+    const load = () =>
       dmFetcher.submit({ intent: "list_messages" }, { method: "POST", action: "/api/support", encType: "application/json" });
-    }
+    load(); // immediate fetch on open
+    const id = setInterval(load, 8000); // refresh every 8s while open
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view]);
   useEffect(() => {
