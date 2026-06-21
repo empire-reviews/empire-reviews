@@ -5,14 +5,14 @@
          data-shop-domain="{{ shop.permanent_domain }}"
          onclick="EmpireFloatingTab.open(this)">
         <div class="empire-tab-inner">
-            <span class="empire-floating-text">Reviews</span>
+            <span class="empire-floating-text" data-empire-i18n="reviews_tab">Reviews</span>
         </div>
     </div>
 
     <!-- The sliding panel -->
     <div class="empire-floating-panel empire-panel-{{ block.settings.position }} empire-size-{{ block.settings.panel_size }}" id="empire-floating-panel-{{ block.id }}">
         <div class="empire-floating-header">
-            <h3>Store Reviews</h3>
+            <h3 data-empire-i18n="store_reviews">Store Reviews</h3>
             <button class="empire-close-btn" onclick="EmpireFloatingTab.close(this)">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
             </button>
@@ -23,7 +23,7 @@
             </div>
         </div>
         <div class="empire-floating-footer">
-            <span>Powered by <strong>Empire</strong></span>
+            <span><span data-empire-i18n="powered_by">Powered by</span> <strong>Empire</strong></span>
         </div>
     </div>
 </div>
@@ -323,10 +323,16 @@
             let reviewUrl = `${host}/api/reviews?shop=${shop}&limit=10`;
             if (productId) reviewUrl += `&productId=${productId}`;
             const panelTitle = panel.querySelector('.empire-floating-header h3');
-            if (panelTitle) panelTitle.textContent = productId ? 'Product Reviews' : 'Store Reviews';
+            // Reach the shared i18n helpers when empire-widgets.js is on the page;
+            // otherwise fall back to English so strings never render as keys.
+            var EW = window.EmpireWidgets || {};
+            var EF_EN = { store_reviews:'Store Reviews', product_reviews:'Product Reviews', verified_customer:'Verified Customer', no_reviews_panel:'No reviews yet.', failed_reviews:'Failed to load reviews.' };
+            var T = (EW && EW.t) ? EW.t : function (k) { return EF_EN[k] || k; };
             fetch(reviewUrl)
                 .then(res => res.json())
                 .then(data => {
+                    if (EW.setLang && data.settings && data.settings.language) EW.setLang(data.settings.language);
+                    if (panelTitle) panelTitle.textContent = productId ? T('product_reviews') : T('store_reviews');
                     const content = panel.querySelector('.empire-floating-content');
                     if(data.reviews && data.reviews.length > 0) {
                         
@@ -349,7 +355,7 @@
                                             <h4 class="empire-review-author">${name}</h4>
                                             <div class="empire-star-badge"><span>★</span> ${Number(r.rating).toFixed(1)}</div>
                                         </div>
-                                        <p class="empire-review-role">Verified Customer</p>
+                                        <p class="empire-review-role">${T('verified_customer')}</p>
                                     </div>
                                 </div>
                                 <p class="empire-review-body">${_efEscape(r.body || '')}</p>
@@ -357,12 +363,12 @@
                             `;
                         }).join('');
                     } else {
-                        content.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0a0a0;">No reviews yet.</div>';
+                        content.innerHTML = '<div style="text-align: center; padding: 40px; color: #a0a0a0;">' + T('no_reviews_panel') + '</div>';
                     }
                     panel.dataset.loaded = 'true';
                 })
                 .catch(e => {
-                    panel.querySelector('.empire-floating-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Failed to load reviews.</div>';
+                    panel.querySelector('.empire-floating-content').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">' + T('failed_reviews') + '</div>';
                 });
         }
     };

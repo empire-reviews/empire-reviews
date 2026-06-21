@@ -7,9 +7,9 @@
     <div class="empire-ai-header">
         <div class="empire-ai-badge-wrap" style="background: var(--empire-title);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="empire-ai-sparkle"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path></svg>
-            <span class="empire-ai-badge-text">Empire AI Analysis</span>
+            <span class="empire-ai-badge-text" data-empire-i18n="ai_badge">Empire AI Analysis</span>
         </div>
-        <h3 class="empire-ai-title">Customer Consensus</h3>
+        <h3 class="empire-ai-title" data-empire-i18n="ai_title">Customer Consensus</h3>
     </div>
     
     <div class="empire-ai-content empire-loading-pulse">
@@ -19,7 +19,7 @@
     </div>
 
     <div class="empire-ai-disclaimer" style="display: none;">
-        <span>Generated from the text of customer reviews</span>
+        <span data-empire-i18n="ai_disclaimer">Generated from the text of customer reviews</span>
     </div>
 </div>
 
@@ -125,32 +125,45 @@ document.addEventListener('DOMContentLoaded', function() {
         url += `&productId=${pureId}`;
     }
 
+    // Reach the shared i18n helpers when empire-widgets.js is on the page;
+    // otherwise fall back to English so messages never render as raw keys.
+    var EW = window.EmpireWidgets || {};
+    var AI_EN = {
+        ai_no_provider: "Add an AI provider in your Empire Reviews settings to enable AI-generated summaries.",
+        ai_pro_only: "AI summaries are available on Empire Pro. Upgrade to unlock this feature.",
+        ai_no_reviews: "No reviews yet — be the first to share your experience with this product.",
+        ai_no_written: "Customers have rated this product but haven't left written reviews yet. A summary will appear once written feedback comes in.",
+        ai_fallback: "No reviews yet — summaries will appear once customers start leaving feedback."
+    };
+    var T = (EW && EW.t) ? EW.t : function (k) { return AI_EN[k] || k; };
+
     fetch(url)
         .then(res => res.json())
         .then(data => {
+            if (EW.setLang && data.settings && data.settings.language) EW.setLang(data.settings.language);
             const contentEl = el.querySelector('.empire-ai-content');
             contentEl.classList.remove('empire-loading-pulse');
-            
+
             if (data.summary && data.summary.trim() !== "") {
                 contentEl.innerText = data.summary;
                 el.querySelector('.empire-ai-disclaimer').style.display = 'flex';
             } else if (data.error === "AI Provider not configured") {
-                contentEl.innerText = "Add an AI provider in your Empire Reviews settings to enable AI-generated summaries.";
+                contentEl.innerText = T("ai_no_provider");
                 contentEl.style.opacity = '0.7';
             } else if (data.error === "Feature requires Empire Pro") {
-                contentEl.innerText = "AI summaries are available on Empire Pro. Upgrade to unlock this feature.";
+                contentEl.innerText = T("ai_pro_only");
                 contentEl.style.opacity = '0.7';
             } else if (data.error === "NO_REVIEWS_YET") {
-                contentEl.innerText = "No reviews yet — be the first to share your experience with this product.";
+                contentEl.innerText = T("ai_no_reviews");
                 contentEl.style.opacity = '0.7';
             } else if (data.error === "NO_WRITTEN_REVIEWS") {
-                contentEl.innerText = "Customers have rated this product but haven't left written reviews yet. A summary will appear once written feedback comes in.";
+                contentEl.innerText = T("ai_no_written");
                 contentEl.style.opacity = '0.7';
             } else if (data.error) {
                 contentEl.innerText = "Could not generate summary: " + data.error;
                 contentEl.style.opacity = '0.7';
             } else {
-                contentEl.innerText = "No reviews yet — summaries will appear once customers start leaving feedback.";
+                contentEl.innerText = T("ai_fallback");
                 contentEl.style.opacity = '0.7';
             }
         })

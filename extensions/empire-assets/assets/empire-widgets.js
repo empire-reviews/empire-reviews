@@ -31,6 +31,35 @@ const EmpireWidgets = (function() {
         ar: { verified_buyer:"مشترٍ موثّق", write_review:"اكتب مراجعة", modal_title:"شاركنا تجربتك", modal_sub:"كيف تقيّم هذا المنتج؟", star_label:"اضغط على نجمة للتقييم", name_ph:"اسمك (اختياري)", review_ph:"أخبرنا برأيك...", submit_review:"إرسال المراجعة", submitting:"جارٍ الإرسال...", success_title:"شكرًا لك!", success_sub:"تم استلام مراجعتك وهي في انتظار الموافقة.", review_live:"مراجعتك الآن مرئية للجميع. شكرًا لك!", no_reviews_yet:"لا توجد مراجعات بعد", be_first:"كن أول من يكتب مراجعة!", out_of_5:"من 5", add_photos:"إضافة صور", remove:"إزالة", load_more:"تحميل المزيد" },
         hi: { verified_buyer:"सत्यापित खरीदार", write_review:"समीक्षा लिखें", modal_title:"अपना अनुभव साझा करें", modal_sub:"आप इस उत्पाद को कैसे रेट करेंगे?", star_label:"रेट करने के लिए स्टार पर टैप करें", name_ph:"आपका नाम (वैकल्पिक)", review_ph:"हमें बताएं कि आप क्या सोचते हैं...", submit_review:"समीक्षा भेजें", submitting:"भेज रहे हैं...", success_title:"धन्यवाद!", success_sub:"आपकी समीक्षा प्राप्त हो गई है और अनुमोदन की प्रतीक्षा में है।", review_live:"आपकी समीक्षा अब सभी के लिए दृश्यमान है। धन्यवाद!", no_reviews_yet:"अभी तक कोई समीक्षा नहीं", be_first:"समीक्षा करने वाले पहले व्यक्ति बनें!", out_of_5:"में से 5", add_photos:"फ़ोटो जोड़ें", remove:"हटाएं", load_more:"और लोड करें" },
     };
+    // ─── Extended translations ────────────────────────────────────────────────
+    // Merged into the base I18N above. Because t() falls back per-key to English,
+    // any language missing a key degrades gracefully instead of rendering blank.
+    const I18N_EXT = {
+        en: { based_on_reviews:"Based on {n} reviews", see_all_reviews:"See all reviews here ↓", hide_reviews:"Hide reviews ↑", loading:"Loading...", sent:"Sent!", live_title:"You're live!", received_title:"Review received!", received_sub:"We'll share your experience with the world very soon. Thank you!", err_rating:"Please select a star rating first.", err_uploading:"Please wait — your photo is still uploading.", err_shop:"Could not detect your store. Please refresh the page and try again.", customer_photo:"Customer photo", no_photos:"No customer photos yet — be the first to share yours!", failed_photos:"Failed to load photos.", reviews_tab:"Reviews", store_reviews:"Store Reviews", product_reviews:"Product Reviews", verified_customer:"Verified Customer", no_reviews_panel:"No reviews yet.", failed_reviews:"Failed to load reviews.", powered_by:"Powered by", ai_badge:"Empire AI Analysis", ai_title:"Customer Consensus", ai_disclaimer:"Generated from the text of customer reviews", ai_no_provider:"Add an AI provider in your Empire Reviews settings to enable AI-generated summaries.", ai_pro_only:"AI summaries are available on Empire Pro. Upgrade to unlock this feature.", ai_no_reviews:"No reviews yet — be the first to share your experience with this product.", ai_no_written:"Customers have rated this product but haven't left written reviews yet. A summary will appear once written feedback comes in.", ai_fallback:"No reviews yet — summaries will appear once customers start leaving feedback." },
+        es: { based_on_reviews:"Basado en {n} reseñas", see_all_reviews:"Ver todas las reseñas ↓", hide_reviews:"Ocultar reseñas ↑", loading:"Cargando...", sent:"¡Enviado!", live_title:"¡Ya está publicada!", received_title:"¡Reseña recibida!", received_sub:"Compartiremos tu experiencia con el mundo muy pronto. ¡Gracias!", err_rating:"Primero selecciona una calificación con estrellas.", err_uploading:"Espera — tu foto aún se está subiendo.", err_shop:"No se pudo detectar tu tienda. Actualiza la página e inténtalo de nuevo.", customer_photo:"Foto del cliente", no_photos:"Aún no hay fotos de clientes — ¡sé el primero en compartir la tuya!", failed_photos:"Error al cargar las fotos.", reviews_tab:"Reseñas", store_reviews:"Reseñas de la tienda", product_reviews:"Reseñas del producto", verified_customer:"Cliente verificado", no_reviews_panel:"Aún no hay reseñas.", failed_reviews:"Error al cargar las reseñas.", powered_by:"Con tecnología de", ai_badge:"Análisis de Empire AI", ai_title:"Consenso de los clientes", ai_disclaimer:"Generado a partir del texto de las reseñas de clientes", ai_no_provider:"Añade un proveedor de IA en la configuración de Empire Reviews para activar los resúmenes generados por IA.", ai_pro_only:"Los resúmenes con IA están disponibles en Empire Pro. Mejora tu plan para desbloquear esta función.", ai_no_reviews:"Aún no hay reseñas — sé el primero en compartir tu experiencia con este producto.", ai_no_written:"Los clientes han calificado este producto pero aún no han dejado reseñas escritas. El resumen aparecerá cuando lleguen comentarios escritos.", ai_fallback:"Aún no hay reseñas — los resúmenes aparecerán cuando los clientes empiecen a dejar comentarios." },
+        fr: { based_on_reviews:"Basé sur {n} avis", see_all_reviews:"Voir tous les avis ↓", hide_reviews:"Masquer les avis ↑", loading:"Chargement...", sent:"Envoyé !", live_title:"C'est en ligne !", received_title:"Avis reçu !", received_sub:"Nous partagerons votre expérience avec le monde très bientôt. Merci !", err_rating:"Veuillez d'abord sélectionner une note en étoiles.", err_uploading:"Veuillez patienter — votre photo est encore en cours de téléchargement.", err_shop:"Impossible de détecter votre boutique. Actualisez la page et réessayez.", customer_photo:"Photo du client", no_photos:"Aucune photo de client pour le moment — soyez le premier à partager la vôtre !", failed_photos:"Échec du chargement des photos.", reviews_tab:"Avis", store_reviews:"Avis de la boutique", product_reviews:"Avis du produit", verified_customer:"Client vérifié", no_reviews_panel:"Pas encore d'avis.", failed_reviews:"Échec du chargement des avis.", powered_by:"Propulsé par", ai_badge:"Analyse Empire AI", ai_title:"Consensus des clients", ai_disclaimer:"Généré à partir du texte des avis clients", ai_no_provider:"Ajoutez un fournisseur d'IA dans les paramètres d'Empire Reviews pour activer les résumés générés par IA.", ai_pro_only:"Les résumés par IA sont disponibles sur Empire Pro. Passez à la version supérieure pour débloquer cette fonctionnalité.", ai_no_reviews:"Pas encore d'avis — soyez le premier à partager votre expérience avec ce produit.", ai_no_written:"Les clients ont noté ce produit mais n'ont pas encore laissé d'avis écrits. Un résumé apparaîtra dès réception de commentaires écrits.", ai_fallback:"Pas encore d'avis — les résumés apparaîtront lorsque les clients commenceront à laisser des commentaires." },
+        de: { based_on_reviews:"Basierend auf {n} Bewertungen", see_all_reviews:"Alle Bewertungen ansehen ↓", hide_reviews:"Bewertungen ausblenden ↑", loading:"Lädt...", sent:"Gesendet!", live_title:"Jetzt online!", received_title:"Bewertung erhalten!", received_sub:"Wir teilen deine Erfahrung sehr bald mit der Welt. Danke!", err_rating:"Bitte wähle zuerst eine Sternebewertung.", err_uploading:"Bitte warte — dein Foto wird noch hochgeladen.", err_shop:"Dein Shop konnte nicht erkannt werden. Bitte aktualisiere die Seite und versuche es erneut.", customer_photo:"Kundenfoto", no_photos:"Noch keine Kundenfotos — sei der Erste, der seines teilt!", failed_photos:"Fotos konnten nicht geladen werden.", reviews_tab:"Bewertungen", store_reviews:"Shop-Bewertungen", product_reviews:"Produktbewertungen", verified_customer:"Verifizierter Kunde", no_reviews_panel:"Noch keine Bewertungen.", failed_reviews:"Bewertungen konnten nicht geladen werden.", powered_by:"Bereitgestellt von", ai_badge:"Empire-KI-Analyse", ai_title:"Kundenkonsens", ai_disclaimer:"Erstellt aus dem Text der Kundenbewertungen", ai_no_provider:"Füge in deinen Empire-Reviews-Einstellungen einen KI-Anbieter hinzu, um KI-generierte Zusammenfassungen zu aktivieren.", ai_pro_only:"KI-Zusammenfassungen sind in Empire Pro verfügbar. Führe ein Upgrade durch, um diese Funktion freizuschalten.", ai_no_reviews:"Noch keine Bewertungen — sei der Erste, der seine Erfahrung mit diesem Produkt teilt.", ai_no_written:"Kunden haben dieses Produkt bewertet, aber noch keine schriftlichen Bewertungen hinterlassen. Eine Zusammenfassung erscheint, sobald schriftliches Feedback vorliegt.", ai_fallback:"Noch keine Bewertungen — Zusammenfassungen erscheinen, sobald Kunden Feedback hinterlassen." },
+        pt: { based_on_reviews:"Com base em {n} avaliações", see_all_reviews:"Ver todas as avaliações ↓", hide_reviews:"Ocultar avaliações ↑", loading:"Carregando...", sent:"Enviado!", live_title:"Está no ar!", received_title:"Avaliação recebida!", received_sub:"Compartilharemos sua experiência com o mundo muito em breve. Obrigado!", err_rating:"Selecione primeiro uma classificação por estrelas.", err_uploading:"Aguarde — sua foto ainda está sendo enviada.", err_shop:"Não foi possível detectar sua loja. Atualize a página e tente novamente.", customer_photo:"Foto do cliente", no_photos:"Ainda não há fotos de clientes — seja o primeiro a compartilhar a sua!", failed_photos:"Falha ao carregar as fotos.", reviews_tab:"Avaliações", store_reviews:"Avaliações da loja", product_reviews:"Avaliações do produto", verified_customer:"Cliente verificado", no_reviews_panel:"Ainda sem avaliações.", failed_reviews:"Falha ao carregar as avaliações.", powered_by:"Desenvolvido por", ai_badge:"Análise Empire AI", ai_title:"Consenso dos clientes", ai_disclaimer:"Gerado a partir do texto das avaliações dos clientes", ai_no_provider:"Adicione um provedor de IA nas configurações do Empire Reviews para ativar resumos gerados por IA.", ai_pro_only:"Os resumos com IA estão disponíveis no Empire Pro. Faça upgrade para desbloquear este recurso.", ai_no_reviews:"Ainda não há avaliações — seja o primeiro a compartilhar sua experiência com este produto.", ai_no_written:"Os clientes avaliaram este produto, mas ainda não deixaram avaliações escritas. Um resumo aparecerá quando houver comentários escritos.", ai_fallback:"Ainda não há avaliações — os resumos aparecerão quando os clientes começarem a deixar comentários." },
+        it: { based_on_reviews:"Basato su {n} recensioni", see_all_reviews:"Vedi tutte le recensioni ↓", hide_reviews:"Nascondi recensioni ↑", loading:"Caricamento...", sent:"Inviato!", live_title:"Sei online!", received_title:"Recensione ricevuta!", received_sub:"Condivideremo la tua esperienza con il mondo molto presto. Grazie!", err_rating:"Seleziona prima una valutazione a stelle.", err_uploading:"Attendi — la tua foto è ancora in caricamento.", err_shop:"Impossibile rilevare il tuo negozio. Aggiorna la pagina e riprova.", customer_photo:"Foto del cliente", no_photos:"Ancora nessuna foto dei clienti — sii il primo a condividere la tua!", failed_photos:"Impossibile caricare le foto.", reviews_tab:"Recensioni", store_reviews:"Recensioni del negozio", product_reviews:"Recensioni del prodotto", verified_customer:"Cliente verificato", no_reviews_panel:"Ancora nessuna recensione.", failed_reviews:"Impossibile caricare le recensioni.", powered_by:"Realizzato con", ai_badge:"Analisi Empire AI", ai_title:"Consenso dei clienti", ai_disclaimer:"Generato dal testo delle recensioni dei clienti", ai_no_provider:"Aggiungi un provider di IA nelle impostazioni di Empire Reviews per abilitare i riepiloghi generati dall'IA.", ai_pro_only:"I riepiloghi con IA sono disponibili su Empire Pro. Esegui l'upgrade per sbloccare questa funzione.", ai_no_reviews:"Ancora nessuna recensione — sii il primo a condividere la tua esperienza con questo prodotto.", ai_no_written:"I clienti hanno valutato questo prodotto ma non hanno ancora lasciato recensioni scritte. Un riepilogo apparirà quando arriveranno commenti scritti.", ai_fallback:"Ancora nessuna recensione — i riepiloghi appariranno quando i clienti inizieranno a lasciare commenti." },
+        nl: { based_on_reviews:"Gebaseerd op {n} reviews", see_all_reviews:"Bekijk alle reviews ↓", hide_reviews:"Reviews verbergen ↑", loading:"Laden...", sent:"Verzonden!", live_title:"Je staat live!", received_title:"Review ontvangen!", received_sub:"We delen jouw ervaring heel binnenkort met de wereld. Bedankt!", err_rating:"Selecteer eerst een sterbeoordeling.", err_uploading:"Even geduld — je foto wordt nog geüpload.", err_shop:"Je winkel kon niet worden gedetecteerd. Vernieuw de pagina en probeer het opnieuw.", customer_photo:"Klantfoto", no_photos:"Nog geen klantfoto's — wees de eerste die de jouwe deelt!", failed_photos:"Foto's laden mislukt.", reviews_tab:"Reviews", store_reviews:"Winkelreviews", product_reviews:"Productreviews", verified_customer:"Geverifieerde klant", no_reviews_panel:"Nog geen reviews.", failed_reviews:"Reviews laden mislukt.", powered_by:"Mogelijk gemaakt door", ai_badge:"Empire AI-analyse", ai_title:"Klantconsensus", ai_disclaimer:"Gegenereerd op basis van de tekst van klantreviews", ai_no_provider:"Voeg een AI-provider toe in je Empire Reviews-instellingen om AI-gegenereerde samenvattingen in te schakelen.", ai_pro_only:"AI-samenvattingen zijn beschikbaar in Empire Pro. Upgrade om deze functie te ontgrendelen.", ai_no_reviews:"Nog geen reviews — wees de eerste die zijn ervaring met dit product deelt.", ai_no_written:"Klanten hebben dit product beoordeeld maar nog geen geschreven reviews achtergelaten. Een samenvatting verschijnt zodra er geschreven feedback is.", ai_fallback:"Nog geen reviews — samenvattingen verschijnen zodra klanten feedback achterlaten." },
+        sv: { based_on_reviews:"Baserat på {n} recensioner", see_all_reviews:"Se alla recensioner ↓", hide_reviews:"Dölj recensioner ↑", loading:"Laddar...", sent:"Skickat!", live_title:"Du är live!", received_title:"Recension mottagen!", received_sub:"Vi delar din upplevelse med världen mycket snart. Tack!", err_rating:"Välj först ett stjärnbetyg.", err_uploading:"Vänta — ditt foto laddas fortfarande upp.", err_shop:"Din butik kunde inte identifieras. Uppdatera sidan och försök igen.", customer_photo:"Kundfoto", no_photos:"Inga kundfoton ännu — var först med att dela ditt!", failed_photos:"Det gick inte att ladda foton.", reviews_tab:"Recensioner", store_reviews:"Butiksrecensioner", product_reviews:"Produktrecensioner", verified_customer:"Verifierad kund", no_reviews_panel:"Inga recensioner ännu.", failed_reviews:"Det gick inte att ladda recensioner.", powered_by:"Drivs av", ai_badge:"Empire AI-analys", ai_title:"Kundkonsensus", ai_disclaimer:"Genererat från texten i kundrecensioner", ai_no_provider:"Lägg till en AI-leverantör i dina Empire Reviews-inställningar för att aktivera AI-genererade sammanfattningar.", ai_pro_only:"AI-sammanfattningar är tillgängliga i Empire Pro. Uppgradera för att låsa upp den här funktionen.", ai_no_reviews:"Inga recensioner ännu — var först med att dela din upplevelse av denna produkt.", ai_no_written:"Kunder har betygsatt denna produkt men har inte lämnat skriftliga recensioner ännu. En sammanfattning visas när skriftlig feedback kommer in.", ai_fallback:"Inga recensioner ännu — sammanfattningar visas när kunder börjar lämna feedback." },
+        pl: { based_on_reviews:"Na podstawie {n} recenzji", see_all_reviews:"Zobacz wszystkie recenzje ↓", hide_reviews:"Ukryj recenzje ↑", loading:"Ładowanie...", sent:"Wysłano!", live_title:"Jesteś na żywo!", received_title:"Recenzja otrzymana!", received_sub:"Już wkrótce podzielimy się Twoim doświadczeniem ze światem. Dziękujemy!", err_rating:"Najpierw wybierz ocenę w gwiazdkach.", err_uploading:"Poczekaj — Twoje zdjęcie jest jeszcze przesyłane.", err_shop:"Nie udało się wykryć Twojego sklepu. Odśwież stronę i spróbuj ponownie.", customer_photo:"Zdjęcie klienta", no_photos:"Brak zdjęć klientów — bądź pierwszym, który udostępni swoje!", failed_photos:"Nie udało się załadować zdjęć.", reviews_tab:"Recenzje", store_reviews:"Recenzje sklepu", product_reviews:"Recenzje produktu", verified_customer:"Zweryfikowany klient", no_reviews_panel:"Brak recenzji.", failed_reviews:"Nie udało się załadować recenzji.", powered_by:"Obsługiwane przez", ai_badge:"Analiza Empire AI", ai_title:"Konsensus klientów", ai_disclaimer:"Wygenerowano na podstawie treści recenzji klientów", ai_no_provider:"Dodaj dostawcę AI w ustawieniach Empire Reviews, aby włączyć podsumowania generowane przez AI.", ai_pro_only:"Podsumowania AI są dostępne w Empire Pro. Ulepsz plan, aby odblokować tę funkcję.", ai_no_reviews:"Brak recenzji — bądź pierwszym, który podzieli się swoim doświadczeniem z tym produktem.", ai_no_written:"Klienci ocenili ten produkt, ale nie zostawili jeszcze pisemnych recenzji. Podsumowanie pojawi się, gdy napłyną pisemne opinie.", ai_fallback:"Brak recenzji — podsumowania pojawią się, gdy klienci zaczną zostawiać opinie." },
+        tr: { based_on_reviews:"{n} değerlendirmeye göre", see_all_reviews:"Tüm yorumları gör ↓", hide_reviews:"Yorumları gizle ↑", loading:"Yükleniyor...", sent:"Gönderildi!", live_title:"Yayında!", received_title:"Yorum alındı!", received_sub:"Deneyiminizi çok yakında dünyayla paylaşacağız. Teşekkürler!", err_rating:"Lütfen önce bir yıldız puanı seçin.", err_uploading:"Lütfen bekleyin — fotoğrafınız hâlâ yükleniyor.", err_shop:"Mağazanız algılanamadı. Lütfen sayfayı yenileyip tekrar deneyin.", customer_photo:"Müşteri fotoğrafı", no_photos:"Henüz müşteri fotoğrafı yok — kendinizinkini ilk paylaşan siz olun!", failed_photos:"Fotoğraflar yüklenemedi.", reviews_tab:"Yorumlar", store_reviews:"Mağaza Yorumları", product_reviews:"Ürün Yorumları", verified_customer:"Doğrulanmış Müşteri", no_reviews_panel:"Henüz yorum yok.", failed_reviews:"Yorumlar yüklenemedi.", powered_by:"Destekleyen", ai_badge:"Empire AI Analizi", ai_title:"Müşteri Uzlaşısı", ai_disclaimer:"Müşteri yorumlarının metninden oluşturuldu", ai_no_provider:"Yapay zeka tarafından oluşturulan özetleri etkinleştirmek için Empire Reviews ayarlarınıza bir yapay zeka sağlayıcısı ekleyin.", ai_pro_only:"Yapay zeka özetleri Empire Pro'da mevcuttur. Bu özelliği açmak için yükseltin.", ai_no_reviews:"Henüz yorum yok — bu ürünle ilgili deneyiminizi ilk paylaşan siz olun.", ai_no_written:"Müşteriler bu ürünü puanladı ancak henüz yazılı yorum bırakmadı. Yazılı geri bildirim geldiğinde bir özet görünecektir.", ai_fallback:"Henüz yorum yok — müşteriler geri bildirim bırakmaya başladığında özetler görünecektir." },
+        ru: { based_on_reviews:"На основе {n} отзывов", see_all_reviews:"Смотреть все отзывы ↓", hide_reviews:"Скрыть отзывы ↑", loading:"Загрузка...", sent:"Отправлено!", live_title:"Опубликовано!", received_title:"Отзыв получен!", received_sub:"Мы очень скоро поделимся вашим опытом со всем миром. Спасибо!", err_rating:"Сначала выберите оценку в звёздах.", err_uploading:"Подождите — ваше фото ещё загружается.", err_shop:"Не удалось определить ваш магазин. Обновите страницу и попробуйте снова.", customer_photo:"Фото покупателя", no_photos:"Пока нет фото от покупателей — поделитесь своим первым!", failed_photos:"Не удалось загрузить фото.", reviews_tab:"Отзывы", store_reviews:"Отзывы о магазине", product_reviews:"Отзывы о товаре", verified_customer:"Проверенный покупатель", no_reviews_panel:"Пока нет отзывов.", failed_reviews:"Не удалось загрузить отзывы.", powered_by:"Работает на", ai_badge:"Анализ Empire AI", ai_title:"Мнение покупателей", ai_disclaimer:"Сформировано на основе текста отзывов покупателей", ai_no_provider:"Добавьте поставщика ИИ в настройках Empire Reviews, чтобы включить сводки, созданные ИИ.", ai_pro_only:"Сводки ИИ доступны в Empire Pro. Перейдите на лучший план, чтобы разблокировать эту функцию.", ai_no_reviews:"Пока нет отзывов — поделитесь своим опытом об этом товаре первым.", ai_no_written:"Покупатели оценили этот товар, но пока не оставили письменных отзывов. Сводка появится, когда поступят письменные отзывы.", ai_fallback:"Пока нет отзывов — сводки появятся, когда покупатели начнут оставлять отзывы." },
+        ja: { based_on_reviews:"{n}件のレビューに基づく", see_all_reviews:"すべてのレビューを見る ↓", hide_reviews:"レビューを隠す ↑", loading:"読み込み中...", sent:"送信しました！", live_title:"公開されました！", received_title:"レビューを受け付けました！", received_sub:"まもなくあなたの体験を世界に共有します。ありがとうございます！", err_rating:"まず星評価を選択してください。", err_uploading:"お待ちください — 写真をまだアップロード中です。", err_shop:"ストアを検出できませんでした。ページを更新してもう一度お試しください。", customer_photo:"お客様の写真", no_photos:"まだお客様の写真がありません — 最初に共有しましょう！", failed_photos:"写真を読み込めませんでした。", reviews_tab:"レビュー", store_reviews:"ストアのレビュー", product_reviews:"商品のレビュー", verified_customer:"認証済みのお客様", no_reviews_panel:"まだレビューがありません。", failed_reviews:"レビューを読み込めませんでした。", powered_by:"提供", ai_badge:"Empire AI 分析", ai_title:"お客様の総意", ai_disclaimer:"お客様のレビュー文から生成されました", ai_no_provider:"AIによる要約を有効にするには、Empire Reviewsの設定でAIプロバイダーを追加してください。", ai_pro_only:"AI要約はEmpire Proでご利用いただけます。アップグレードしてこの機能をご利用ください。", ai_no_reviews:"まだレビューがありません — この商品の体験を最初に共有しましょう。", ai_no_written:"お客様はこの商品を評価していますが、まだ文章でのレビューはありません。文章のフィードバックが届くと要約が表示されます。", ai_fallback:"まだレビューがありません — お客様がフィードバックを残し始めると要約が表示されます。" },
+        zh: { based_on_reviews:"基于 {n} 条评价", see_all_reviews:"查看所有评价 ↓", hide_reviews:"隐藏评价 ↑", loading:"加载中...", sent:"已发送！", live_title:"已发布！", received_title:"已收到评价！", received_sub:"我们很快就会向全世界分享您的体验。谢谢！", err_rating:"请先选择星级评分。", err_uploading:"请稍候 — 您的照片仍在上传中。", err_shop:"无法识别您的店铺。请刷新页面后重试。", customer_photo:"顾客照片", no_photos:"暂无顾客照片 — 成为第一个分享的人！", failed_photos:"加载照片失败。", reviews_tab:"评价", store_reviews:"店铺评价", product_reviews:"商品评价", verified_customer:"已验证顾客", no_reviews_panel:"暂无评价。", failed_reviews:"加载评价失败。", powered_by:"技术支持", ai_badge:"Empire AI 分析", ai_title:"顾客共识", ai_disclaimer:"根据顾客评价内容生成", ai_no_provider:"在您的 Empire Reviews 设置中添加 AI 提供商以启用 AI 生成的摘要。", ai_pro_only:"AI 摘要在 Empire Pro 中提供。升级以解锁此功能。", ai_no_reviews:"暂无评价 — 成为第一个分享此商品体验的人。", ai_no_written:"顾客已对此商品评分，但尚未留下文字评价。收到文字反馈后将显示摘要。", ai_fallback:"暂无评价 — 当顾客开始留下反馈时将显示摘要。" },
+        ar: { based_on_reviews:"بناءً على {n} مراجعة", see_all_reviews:"عرض جميع المراجعات ↓", hide_reviews:"إخفاء المراجعات ↑", loading:"جارٍ التحميل...", sent:"تم الإرسال!", live_title:"أصبحت منشورة!", received_title:"تم استلام المراجعة!", received_sub:"سنشارك تجربتك مع العالم قريبًا جدًا. شكرًا لك!", err_rating:"يرجى اختيار تقييم بالنجوم أولاً.", err_uploading:"يرجى الانتظار — لا تزال صورتك قيد التحميل.", err_shop:"تعذّر التعرف على متجرك. يرجى تحديث الصفحة والمحاولة مرة أخرى.", customer_photo:"صورة العميل", no_photos:"لا توجد صور للعملاء بعد — كن أول من يشارك صورته!", failed_photos:"فشل تحميل الصور.", reviews_tab:"المراجعات", store_reviews:"مراجعات المتجر", product_reviews:"مراجعات المنتج", verified_customer:"عميل موثّق", no_reviews_panel:"لا توجد مراجعات بعد.", failed_reviews:"فشل تحميل المراجعات.", powered_by:"مدعوم من", ai_badge:"تحليل Empire AI", ai_title:"إجماع العملاء", ai_disclaimer:"تم إنشاؤه من نص مراجعات العملاء", ai_no_provider:"أضف مزوّد ذكاء اصطناعي في إعدادات Empire Reviews لتفعيل الملخصات المُنشأة بالذكاء الاصطناعي.", ai_pro_only:"ملخصات الذكاء الاصطناعي متوفرة في Empire Pro. قم بالترقية لفتح هذه الميزة.", ai_no_reviews:"لا توجد مراجعات بعد — كن أول من يشارك تجربته مع هذا المنتج.", ai_no_written:"قام العملاء بتقييم هذا المنتج لكن لم يتركوا مراجعات مكتوبة بعد. سيظهر الملخص عند ورود تعليقات مكتوبة.", ai_fallback:"لا توجد مراجعات بعد — ستظهر الملخصات عندما يبدأ العملاء في ترك تعليقات." },
+        hi: { based_on_reviews:"{n} समीक्षाओं के आधार पर", see_all_reviews:"सभी समीक्षाएं देखें ↓", hide_reviews:"समीक्षाएं छिपाएं ↑", loading:"लोड हो रहा है...", sent:"भेज दिया!", live_title:"अब लाइव है!", received_title:"समीक्षा प्राप्त हुई!", received_sub:"हम बहुत जल्द आपका अनुभव दुनिया के साथ साझा करेंगे। धन्यवाद!", err_rating:"कृपया पहले एक स्टार रेटिंग चुनें।", err_uploading:"कृपया प्रतीक्षा करें — आपकी फ़ोटो अभी भी अपलोड हो रही है।", err_shop:"आपकी स्टोर का पता नहीं चल सका। कृपया पेज रिफ़्रेश करें और पुनः प्रयास करें।", customer_photo:"ग्राहक की फ़ोटो", no_photos:"अभी तक कोई ग्राहक फ़ोटो नहीं — अपनी फ़ोटो साझा करने वाले पहले व्यक्ति बनें!", failed_photos:"फ़ोटो लोड करने में विफल।", reviews_tab:"समीक्षाएं", store_reviews:"स्टोर समीक्षाएं", product_reviews:"उत्पाद समीक्षाएं", verified_customer:"सत्यापित ग्राहक", no_reviews_panel:"अभी तक कोई समीक्षा नहीं।", failed_reviews:"समीक्षाएं लोड करने में विफल।", powered_by:"द्वारा संचालित", ai_badge:"Empire AI विश्लेषण", ai_title:"ग्राहक सहमति", ai_disclaimer:"ग्राहक समीक्षाओं के टेक्स्ट से तैयार किया गया", ai_no_provider:"AI-जनित सारांश सक्षम करने के लिए अपनी Empire Reviews सेटिंग्स में एक AI प्रदाता जोड़ें।", ai_pro_only:"AI सारांश Empire Pro में उपलब्ध हैं। इस सुविधा को अनलॉक करने के लिए अपग्रेड करें।", ai_no_reviews:"अभी तक कोई समीक्षा नहीं — इस उत्पाद के साथ अपना अनुभव साझा करने वाले पहले व्यक्ति बनें।", ai_no_written:"ग्राहकों ने इस उत्पाद को रेट किया है लेकिन अभी तक लिखित समीक्षाएं नहीं छोड़ी हैं। लिखित प्रतिक्रिया आने पर एक सारांश दिखाई देगा।", ai_fallback:"अभी तक कोई समीक्षा नहीं — जब ग्राहक प्रतिक्रिया छोड़ना शुरू करेंगे तो सारांश दिखाई देंगे।" },
+    };
+    Object.keys(I18N_EXT).forEach(function (l) {
+        if (I18N[l]) Object.assign(I18N[l], I18N_EXT[l]);
+    });
+    // Translate + substitute {placeholders}: tf("based_on_reviews", { n: 5 })
+    function tf(key, vars) {
+        var s = t(key);
+        if (vars) { for (var k in vars) { s = s.split('{' + k + '}').join(vars[k]); } }
+        return s;
+    }
     function setLang(lang) {
         if (lang && I18N[lang]) { currentLang = lang; return; }
         // Fallback: try the base of a regional Shopify locale (e.g. "fr-CA" → "fr")
@@ -265,12 +294,12 @@ const EmpireWidgets = (function() {
             hideError();
 
             if (currentRatingSelected === 0) {
-                showError("Please select a star rating first.");
+                showError(t("err_rating"));
                 return;
             }
 
             if (pendingUploads > 0) {
-                showError("Please wait — your photo is still uploading.");
+                showError(t("err_uploading"));
                 return;
             }
 
@@ -279,7 +308,7 @@ const EmpireWidgets = (function() {
 
             const shop = resolveShop();
             if (!shop) {
-                showError("Could not detect your store. Please refresh the page and try again.");
+                showError(t("err_shop"));
                 return;
             }
 
@@ -312,7 +341,7 @@ const EmpireWidgets = (function() {
                     const resData = await response.json().catch(() => ({}));
                     const isLive = resData.review?.status === 'approved';
 
-                    submitBtn.innerText = "Sent!";
+                    submitBtn.innerText = t("sent");
                     const formFields = document.getElementById('empire-review-fields');
                     const label = document.getElementById('empire-star-label');
                     const picker = document.getElementById('empire-star-picker');
@@ -328,11 +357,11 @@ const EmpireWidgets = (function() {
                     if (successMsg) {
                         successMsg.innerHTML = isLive
                             ? `<div class="empire-success-burst">🌟</div>
-                               <h3 class="empire-success-title">You're live!</h3>
+                               <h3 class="empire-success-title">${t("live_title")}</h3>
                                <p class="empire-success-sub">${t("review_live")} 💜</p>`
                             : `<div class="empire-success-burst">🎉</div>
-                               <h3 class="empire-success-title">Review received!</h3>
-                               <p class="empire-success-sub">We'll share your experience with the world very soon. Thank you! 💜</p>`;
+                               <h3 class="empire-success-title">${t("received_title")}</h3>
+                               <p class="empire-success-sub">${t("received_sub")} 💜</p>`;
                         successMsg.style.display = 'flex';
                     }
 
@@ -542,7 +571,11 @@ const EmpireWidgets = (function() {
                 if (!shopDomain) continue;
 
                 const data = await this.fetchReviewsData(productId, shopDomain, 1);
-                
+
+                // Resolve merchant language from this widget's own fetch so the
+                // star-rating summary localizes even if no review-list is present.
+                if (data && data.settings && data.settings.language) setLang(data.settings.language);
+
                 if (!data || !data.stats || data.stats.total === 0) {
                     wrapper.innerHTML = `<span class="empire-rating-text">${t("no_reviews_yet")}</span>`;
                     continue;
@@ -555,7 +588,7 @@ const EmpireWidgets = (function() {
                             <span class="empire-rating-text">${data.stats.average.toFixed(2)} ${t("out_of_5")}</span>
                         </div>
                         <div class="empire-rating-text" style="color: var(--text-color, var(--empire-text-light));">
-                            Based on ${data.stats.total} reviews 
+                            ${tf("based_on_reviews", { n: data.stats.total })}
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#48c7a6" style="width:1.2em; height:1.2em; vertical-align:middle; margin-left:2px; transform:translateY(-1px);"><rect width="24" height="24" rx="4"/><path fill="#fff" d="M9.5 16l-4-4 1.5-1.5 2.5 2.5 6.5-6.5L17.5 8z"/></svg>
                         </div>
                     </div>
@@ -611,7 +644,7 @@ const EmpireWidgets = (function() {
                                 <h3>${t("be_first")}</h3>
                             </div>`;
                     }
-                    if (summarySkeleton) summarySkeleton.innerHTML = '<div class="empire-summary-score">0.0</div><div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">Based on 0 reviews</div>';
+                    if (summarySkeleton) summarySkeleton.innerHTML = '<div class="empire-summary-score">0.0</div><div style="font-size: 0.9rem; color: #64748b; margin-top: 4px;">' + tf("based_on_reviews", { n: 0 }) + '</div>';
                     if (distContainer) distContainer.innerHTML = '';
                     continue;
                 }
@@ -620,7 +653,7 @@ const EmpireWidgets = (function() {
                     summarySkeleton.outerHTML = `
                         <div class="empire-summary-stats">
                             <div class="empire-summary-score">${data.stats.average.toFixed(1)}</div>
-                            <div style="font-size: 0.95rem; font-weight: 500; color: #64748b; margin-top: 4px;">Based on ${data.stats.total} reviews</div>
+                            <div style="font-size: 0.95rem; font-weight: 500; color: #64748b; margin-top: 4px;">${tf("based_on_reviews", { n: data.stats.total })}</div>
                         </div>`;
                 }
 
@@ -661,16 +694,16 @@ const EmpireWidgets = (function() {
                             reviewsCol.classList.add('empire-mobile-hidden');
                             const toggleBtn = document.createElement('button');
                             toggleBtn.className = 'empire-mobile-reviews-toggle';
-                            toggleBtn.innerText = 'See all reviews here ↓';
+                            toggleBtn.innerText = t("see_all_reviews");
                             summaryCol.appendChild(toggleBtn);
 
                             toggleBtn.addEventListener('click', () => {
                                 if (reviewsCol.classList.contains('empire-mobile-hidden')) {
                                     reviewsCol.classList.remove('empire-mobile-hidden');
-                                    toggleBtn.innerText = 'Hide reviews ↑';
+                                    toggleBtn.innerText = t("hide_reviews");
                                 } else {
                                     reviewsCol.classList.add('empire-mobile-hidden');
-                                    toggleBtn.innerText = 'See all reviews here ↓';
+                                    toggleBtn.innerText = t("see_all_reviews");
                                 }
                             });
                         }
@@ -705,7 +738,7 @@ const EmpireWidgets = (function() {
                             if (entries[0].isIntersecting && !widgetState[widgetId].isLoading && widgetState[widgetId].hasMore) {
                                 widgetState[widgetId].isLoading = true;
                                 widgetState[widgetId].page += 1;
-                                loadMoreTrigger.innerHTML = '<div class="empire-spinner"></div> Loading...';
+                                loadMoreTrigger.innerHTML = '<div class="empire-spinner"></div> ' + t("loading");
                                 
                                 const nextData = await this.fetchReviewsData(productId, shopDomain, widgetState[widgetId].page);
                                 if (nextData && nextData.reviews && nextData.reviews.length > 0) {
@@ -747,7 +780,7 @@ const EmpireWidgets = (function() {
                     if (isVideo) {
                         mediaHtml += `<video src="${safeUrl}" class="empire-gallery-video" controls playsinline preload="metadata" style="max-width:280px; width:100%; border-radius:10px; margin-top:4px; display:block;"></video>`;
                     } else {
-                        mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" alt="Customer photo" loading="lazy" data-open-url="${safeUrl}" />`;
+                        mediaHtml += `<img src="${safeUrl}" class="empire-gallery-img" alt="${t("customer_photo")}" loading="lazy" data-open-url="${safeUrl}" />`;
                     }
                 });
                 mediaHtml += '</div>';
@@ -818,6 +851,10 @@ const EmpireWidgets = (function() {
                     if (!res.ok) throw new Error("Failed to load featured reviews");
                     const data = await res.json();
 
+                    // Localize carousel text when the response carries the setting
+                    // (product-scoped path hits /api/reviews which returns it).
+                    if (data && data.settings && data.settings.language) setLang(data.settings.language);
+
                     if (!data.reviews || data.reviews.length === 0) {
                         section.style.display = 'none'; // Gracefully hide instead of showing empty text
                         continue;
@@ -835,7 +872,7 @@ const EmpireWidgets = (function() {
                         const verifiedHtml = rev.verified ? `
                         <div style="display:flex; align-items:center; gap:6px; font-weight:700; font-size:0.65rem; color:#10b981; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:12px;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#10b981" style="width:14px; height:14px;"><rect width="24" height="24" rx="4"></rect><path fill="#fff" d="M10 16.4l-4.2-4.2 1.4-1.4 2.8 2.8 7.2-7.2 1.4 1.4z"></path></svg>
-                            VERIFIED BUYER
+                            ${t("verified_buyer")}
                         </div>` : '';
 
                         let mediaHtml = '';
@@ -1028,9 +1065,9 @@ const EmpireWidgets = (function() {
                             data-body="${this.escapeHtml((photo.body || '').substring(0, 120))}"
                             role="button"
                             tabindex="0"
-                            aria-label="View photo by ${name}"
+                            aria-label="${t("customer_photo")}"
                         >
-                            <img src="${this.escapeHtml(photo.url)}" alt="Review photo by ${name}" loading="lazy" />
+                            <img src="${this.escapeHtml(photo.url)}" alt="${t("customer_photo")}" loading="lazy" />
                             <div class="empire-gallery-tile-badge">
                                 <span class="empire-gallery-tile-name">${name}</span>
                                 <span class="empire-gallery-tile-stars">${starLabel}</span>
@@ -1058,7 +1095,7 @@ const EmpireWidgets = (function() {
 
                 } catch (err) {
                     console.error('[Empire] Photo gallery error:', err);
-                    grid.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">Failed to load photos.</div>';
+                    grid.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">' + t("failed_photos") + '</div>';
                 }
             }
         }
@@ -1094,6 +1131,14 @@ const EmpireWidgets = (function() {
             }
         }
     });
+
+    // Expose i18n helpers so isolated inline block scripts (floating-tab,
+    // ai-summary) can localize their own dynamically-rendered strings.
+    API.t = t;
+    API.tf = tf;
+    API.setLang = setLang;
+    API.applyI18n = applyI18n;
+    API.currentLang = function () { return currentLang; };
 
     return API;
 })();
