@@ -315,6 +315,21 @@ model LearnedAnswer {
   @@index([active])
 }
 
+// Two-way support inbox: merchant ↔ Empire team. The merchant posts from the
+// support widget's Messages tab; the owner replies from the Support & Learning
+// panel. Shop-scoped — each merchant only ever sees their own thread.
+model SupportMessage {
+  id        String    @id @default(uuid())
+  shop      String
+  sender    String // "merchant" | "team"
+  body      String
+  readAt    DateTime? // null until the other side has seen it
+  createdAt DateTime  @default(now())
+
+  @@index([shop])
+  @@index([shop, createdAt])
+}
+
 // Rate Limiting (Database-Backed)
 model RateLimit {
   id        String   @id @default(uuid())

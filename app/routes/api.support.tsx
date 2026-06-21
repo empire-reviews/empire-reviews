@@ -87,6 +87,44 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({ ok: true });
   }
 
+  // ── Messages inbox: merchant ↔ Empire team (two-way support thread) ──
+  // The widget's Messages tab lists the thread and posts new merchant messages.
+  // Owner replies are written from the Support & Learning panel (sender:"team").
+  if (rawBody && rawBody.intent === "list_messages") {
+    try {
+      const rows = await prisma.supportMessage.findMany({
+        where: { shop: session.shop },
+        orderBy: { createdAt: "asc" },
+        take: 200,
+        select: { id: true, sender: true, body: true, createdAt: true },
+      });
+      // Mark team→merchant messages as read now that the merchant is viewing them.
+      await prisma.supportMessage.updateMany({
+        where: { shop: session.shop, sender: "team", readAt: null },
+        data: { readAt: new Date() },
+      });
+      return json({ ok: true, messages: rows });
+    } catch (e) {
+      console.error("[support] list_messages failed (table may be mid-migration):", (e as Error).message);
+      return json({ ok: true, messages: [] });
+    }
+  }
+
+  if (rawBody && rawBody.intent === "send_message") {
+    const text = String(rawBody.body || "").trim().slice(0, 2000);
+    if (!text) return json({ ok: false, error: "Empty message" }, { status: 400 });
+    try {
+      const row = await prisma.supportMessage.create({
+        data: { shop: session.shop, sender: "merchant", body: text },
+        select: { id: true, sender: true, body: true, createdAt: true },
+      });
+      return json({ ok: true, message: row });
+    } catch (e) {
+      console.error("[support] send_message failed:", (e as Error).message);
+      return json({ ok: false, error: "Could not send message right now." }, { status: 500 });
+    }
+  }
+
   try {
     const body = rawBody;
     question = (body.question ?? "").toString().trim();

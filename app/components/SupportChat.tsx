@@ -343,6 +343,13 @@ export default function SupportChat({ shop }: SupportChatProps) {
   const [articleBack, setArticleBack] = useState<View>("help");
   const [query, setQuery] = useState("");
 
+  // Messages tab (two-way inbox with the Empire team)
+  const [dmMessages, setDmMessages] = useState<{ id: string; sender: string; body: string; createdAt: string }[]>([]);
+  const [dmInput, setDmInput] = useState("");
+  const dmFetcher = useFetcher<{ ok?: boolean; messages?: { id: string; sender: string; body: string; createdAt: string }[] }>();
+  const dmSendFetcher = useFetcher<{ ok?: boolean }>();
+  const dmEndRef = useRef<HTMLDivElement>(null);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -446,6 +453,28 @@ export default function SupportChat({ shop }: SupportChatProps) {
     else if (view === "chat") setView("home");
     else setView("home");
   }, [view, articleBack]);
+
+  // ── Messages: load the thread when the tab opens, keep it scrolled ──
+  useEffect(() => {
+    if (open && view === "messages") {
+      dmFetcher.submit({ intent: "list_messages" }, { method: "POST", action: "/api/support", encType: "application/json" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, view]);
+  useEffect(() => {
+    if (dmFetcher.data?.messages) setDmMessages(dmFetcher.data.messages);
+  }, [dmFetcher.data]);
+  useEffect(() => {
+    if (view === "messages") dmEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [dmMessages, view]);
+
+  const sendDm = useCallback(() => {
+    const text = dmInput.trim();
+    if (!text) return;
+    setDmMessages((prev) => [...prev, { id: "tmp_" + uid(), sender: "merchant", body: text, createdAt: new Date().toISOString() }]);
+    dmSendFetcher.submit({ intent: "send_message", body: text }, { method: "POST", action: "/api/support", encType: "application/json" });
+    setDmInput("");
+  }, [dmInput, dmSendFetcher]);
 
   const mailtoHref = buildMailto(shop, messages);
   const name = shopName(shop);
@@ -637,17 +666,42 @@ export default function SupportChat({ shop }: SupportChatProps) {
           );
         })()}
 
-        {/* ── MESSAGES (Phase 1 stub) ── */}
+        {/* ── MESSAGES (two-way inbox with the Empire team) ── */}
         {view === "messages" && (
-          <div style={styles.body}>
-            <div style={styles.empty}>
-              <div style={{ fontSize: 34, marginBottom: 10 }}>💬</div>
-              <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No messages yet</div>
-              <div style={{ fontSize: "0.84rem", marginBottom: 18 }}>Reach the Empire team and we'll get back to you by email.</div>
-              <a href={mailtoHref} target="_blank" rel="noopener noreferrer" style={styles.primaryBtn}>Send us a message →</a>
-              <button onClick={() => setView("chat")} style={{ ...styles.tocItem, textAlign: "center", marginTop: 14, color: GOLD }}>or ask the AI assistant</button>
+          <>
+            <div style={styles.messages} role="log" aria-live="polite" aria-label="Messages with the Empire team">
+              {dmMessages.length === 0 ? (
+                <div style={styles.empty}>
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>💬</div>
+                  <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No messages yet</div>
+                  <div style={{ fontSize: "0.84rem" }}>Send the Empire team a message below — replies land right here.</div>
+                </div>
+              ) : (
+                dmMessages.map((m) => (
+                  <div key={m.id} style={styles.msgRow(m.sender === "merchant" ? "user" : "assistant")}>
+                    <div style={styles.bubble_msg(m.sender === "merchant" ? "user" : "assistant")}>{m.body}</div>
+                    <span style={{ fontSize: "0.66rem", color: "#aab0bc", margin: "2px 4px 0" }}>
+                      {m.sender === "team" ? "Empire team" : "You"} · {new Date(m.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                ))
+              )}
+              <div ref={dmEndRef} />
             </div>
-          </div>
+            <div style={styles.inputRow}>
+              <textarea
+                style={styles.input}
+                rows={1}
+                placeholder="Message the Empire team…"
+                value={dmInput}
+                onChange={(e) => setDmInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendDm(); } }}
+                maxLength={2000}
+                aria-label="Message to the Empire team"
+              />
+              <button style={styles.sendBtn(!dmInput.trim())} onClick={sendDm} disabled={!dmInput.trim()} aria-label="Send message">Send</button>
+            </div>
+          </>
         )}
 
         {/* ── CHAT ── */}

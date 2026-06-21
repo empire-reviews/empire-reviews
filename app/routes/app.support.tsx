@@ -53,6 +53,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         dbError = true;
     }
 
+    // Direct messages (merchant ↔ team). Separate try so a not-yet-migrated
+    // SupportMessage table can't break the rest of the panel.
+    let dmRows: any[] = [];
+    try {
+        dmRows = await prisma.supportMessage.findMany({
+            orderBy: { createdAt: "asc" },
+            take: 1000,
+            select: { id: true, shop: true, sender: true, body: true, readAt: true, createdAt: true },
+        });
+    } catch (e) {
+        console.error("[support page] messages query failed (table may be pending migration):", (e as Error).message);
+    }
+    // Group into per-shop threads, newest-active first, with an unread count
+    // (merchant messages the team hasn't read yet).
+    const threadMap = new Map<string, any>();
+    for (const m of dmRows) {
+        if (!threadMap.has(m.shop)) threadMap.set(m.shop, { shop: m.shop, messages: [], unread: 0, lastAt: m.createdAt });
+        const t = threadMap.get(m.shop);
+        t.messages.push({ id: m.id, sender: m.sender, body: m.body, createdAt: m.createdAt });
+        if (m.sender === "merchant" && !m.readAt) t.unread += 1;
+        t.lastAt = m.createdAt;
+    }
+    const threads = Array.from(threadMap.values()).sort(
+        (a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+    );
+
     const total = logs.length;
     const aiAnswered = logs.filter((l) => l.usedAi).length;
     const escalated = logs.filter((l) => l.escalated).length;
@@ -81,6 +107,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
     return json({
         dbError,
+        threads,
         stats: { total, aiAnswered, escalated, up, down, helpfulPct, learnedCount: learned.length },
         gaps,
         learned: learned.map((l) => ({ id: l.id, question: l.question, answer: l.answer, keywords: l.keywords, active: l.active })),
@@ -97,6 +124,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     assertOwner(session.shop); // never let a non-owner shop teach/edit/delete the global brain
     const fd = await request.formData();
     const intent = fd.get("intent");
+
+    if (intent === "reply_message") {
+        const shop = ((fd.get("shop") as string) || "").trim();
+        const body = ((fd.get("body") as string) || "").trim().slice(0, 2000);
+        if (!shop || !body) return json({ ok: false, error: "Message is required" });
+        await prisma.supportMessage.create({ data: { shop, sender: "team", body } });
+        // Mark this shop's merchant messages as read now that we've replied.
+        await prisma.supportMessage.updateMany({
+            where: { shop, sender: "merchant", readAt: null },
+            data: { readAt: new Date() },
+        });
+        return json({ ok: true });
+    }
 
     if (intent === "teach") {
         const question = ((fd.get("question") as string) || "").trim();
@@ -253,8 +293,60 @@ function LearnedRow({ item }: { item: any }) {
     );
 }
 
+function MessageThread({ thread }: { thread: any }) {
+    const fetcher = useFetcher();
+    const [reply, setReply] = useState("");
+    const busy = fetcher.state !== "idle";
+    const sent = (fetcher.data as any)?.ok;
+
+    return (
+        <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+            <BlockStack gap="200">
+                <InlineStack align="space-between" blockAlign="center">
+                    <Text as="p" fontWeight="semibold">{thread.shop}</Text>
+                    {thread.unread > 0 && <Badge tone="attention">{`${thread.unread} new`}</Badge>}
+                </InlineStack>
+                <BlockStack gap="150">
+                    {thread.messages.map((m: any) => (
+                        <Box key={m.id} padding="200" borderRadius="200"
+                            background={m.sender === "team" ? "bg-surface-success" : "bg-surface"}>
+                            <BlockStack gap="050">
+                                <Text as="span" variant="bodySm" tone="subdued">
+                                    {m.sender === "team" ? "You (Empire)" : thread.shop} · {new Date(m.createdAt).toLocaleString()}
+                                </Text>
+                                <Text as="p">{m.body}</Text>
+                            </BlockStack>
+                        </Box>
+                    ))}
+                </BlockStack>
+                <fetcher.Form method="post">
+                    <input type="hidden" name="intent" value="reply_message" />
+                    <input type="hidden" name="shop" value={thread.shop} />
+                    <BlockStack gap="200">
+                        <TextField label="Reply" labelHidden multiline={2} name="body" autoComplete="off"
+                            value={reply} onChange={setReply} placeholder={`Reply to ${thread.shop}…`} />
+                        <InlineStack gap="200" blockAlign="center">
+                            <Button submit variant="primary" loading={busy} disabled={!reply.trim()}
+                                onClick={() => {
+                                    fetcher.submit(
+                                        { intent: "reply_message", shop: thread.shop, body: reply },
+                                        { method: "post" }
+                                    );
+                                    setReply("");
+                                }}>
+                                Send reply
+                            </Button>
+                            {sent && <Text as="span" variant="bodySm" tone="success">Sent ✓</Text>}
+                        </InlineStack>
+                    </BlockStack>
+                </fetcher.Form>
+            </BlockStack>
+        </Box>
+    );
+}
+
 export default function SupportPage() {
-    const { stats, gaps, learned, topTopics, recent, dbError } = useLoaderData<typeof loader>();
+    const { stats, gaps, learned, topTopics, recent, dbError, threads } = useLoaderData<typeof loader>();
 
     return (
         <Page
@@ -280,6 +372,25 @@ export default function SupportPage() {
                         <StatCard label="Escalated" value={stats.escalated} />
                         <StatCard label="Learned answers" value={stats.learnedCount} />
                     </InlineGrid>
+                </Layout.Section>
+
+                {/* Direct messages — merchant ↔ team inbox */}
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="300">
+                            <InlineStack align="space-between" blockAlign="center">
+                                <Text as="h2" variant="headingMd">Messages ({threads.length})</Text>
+                                <Text as="span" variant="bodySm" tone="subdued">Replies show up in the merchant's support widget</Text>
+                            </InlineStack>
+                            {threads.length === 0 ? (
+                                <Text as="p" tone="subdued">No merchant messages yet. When a merchant sends one from the support widget, the thread appears here to reply.</Text>
+                            ) : (
+                                <BlockStack gap="300">
+                                    {threads.map((t) => <MessageThread key={t.shop} thread={t} />)}
+                                </BlockStack>
+                            )}
+                        </BlockStack>
+                    </Card>
                 </Layout.Section>
 
                 {/* Gaps — teach the bot */}
