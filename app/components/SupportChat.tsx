@@ -195,8 +195,8 @@ const styles = {
     cursor: "pointer",
     textAlign: "left" as const,
   },
-  rowTitle: { fontSize: "0.86rem", fontWeight: 600, color: "#1f2330", lineHeight: 1.35 } as React.CSSProperties,
-  rowSub: { fontSize: "0.74rem", color: "#8a909c", marginTop: 2 } as React.CSSProperties,
+  rowTitle: { display: "block", fontSize: "0.86rem", fontWeight: 600, color: "#1f2330", lineHeight: 1.35 } as React.CSSProperties,
+  rowSub: { display: "block", fontSize: "0.74rem", color: "#8a909c", marginTop: 3, lineHeight: 1.45 } as React.CSSProperties,
   chevron: { marginLeft: "auto", color: "#c2c7d0", fontSize: "1rem", flexShrink: 0 } as React.CSSProperties,
   sectionLabel: { fontSize: "0.72rem", fontWeight: 700, color: "#9aa0ac", textTransform: "uppercase" as const, letterSpacing: "0.04em", margin: "16px 16px 2px" } as React.CSSProperties,
   // featured / CTA card
