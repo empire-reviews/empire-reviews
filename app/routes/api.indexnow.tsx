@@ -12,7 +12,7 @@ import { publicUrls } from "../utils/seo.server";
  * Trigger it after deploying new/edited help content, or wire it to a cron.
  *   curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/indexnow
  */
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const action = async ({ request }: LoaderFunctionArgs) => {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     console.error("❌ CRON_SECRET not set — cannot authorize IndexNow submit");
